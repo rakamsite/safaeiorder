@@ -75,8 +75,8 @@ class CRPCRM_Request_Forms {
 		$labels = array(
 			'new'         => 'ثبت شده',
 			'in_progress' => 'در حال بررسی',
-			'no_answer'   => 'در انتظار تماس مجدد',
-			'follow_up'   => 'نیازمند پیگیری',
+			'no_answer'   => 'در انتظار تماس',
+			'follow_up'   => 'در حال پیگیری',
 			'won'         => 'تکمیل شده',
 			'lost'        => 'بسته شده',
 			'invalid'     => 'بسته شده',
