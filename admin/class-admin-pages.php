@@ -11,10 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Admin_Pages {
 	private $request_repository;
+	private $customer_repository;
 	private $workflow_service;
 
 	public function __construct() {
 		$this->request_repository = new CRPCRM_Request_Repository();
+		$this->customer_repository = new CRPCRM_Customer_Repository();
 		$this->workflow_service    = new CRPCRM_Request_Workflow_Service( $this->request_repository );
 		add_action( 'admin_post_crpcrm_claim_request', array( $this, 'handle_claim_request' ) );
 		add_action( 'admin_post_crpcrm_change_owner', array( $this, 'handle_change_owner' ) );
@@ -43,7 +45,76 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function customers() {
-		$this->render( 'customers-placeholder.php' );
+		if ( ! CRPCRM_Request_Access_Service::can_view_all( get_current_user_id() ) ) {
+			$this->render_message( 'شما اجازه دسترسی به این بخش را ندارید.' );
+			return;
+		}
+
+		$page     = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		$per_page = 20;
+		$filters  = $this->get_customer_filters();
+		$args     = array_merge( $filters, array( 'limit' => $per_page, 'offset' => ( $page - 1 ) * $per_page, 'user_id' => get_current_user_id() ) );
+		$customers = $this->customer_repository->list_for_admin( $args );
+		$total     = $this->customer_repository->count_for_admin( $args );
+
+		CRPCRM_Logger::info( 'admin_customer_list_viewed', 'admin_customer_list_viewed', array( 'user_id' => get_current_user_id(), 'filters' => $filters ) );
+
+		$this->render(
+			'customers.php',
+			array(
+				'mode'        => 'list',
+				'customers'   => $customers,
+				'filters'     => $filters,
+				'page'        => $page,
+				'per_page'    => $per_page,
+				'total'       => $total,
+				'total_pages' => max( 1, (int) ceil( $total / $per_page ) ),
+			)
+		);
+	}
+
+	public function customer_profile() {
+		if ( ! CRPCRM_Request_Access_Service::can_access_admin_requests() ) {
+			$this->render_message( 'شما اجازه دسترسی به این بخش را ندارید.' );
+			return;
+		}
+
+		$customer_id = isset( $_GET['customer_id'] ) ? absint( $_GET['customer_id'] ) : 0;
+		if ( ! $customer_id ) {
+			CRPCRM_Logger::warning( 'admin_customer_profile_not_found', 'admin_customer_profile_not_found', array( 'user_id' => get_current_user_id() ) );
+			$this->render_message( 'مشتری موردنظر یافت نشد.' );
+			return;
+		}
+
+		$customer = $this->customer_repository->get_with_user( $customer_id );
+		if ( ! $customer ) {
+			CRPCRM_Logger::warning( 'admin_customer_profile_not_found', 'admin_customer_profile_not_found', array( 'customer_id' => $customer_id, 'user_id' => get_current_user_id() ) );
+			$this->render_message( 'مشتری موردنظر یافت نشد.' );
+			return;
+		}
+
+		if ( ! $this->customer_repository->user_can_view_customer( $customer_id, get_current_user_id() ) ) {
+			CRPCRM_Logger::warning( 'admin_customer_profile_access_denied', 'admin_customer_profile_access_denied', array( 'customer_id' => $customer_id, 'user_id' => get_current_user_id() ) );
+			$this->render_message( 'شما اجازه مشاهده پروفایل این مشتری را ندارید.' );
+			return;
+		}
+
+		$attribution_repository = new CRPCRM_Customer_Attribution_Repository();
+		CRPCRM_Logger::info( 'admin_customer_profile_viewed', 'admin_customer_profile_viewed', array( 'customer_id' => $customer_id, 'user_id' => get_current_user_id() ) );
+
+		$this->render(
+			'customers.php',
+			array(
+				'mode'               => 'profile',
+				'customer'           => $customer,
+				'stats'              => $this->customer_repository->get_customer_stats( $customer_id ),
+				'requests'           => $this->customer_repository->get_customer_requests( $customer_id, array( 'limit' => 100, 'user_id' => get_current_user_id() ) ),
+				'agents'             => $this->customer_repository->get_customer_agents( $customer_id ),
+				'activities'         => $this->customer_repository->get_customer_recent_activities( $customer_id, 20 ),
+				'attribution_events' => $attribution_repository->get_events_by_customer( $customer_id, 20 ),
+				'return_request_id'  => isset( $_GET['return_request_id'] ) ? absint( $_GET['return_request_id'] ) : 0,
+			)
+		);
 	}
 
 	public function reports() {
@@ -205,6 +276,17 @@ class CRPCRM_Admin_Pages {
 				'can_add_action'=> $this->workflow_service->can_add_action( $request, get_current_user_id(), 'call_answered' ) || $this->workflow_service->can_add_action( $request, get_current_user_id(), 'internal_note' ),
 				'workflow'      => $this->workflow_service,
 			)
+		);
+	}
+
+	private function get_customer_filters() {
+		return array(
+			'first_source' => isset( $_GET['first_source'] ) ? sanitize_key( wp_unslash( $_GET['first_source'] ) ) : '',
+			'last_source'  => isset( $_GET['last_source'] ) ? sanitize_key( wp_unslash( $_GET['last_source'] ) ) : '',
+			'province'     => isset( $_GET['province'] ) ? sanitize_text_field( wp_unslash( $_GET['province'] ) ) : '',
+			'city'         => isset( $_GET['city'] ) ? sanitize_text_field( wp_unslash( $_GET['city'] ) ) : '',
+			'open_filter'  => isset( $_GET['open_filter'] ) ? sanitize_key( wp_unslash( $_GET['open_filter'] ) ) : '',
+			'search'       => isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '',
 		);
 	}
 

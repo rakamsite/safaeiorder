@@ -34,7 +34,8 @@ class CRPCRM_Admin_Menu {
 
 		add_submenu_page( 'crpcrm-dashboard', 'داشبورد', 'داشبورد', 'crpcrm_manage_plugin', 'crpcrm-dashboard', array( $this->admin_pages, 'dashboard' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'درخواست‌ها', 'درخواست‌ها', 'crpcrm_use_staff_portal', 'crpcrm-requests', array( $this->admin_pages, 'requests' ) );
-		add_submenu_page( 'crpcrm-dashboard', 'مشتریان', 'مشتریان', 'crpcrm_manage_plugin', 'crpcrm-customers', array( $this->admin_pages, 'customers' ) );
+		add_submenu_page( 'crpcrm-dashboard', 'مشتریان', 'مشتریان', 'crpcrm_view_all_requests', 'crpcrm-customers', array( $this->admin_pages, 'customers' ) );
+		add_submenu_page( null, 'پروفایل مشتری', 'پروفایل مشتری', 'crpcrm_use_staff_portal', 'crpcrm-customer-profile', array( $this->admin_pages, 'customer_profile' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'گزارش‌ها', 'گزارش‌ها', 'crpcrm_view_reports', 'crpcrm-reports', array( $this->admin_pages, 'reports' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'کارکنان', 'کارکنان', 'crpcrm_manage_staff_portal', 'crpcrm-staff', array( $this->admin_pages, 'staff' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'تنظیمات', 'تنظیمات', 'crpcrm_manage_settings', 'crpcrm-settings', array( $this->admin_pages, 'settings' ) );

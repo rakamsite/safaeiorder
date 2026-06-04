@@ -259,3 +259,31 @@
 		grid-template-columns: 1fr;
 	}
 }
+
+.crpcrm-customers-admin .crpcrm-card {
+	max-width: none;
+}
+
+.crpcrm-profile-header {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	margin: 12px 0;
+	padding: 16px 20px;
+}
+
+.crpcrm-profile-header h2 {
+	margin: 0 0 6px;
+}
+
+.crpcrm-profile-header span {
+	color: #50575e;
+	font-weight: 600;
+}
+
+.crpcrm-customers-table th,
+.crpcrm-customers-table td,
+.crpcrm-customers-admin .widefat th,
+.crpcrm-customers-admin .widefat td {
+	vertical-align: top;
+}

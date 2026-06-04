@@ -109,11 +109,24 @@ class CRPCRM_Helpers {
 			'instagram' => 'اینستاگرام',
 			'whatsapp'  => 'واتساپ',
 			'google'    => 'گوگل',
+			'bing'      => 'بینگ',
 			'telegram'  => 'تلگرام',
 			'other'     => 'سایر',
 		);
 
-		return isset( $labels[ $source ] ) ? $labels[ $source ] : ( $source ? $source : '—' );
+		return isset( $labels[ $source ] ) ? $labels[ $source ] : ( $source ? $source : 'ثبت نشده' );
+	}
+
+
+	public static function get_medium_label( $medium ) {
+		$labels = array(
+			'social'   => 'شبکه اجتماعی',
+			'referral' => 'ارجاعی',
+			'organic'  => 'ارگانیک',
+			'none'     => 'بدون مدیوم',
+		);
+
+		return isset( $labels[ $medium ] ) ? $labels[ $medium ] : ( $medium ? $medium : 'ثبت نشده' );
 	}
 
 	public static function get_activity_type_label( $activity_type ) {
