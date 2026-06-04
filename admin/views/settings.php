@@ -54,9 +54,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 
 		<div class="crpcrm-card">
+			<h2><?php echo esc_html( 'تنظیمات رهگیری ورودی' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tr>
+					<th scope="row"><label for="attribution_window_hours"><?php echo esc_html( 'مدت اعتبار منبع ورود، به ساعت' ); ?></label></th>
+					<td>
+						<input name="crpcrm_settings[attribution_window_hours]" id="attribution_window_hours" type="number" min="1" value="<?php echo esc_attr( $settings['attribution_window_hours'] ); ?>" />
+						<p class="description"><?php echo esc_html( 'اگر کاربر از یک منبع مثل اینستاگرام وارد سایت شود، درخواست‌هایی که در این بازه زمانی ثبت کند به همان منبع نسبت داده می‌شود؛ مگر اینکه از منبع جدیدی وارد شود.' ); ?></p>
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		<div class="crpcrm-card">
 			<h2><?php echo esc_html( 'تنظیمات عملیاتی پایه' ); ?></h2>
 			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="attribution_window_hours"><?php echo esc_html( 'پنجره attribution (ساعت)' ); ?></label></th><td><input name="crpcrm_settings[attribution_window_hours]" id="attribution_window_hours" type="number" min="1" value="<?php echo esc_attr( $settings['attribution_window_hours'] ); ?>" /></td></tr>
 				<tr><th scope="row"><label for="request_rate_limit_count"><?php echo esc_html( 'تعداد مجاز ثبت درخواست' ); ?></label></th><td><input name="crpcrm_settings[request_rate_limit_count]" id="request_rate_limit_count" type="number" min="1" value="<?php echo esc_attr( $settings['request_rate_limit_count'] ); ?>" /></td></tr>
 				<tr><th scope="row"><label for="request_rate_limit_minutes"><?php echo esc_html( 'بازه محدودیت درخواست (دقیقه)' ); ?></label></th><td><input name="crpcrm_settings[request_rate_limit_minutes]" id="request_rate_limit_minutes" type="number" min="1" value="<?php echo esc_attr( $settings['request_rate_limit_minutes'] ); ?>" /></td></tr>
 				<tr><th scope="row"><label for="stale_request_hours"><?php echo esc_html( 'زمان لید رهاشده (ساعت)' ); ?></label></th><td><input name="crpcrm_settings[stale_request_hours]" id="stale_request_hours" type="number" min="1" value="<?php echo esc_attr( $settings['stale_request_hours'] ); ?>" /></td></tr>
@@ -66,4 +78,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<?php submit_button( 'ذخیره تنظیمات' ); ?>
 	</form>
+
+	<?php if ( current_user_can( 'crpcrm_manage_plugin' ) ) : ?>
+		<div class="crpcrm-card">
+			<h2><?php echo esc_html( 'وضعیت رهگیری فعلی' ); ?></h2>
+			<?php if ( ! empty( $current_attribution ) && is_array( $current_attribution ) ) : ?>
+				<table class="widefat striped" role="presentation">
+					<tbody>
+						<tr><th><?php echo esc_html( 'منبع فعلی' ); ?></th><td><?php echo esc_html( $current_attribution['source'] ); ?></td></tr>
+						<tr><th><?php echo esc_html( 'مدیوم فعلی' ); ?></th><td><?php echo esc_html( $current_attribution['medium'] ); ?></td></tr>
+						<tr><th><?php echo esc_html( 'کمپین فعلی' ); ?></th><td><?php echo esc_html( $current_attribution['campaign'] ); ?></td></tr>
+						<tr><th><?php echo esc_html( 'محتوای فعلی' ); ?></th><td><?php echo esc_html( $current_attribution['content'] ); ?></td></tr>
+						<tr><th><?php echo esc_html( 'صفحه فرود' ); ?></th><td><?php echo esc_html( $current_attribution['landing_page'] ); ?></td></tr>
+						<tr><th><?php echo esc_html( 'ارجاع‌دهنده' ); ?></th><td><?php echo esc_html( $current_attribution['referrer'] ); ?></td></tr>
+						<tr><th><?php echo esc_html( 'زمان تشخیص' ); ?></th><td><?php echo esc_html( $current_attribution['detected_at'] ); ?></td></tr>
+						<tr><th><?php echo esc_html( 'زمان انقضا' ); ?></th><td><?php echo esc_html( $current_attribution['expires_at'] ); ?></td></tr>
+					</tbody>
+				</table>
+			<?php else : ?>
+				<p><?php echo esc_html( 'در حال حاضر رهگیری معتبری در cookie این مرورگر وجود ندارد.' ); ?></p>
+			<?php endif; ?>
+		</div>
+	<?php endif; ?>
 </div>
