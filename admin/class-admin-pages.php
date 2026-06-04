@@ -13,15 +13,18 @@ class CRPCRM_Admin_Pages {
 	private $request_repository;
 	private $customer_repository;
 	private $workflow_service;
+	private $reports_repository;
 
 	public function __construct() {
 		$this->request_repository = new CRPCRM_Request_Repository();
 		$this->customer_repository = new CRPCRM_Customer_Repository();
 		$this->workflow_service    = new CRPCRM_Request_Workflow_Service( $this->request_repository );
+		$this->reports_repository = new CRPCRM_Reports_Repository();
 		add_action( 'admin_post_crpcrm_claim_request', array( $this, 'handle_claim_request' ) );
 		add_action( 'admin_post_crpcrm_change_owner', array( $this, 'handle_change_owner' ) );
 		add_action( 'admin_post_crpcrm_release_owner', array( $this, 'handle_release_owner' ) );
 		add_action( 'admin_post_crpcrm_add_sales_action', array( $this, 'handle_add_sales_action' ) );
+		add_action( 'admin_post_crpcrm_reports_csv', array( $this, 'handle_reports_csv' ) );
 	}
 
 	public function dashboard() {
@@ -118,7 +121,47 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function reports() {
-		$this->render( 'reports-placeholder.php' );
+		if ( ! current_user_can( 'crpcrm_view_reports' ) ) {
+			CRPCRM_Logger::warning( 'reports_access_denied', 'reports_access_denied', array( 'user_id' => get_current_user_id(), 'screen' => 'admin_reports' ) );
+			$this->render_message( 'شما اجازه دسترسی به گزارش‌ها را ندارید.' );
+			return;
+		}
+
+		$page       = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		$per_page   = 20;
+		$filters    = $this->reports_repository->normalize_filters( $_GET );
+		$pagination = array( 'limit' => $per_page, 'offset' => ( $page - 1 ) * $per_page );
+
+		if ( ! empty( $_GET ) && count( array_intersect( array_keys( $_GET ), array( 'date_range', 'request_type', 'source', 'campaign', 'content', 'status', 'owner_filter', 'workflow_filter' ) ) ) ) {
+			CRPCRM_Logger::info( 'reports_filters_applied', 'reports_filters_applied', array( 'user_id' => get_current_user_id(), 'filters' => $filters ) );
+		} else {
+			CRPCRM_Logger::info( 'reports_viewed', 'reports_viewed', array( 'user_id' => get_current_user_id(), 'filters' => $filters ) );
+		}
+
+		$total = $this->reports_repository->count_request_details( $filters );
+		$this->render(
+			'reports.php',
+			array(
+				'filters'               => $filters,
+				'kpis'                  => $this->reports_repository->get_kpis( $filters ),
+				'source_report'         => $this->reports_repository->get_source_report( $filters ),
+				'campaign_report'       => $this->reports_repository->get_campaign_report( $filters ),
+				'content_report'        => $this->reports_repository->get_content_report( $filters ),
+				'request_type_report'   => $this->reports_repository->get_request_type_report( $filters ),
+				'source_type_matrix'    => $this->reports_repository->get_source_type_matrix( $filters ),
+				'status_funnel'         => $this->reports_repository->get_status_funnel( $filters ),
+				'agent_performance'     => $this->reports_repository->get_agent_performance( $filters ),
+				'followup_report'       => $this->reports_repository->get_followup_report( $filters ),
+				'close_reason_report'   => $this->reports_repository->get_close_reason_report( $filters ),
+				'invalid_reason_report' => $this->reports_repository->get_invalid_reason_report( $filters ),
+				'request_details'       => $this->reports_repository->get_request_details( $filters, $pagination ),
+				'assignable_users'      => $this->get_assignable_users(),
+				'page'                  => $page,
+				'per_page'              => $per_page,
+				'total'                 => $total,
+				'total_pages'           => max( 1, (int) ceil( $total / $per_page ) ),
+			)
+		);
 	}
 
 	public function staff() {
@@ -137,6 +180,48 @@ class CRPCRM_Admin_Pages {
 				'current_attribution' => $current_attribution,
 			)
 		);
+	}
+
+
+	public function handle_reports_csv() {
+		if ( ! current_user_can( 'crpcrm_view_reports' ) ) {
+			CRPCRM_Logger::warning( 'reports_access_denied', 'reports_access_denied', array( 'user_id' => get_current_user_id(), 'screen' => 'reports_csv' ) );
+			wp_die( esc_html( 'شما اجازه دسترسی به گزارش‌ها را ندارید.' ) );
+		}
+		check_admin_referer( 'crpcrm_reports_csv' );
+
+		$filters  = $this->reports_repository->normalize_filters( $_GET );
+		$requests = $this->reports_repository->get_request_details( $filters, array( 'limit' => 1000, 'offset' => 0 ) );
+
+		CRPCRM_Logger::info( 'reports_csv_exported', 'reports_csv_exported', array( 'user_id' => get_current_user_id(), 'filters' => $filters, 'count' => count( $requests ) ) );
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename=crpcrm-report-' . gmdate( 'Ymd-His' ) . '.csv' );
+		$output = fopen( 'php://output', 'w' );
+		fwrite( $output, "\xEF\xBB\xBF" );
+		fputcsv( $output, array( 'کد پیگیری', 'تاریخ ثبت', 'نام مشتری', 'موبایل', 'نوع درخواست', 'خلاصه درخواست', 'منبع', 'کمپین', 'محتوا', 'وضعیت', 'مسئول', 'آخرین فعالیت' ) );
+		foreach ( $requests as $request ) {
+			$owner = ! empty( $request['owner_id'] ) ? get_userdata( absint( $request['owner_id'] ) ) : null;
+			fputcsv(
+				$output,
+				array(
+					$request['request_code'],
+					$request['created_at'],
+					$request['customer_name'],
+					$request['customer_phone'],
+					CRPCRM_Helpers::get_request_type_label( $request['request_type'] ),
+					$request['request_summary'],
+					CRPCRM_Helpers::get_source_label( $request['request_source'] ),
+					$request['request_campaign'],
+					$request['request_content'],
+					CRPCRM_Helpers::get_persian_status_label( $request['status'] ),
+					$owner ? $owner->display_name : 'بدون مسئول',
+					$request['last_activity_at'],
+				)
+			);
+		}
+		exit;
 	}
 
 	public function handle_claim_request() {
