@@ -139,7 +139,7 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 					<?php $request_data = CRPCRM_Helpers::maybe_json_decode( $request_detail['request_data'], true ); ?>
 					<?php if ( $created_notice ) : ?>
 						<div class="crpcrm-notice crpcrm-notice-success">
-							<?php echo esc_html( 'درخواست شما با موفقیت ثبت شد.' ); ?><br />
+							<?php echo esc_html( CRPCRM_Settings::get( 'request_success_message', 'درخواست شما با موفقیت ثبت شد. کارشناسان ما در اولین فرصت آن را بررسی می‌کنند.' ) ); ?><br />
 							<?php echo esc_html( 'کد پیگیری شما: ' . $request_detail['request_code'] ); ?>
 						</div>
 					<?php endif; ?>

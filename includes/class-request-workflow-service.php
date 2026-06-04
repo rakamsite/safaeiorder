@@ -57,7 +57,7 @@ class CRPCRM_Request_Workflow_Service {
 		}
 
 		if ( $this->is_closed_status( $request['status'] ) ) {
-			return 'internal_note' === $action_type && CRPCRM_Request_Access_Service::can_manage_request( $request, $user_id );
+			return 'yes' === CRPCRM_Settings::get( 'allow_manager_note_on_closed_request', 'yes' ) && 'internal_note' === $action_type && CRPCRM_Request_Access_Service::can_manage_request( $request, $user_id );
 		}
 
 		if ( CRPCRM_Request_Access_Service::can_manage_request( $request, $user_id ) ) {

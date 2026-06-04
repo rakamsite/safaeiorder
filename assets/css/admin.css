@@ -343,3 +343,71 @@
 	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 	gap: 16px;
 }
+
+.crpcrm-admin-wrap,
+.crpcrm-admin-wrap .form-table th,
+.crpcrm-admin-wrap .form-table td,
+.crpcrm-admin-wrap input,
+.crpcrm-admin-wrap textarea,
+.crpcrm-admin-wrap select {
+	direction: rtl;
+	text-align: right;
+}
+
+.crpcrm-tabs {
+	margin: 18px 0;
+}
+
+.crpcrm-tabs .nav-tab {
+	float: right;
+	margin-left: 6px;
+	margin-right: 0;
+}
+
+.crpcrm-dashboard-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 16px;
+	margin-top: 18px;
+}
+
+.crpcrm-dashboard-card {
+	display: flex;
+	min-height: 130px;
+	padding: 18px;
+	border: 1px solid #dcdcde;
+	border-radius: 12px;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0,0,0,.04);
+	text-decoration: none;
+	color: #1d2327;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.crpcrm-dashboard-card:hover {
+	border-color: #2271b1;
+	color: #1d2327;
+}
+
+.crpcrm-dashboard-card strong {
+	font-size: 34px;
+	line-height: 1;
+}
+
+.crpcrm-dashboard-card-link {
+	color: #2271b1;
+}
+
+.crpcrm-danger-text {
+	color: #b32d2e;
+	font-weight: 600;
+}
+
+.crpcrm-settings-form .form-table th {
+	width: 260px;
+}
+
+.crpcrm-rebuild-roles-form {
+	margin-top: 18px;
+}
