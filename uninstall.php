@@ -9,6 +9,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+wp_clear_scheduled_hook( 'crpcrm_daily_log_cleanup' );
+
 $settings = get_option( 'crpcrm_settings', array() );
 
 if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['delete_data_on_uninstall'] ) {
@@ -36,4 +38,5 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 
 	delete_option( 'crpcrm_settings' );
 	delete_option( 'crpcrm_db_version' );
+	delete_option( 'crpcrm_activation_redirect' );
 }

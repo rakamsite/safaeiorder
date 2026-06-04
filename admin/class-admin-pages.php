@@ -528,35 +528,33 @@ class CRPCRM_Admin_Pages {
 		$filters  = $this->reports_repository->normalize_filters( $_GET );
 		$requests = $this->reports_repository->get_request_details( $filters, array( 'limit' => 1000, 'offset' => 0 ) );
 
-		CRPCRM_Logger::info( 'reports_csv_exported', 'reports_csv_exported', array( 'user_id' => get_current_user_id(), 'filters' => $filters, 'count' => count( $requests ) ) );
-
-		nocache_headers();
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename=crpcrm-report-' . gmdate( 'Ymd-His' ) . '.csv' );
-		$output = fopen( 'php://output', 'w' );
-		fwrite( $output, "\xEF\xBB\xBF" );
-		fputcsv( $output, array( 'کد پیگیری', 'تاریخ ثبت', 'نام مشتری', 'موبایل', 'نوع درخواست', 'خلاصه درخواست', 'منبع', 'کمپین', 'محتوا', 'وضعیت', 'مسئول', 'آخرین فعالیت' ) );
+		$rows = array();
 		foreach ( $requests as $request ) {
 			$owner = ! empty( $request['owner_id'] ) ? get_userdata( absint( $request['owner_id'] ) ) : null;
-			fputcsv(
-				$output,
-				array(
-					$request['request_code'],
-					$request['created_at'],
-					$request['customer_name'],
-					$request['customer_phone'],
-					CRPCRM_Helpers::get_request_type_label( $request['request_type'] ),
-					$request['request_summary'],
-					CRPCRM_Helpers::get_source_label( $request['request_source'] ),
-					$request['request_campaign'],
-					$request['request_content'],
-					CRPCRM_Helpers::get_persian_status_label( $request['status'] ),
-					$owner ? $owner->display_name : 'بدون مسئول',
-					$request['last_activity_at'],
-				)
+			$rows[] = array(
+				$request['request_code'],
+				$request['created_at'],
+				$request['customer_name'],
+				$request['customer_phone'],
+				CRPCRM_Helpers::get_request_type_label( $request['request_type'] ),
+				$request['request_summary'],
+				CRPCRM_Helpers::get_source_label( $request['request_source'] ),
+				$request['request_campaign'],
+				$request['request_content'],
+				CRPCRM_Helpers::get_persian_status_label( $request['status'] ),
+				$owner ? $owner->display_name : 'بدون مسئول',
+				$request['last_activity_at'],
 			);
 		}
-		exit;
+
+		CRPCRM_Logger::info( 'reports_csv_exported', 'reports_csv_exported', array( 'user_id' => get_current_user_id(), 'filters' => $filters, 'count' => count( $rows ) ) );
+
+		$csv = new CRPCRM_CSV_Exporter();
+		$csv->output_csv(
+			'crpcrm-report-' . gmdate( 'Ymd-His' ) . '.csv',
+			array( 'کد پیگیری', 'تاریخ ثبت', 'نام مشتری', 'موبایل', 'نوع درخواست', 'خلاصه درخواست', 'منبع', 'کمپین', 'محتوا', 'وضعیت', 'مسئول', 'آخرین فعالیت' ),
+			$rows
+		);
 	}
 
 	public function handle_claim_request() {

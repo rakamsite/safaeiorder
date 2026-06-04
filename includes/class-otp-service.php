@@ -33,6 +33,11 @@ class CRPCRM_OTP_Service {
 
 		CRPCRM_Logger::info( 'otp_requested', 'otp', array( 'phone_hash' => $this->hash_value( $phone_normalized ) ) );
 
+		if ( 'yes' !== CRPCRM_Settings::get( 'customer_registration_enabled', 'yes' ) && ! $this->find_existing_user_by_phone( $phone_normalized ) ) {
+			CRPCRM_Logger::info( 'otp_registration_disabled_for_new_phone', 'otp', array( 'phone_hash' => $this->hash_value( $phone_normalized ) ) );
+			return new WP_Error( 'registration_disabled', 'در حال حاضر ثبت‌نام کاربران جدید غیرفعال است.' );
+		}
+
 		$rate_check = $this->check_rate_limit( $phone_normalized );
 		if ( is_wp_error( $rate_check ) ) {
 			return $rate_check;
@@ -156,6 +161,11 @@ class CRPCRM_OTP_Service {
 			return new WP_Error( 'wrong_code', 'کد واردشده صحیح نیست.' );
 		}
 
+		if ( 'yes' !== CRPCRM_Settings::get( 'customer_registration_enabled', 'yes' ) && ! $this->find_existing_user_by_phone( $otp['phone_normalized'] ) ) {
+			CRPCRM_Logger::info( 'customer_registration_disabled', 'customer', array( 'phone_hash' => $this->hash_value( $otp['phone_normalized'] ) ) );
+			return new WP_Error( 'registration_disabled', 'در حال حاضر ثبت‌نام کاربران جدید غیرفعال است.' );
+		}
+
 		$this->repository->update(
 			$otp['id'],
 			array(
@@ -237,19 +247,7 @@ class CRPCRM_OTP_Service {
 	}
 
 	private function find_or_create_user( $phone_normalized ) {
-		$user = get_user_by( 'login', $phone_normalized );
-
-		if ( ! $user ) {
-			$users = get_users(
-				array(
-					'meta_key'    => 'crpcrm_phone_normalized',
-					'meta_value'  => $phone_normalized,
-					'number'      => 1,
-					'count_total' => false,
-				)
-			);
-			$user  = ! empty( $users ) ? $users[0] : false;
-		}
+		$user = $this->find_existing_user_by_phone( $phone_normalized );
 
 		if ( $user ) {
 			update_user_meta( $user->ID, 'crpcrm_phone_normalized', $phone_normalized );
@@ -278,6 +276,38 @@ class CRPCRM_OTP_Service {
 		CRPCRM_Logger::info( 'customer_user_created', 'customer', array( 'user_id' => $user_id ) );
 
 		return get_user_by( 'id', $user_id );
+	}
+
+	private function find_existing_user_by_phone( $phone_normalized ) {
+		$phone_normalized = CRPCRM_Helpers::normalize_iran_phone( $phone_normalized );
+		$user             = get_user_by( 'login', $phone_normalized );
+
+		if ( $user ) {
+			return $user;
+		}
+
+		$users = get_users(
+			array(
+				'meta_key'    => 'crpcrm_phone_normalized',
+				'meta_value'  => $phone_normalized,
+				'number'      => 1,
+				'count_total' => false,
+			)
+		);
+
+		if ( ! empty( $users ) ) {
+			return $users[0];
+		}
+
+		$customer = $this->customer_repository->find_by_phone_normalized( $phone_normalized );
+		if ( $customer && ! empty( $customer['user_id'] ) ) {
+			$customer_user = get_user_by( 'id', absint( $customer['user_id'] ) );
+			if ( $customer_user ) {
+				return $customer_user;
+			}
+		}
+
+		return false;
 	}
 
 	private function check_rate_limit( $phone_normalized ) {
