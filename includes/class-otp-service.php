@@ -183,32 +183,19 @@ class CRPCRM_OTP_Service {
 			return false;
 		}
 
-		$existing = $this->customer_repository->find_by_user_id( $user_id );
-		if ( $existing ) {
-			return $existing['id'];
+		if ( '' !== $phone_normalized ) {
+			$phone_normalized = CRPCRM_Helpers::normalize_iran_phone( $phone_normalized );
+			if ( CRPCRM_Helpers::is_valid_iran_phone_normalized( $phone_normalized ) ) {
+				update_user_meta( $user_id, 'crpcrm_phone_normalized', $phone_normalized );
+			}
 		}
 
-		if ( '' === $phone_normalized ) {
-			$phone_normalized = get_user_meta( $user_id, 'crpcrm_phone_normalized', true );
-		}
-		$phone_normalized = CRPCRM_Helpers::normalize_iran_phone( $phone_normalized );
-		if ( ! CRPCRM_Helpers::is_valid_iran_phone_normalized( $phone_normalized ) ) {
+		$customer = $this->customer_repository->ensure_for_user( $user_id );
+		if ( is_wp_error( $customer ) || ! $customer ) {
 			return false;
 		}
 
-		$by_phone = $this->customer_repository->find_by_phone_normalized( $phone_normalized );
-		if ( $by_phone ) {
-			return $by_phone['id'];
-		}
-
-		return $this->customer_repository->create(
-			array(
-				'user_id'           => $user_id,
-				'phone'             => $phone_normalized,
-				'phone_normalized'  => $phone_normalized,
-				'profile_completed' => 0,
-			)
-		);
+		return absint( $customer['id'] );
 	}
 
 	public function get_state( $state_token ) {

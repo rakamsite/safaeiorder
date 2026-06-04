@@ -26,6 +26,44 @@ class CRPCRM_Customer_Repository {
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE phone_normalized = %s LIMIT 1", sanitize_text_field( $phone_normalized ) ), ARRAY_A );
 	}
 
+	public function ensure_for_user( $user_id ) {
+		$user_id = absint( $user_id );
+		if ( ! $user_id ) {
+			return null;
+		}
+
+		$existing = $this->find_by_user_id( $user_id );
+		if ( $existing ) {
+			return $existing;
+		}
+
+		$phone_normalized = get_user_meta( $user_id, 'crpcrm_phone_normalized', true );
+		$phone_normalized = CRPCRM_Helpers::normalize_iran_phone( $phone_normalized );
+		if ( ! CRPCRM_Helpers::is_valid_iran_phone_normalized( $phone_normalized ) ) {
+			return null;
+		}
+
+		$by_phone = $this->find_by_phone_normalized( $phone_normalized );
+		if ( $by_phone ) {
+			if ( absint( $by_phone['user_id'] ) === $user_id ) {
+				return $by_phone;
+			}
+
+			return new WP_Error( 'customer_phone_conflict', 'اطلاعات حساب شما کامل نیست. لطفاً دوباره وارد شوید.' );
+		}
+
+		$customer_id = $this->create(
+			array(
+				'user_id'           => $user_id,
+				'phone'             => $phone_normalized,
+				'phone_normalized'  => $phone_normalized,
+				'profile_completed' => 0,
+			)
+		);
+
+		return $customer_id ? $this->get( $customer_id ) : null;
+	}
+
 	public function get( $id ) {
 		global $wpdb;
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d LIMIT 1", absint( $id ) ), ARRAY_A );
