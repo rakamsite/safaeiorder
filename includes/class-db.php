@@ -15,6 +15,23 @@ class CRPCRM_DB {
 		return $wpdb->prefix . 'crpcrm_' . $name;
 	}
 
+	public static function table_names() {
+		return array(
+			'customers'                   => self::table( 'customers' ),
+			'customer_attribution_events' => self::table( 'customer_attribution_events' ),
+			'requests'                    => self::table( 'requests' ),
+			'request_activities'          => self::table( 'request_activities' ),
+			'otp_logs'                    => self::table( 'otp_logs' ),
+			'staff_daily_reports'         => self::table( 'staff_daily_reports' ),
+			'staff_requests'              => self::table( 'staff_requests' ),
+			'staff_issues'                => self::table( 'staff_issues' ),
+			'staff_tasks'                 => self::table( 'staff_tasks' ),
+			'manager_announcements'       => self::table( 'manager_announcements' ),
+			'announcement_reads'          => self::table( 'announcement_reads' ),
+			'plugin_logs'                 => self::table( 'plugin_logs' ),
+		);
+	}
+
 	public static function create_tables() {
 		global $wpdb;
 

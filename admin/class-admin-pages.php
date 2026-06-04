@@ -259,12 +259,26 @@ class CRPCRM_Admin_Pages {
 		$settings            = CRPCRM_Settings::get();
 		$active_tab          = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'portal';
 		$tabs                = CRPCRM_Settings::tabs();
+		if ( ! CRPCRM_Admin_Tools::can_maintain() && CRPCRM_Admin_Tools::can_export() ) {
+			$tabs       = array( 'tools' => isset( $tabs['tools'] ) ? $tabs['tools'] : 'ابزارها و نگهداری' );
+			$active_tab = 'tools';
+		}
 		if ( ! isset( $tabs[ $active_tab ] ) ) {
 			$active_tab = 'portal';
 		}
+		if ( 'tools' === $active_tab && ! CRPCRM_Admin_Tools::can_export() && ! CRPCRM_Admin_Tools::can_maintain() ) {
+			CRPCRM_Logger::warning( 'maintenance_access_denied', 'maintenance_access_denied', array( 'user_id' => get_current_user_id(), 'context' => 'tools_tab' ) );
+			$this->render_message( 'شما اجازه دسترسی به این بخش را ندارید.' );
+			return;
+		}
 		CRPCRM_Logger::info( 'settings_viewed', 'settings_viewed', array( 'user_id' => get_current_user_id(), 'tab' => $active_tab ) );
+		if ( 'tools' === $active_tab && CRPCRM_Admin_Tools::can_maintain() ) {
+			CRPCRM_Logger::info( 'health_check_viewed', 'health_check_viewed', array( 'user_id' => get_current_user_id() ) );
+		}
 		$attribution_service = class_exists( 'CRPCRM_Attribution_Service' ) ? new CRPCRM_Attribution_Service() : null;
 		$current_attribution = $attribution_service ? $attribution_service->get_current_attribution() : null;
+		$health_status       = 'tools' === $active_tab && CRPCRM_Admin_Tools::can_maintain() ? ( new CRPCRM_Health_Check_Service() )->get_status() : array();
+		$staff_users         = 'tools' === $active_tab ? ( new CRPCRM_Staff_Repository() )->get_staff_users() : array();
 
 		$this->render(
 			'settings.php',
@@ -274,6 +288,8 @@ class CRPCRM_Admin_Pages {
 				'tabs'                => $tabs,
 				'active_tab'          => $active_tab,
 				'role_configs'        => CRPCRM_Roles::get_roles(),
+				'health_status'       => $health_status,
+				'staff_users'         => $staff_users,
 			)
 		);
 	}

@@ -38,7 +38,7 @@ $log_levels = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسا
 		<?php endforeach; ?>
 	</nav>
 
-	<?php if ( 'roles' !== $active_tab ) : ?>
+	<?php if ( 'roles' !== $active_tab && 'tools' !== $active_tab ) : ?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-settings-form">
 		<input type="hidden" name="action" value="crpcrm_save_settings" />
 		<input type="hidden" name="crpcrm_active_tab" value="<?php echo esc_attr( $active_tab ); ?>" />
@@ -102,7 +102,7 @@ $log_levels = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسا
 		</div>
 		<?php submit_button( 'ذخیره تنظیمات' ); ?>
 	</form>
-	<?php else : ?>
+	<?php elseif ( 'roles' === $active_tab ) : ?>
 		<div class="crpcrm-card">
 			<h2><?php echo esc_html( 'وضعیت نقش‌ها و دسترسی‌ها' ); ?></h2>
 			<table class="widefat striped"><thead><tr><th><?php echo esc_html( 'نقش' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'دسترسی‌های اصلی' ); ?></th></tr></thead><tbody>
@@ -116,5 +116,7 @@ $log_levels = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسا
 				<?php submit_button( 'بازسازی نقش‌ها و دسترسی‌ها', 'primary' ); ?>
 			</form>
 		</div>
+	<?php elseif ( 'tools' === $active_tab ) : ?>
+		<?php include CRPCRM_PLUGIN_DIR . 'admin/views/settings-tools.php'; ?>
 	<?php endif; ?>
 </div>
