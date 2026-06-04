@@ -12,10 +12,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CRPCRM_Portal_Shortcode {
 	private $otp_service;
 	private $customer_repository;
+	private $request_repository;
+	private $activity_repository;
+	private $attribution_service;
 
 	public function __construct( CRPCRM_OTP_Service $otp_service = null ) {
-		$this->otp_service          = $otp_service ? $otp_service : new CRPCRM_OTP_Service();
-		$this->customer_repository = new CRPCRM_Customer_Repository();
+		$this->otp_service           = $otp_service ? $otp_service : new CRPCRM_OTP_Service();
+		$this->customer_repository  = new CRPCRM_Customer_Repository();
+		$this->request_repository   = new CRPCRM_Request_Repository();
+		$this->activity_repository  = new CRPCRM_Activity_Repository();
+		$this->attribution_service  = new CRPCRM_Attribution_Service();
 	}
 
 	public function register_hooks() {
@@ -30,6 +36,7 @@ class CRPCRM_Portal_Shortcode {
 		add_action( 'admin_post_crpcrm_change_otp_phone', array( $this, 'handle_change_phone' ) );
 		add_action( 'admin_post_crpcrm_portal_logout', array( $this, 'handle_logout' ) );
 		add_action( 'admin_post_crpcrm_save_profile', array( $this, 'handle_save_profile' ) );
+		add_action( 'admin_post_crpcrm_submit_request', array( $this, 'handle_submit_request' ) );
 	}
 
 	public function render() {
@@ -213,6 +220,107 @@ class CRPCRM_Portal_Shortcode {
 		$this->redirect_with_notice( $redirect_to, 'success', $success_message );
 	}
 
+
+	public function handle_submit_request() {
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( $this->clean_portal_url() );
+			exit;
+		}
+
+		$user_id     = get_current_user_id();
+		$redirect_to = $this->posted_redirect_url();
+		$page        = isset( $_POST['crpcrm_request_page'] ) ? sanitize_key( wp_unslash( $_POST['crpcrm_request_page'] ) ) : '';
+		$form        = CRPCRM_Request_Forms::get_form( $page );
+
+		if ( ! $form || ! isset( $_POST['crpcrm_request_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['crpcrm_request_nonce'] ) ), 'crpcrm_submit_request_' . $page ) ) {
+			CRPCRM_Logger::warning( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'page' => $page, 'reason' => 'nonce_or_form' ) );
+			$this->redirect_with_notice( $redirect_to, 'error', 'در ثبت درخواست خطایی رخ داد. لطفاً دوباره تلاش کنید.' );
+		}
+
+		$customer = $this->ensure_current_customer( $user_id );
+		if ( is_wp_error( $customer ) || ! $customer ) {
+			CRPCRM_Logger::warning( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'page' => $page, 'reason' => 'customer_missing' ) );
+			$this->redirect_with_notice( $redirect_to, 'error', 'اطلاعات حساب شما کامل نیست. لطفاً دوباره وارد شوید.' );
+		}
+
+		$customer_id = absint( $customer['id'] );
+		if ( ! absint( $customer['profile_completed'] ) ) {
+			CRPCRM_Logger::warning( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'reason' => 'profile_incomplete' ) );
+			$this->redirect_with_notice( $this->get_portal_url( 'profile' ), 'error', 'لطفاً ابتدا پروفایل خود را تکمیل کنید.' );
+		}
+
+		if ( $this->is_request_rate_limited( $customer_id, $user_id ) ) {
+			CRPCRM_Logger::warning( 'customer_request_rate_limited', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id ) );
+			$this->redirect_with_notice( $redirect_to, 'error', 'تعداد درخواست‌های ثبت‌شده زیاد است. لطفاً کمی بعد دوباره تلاش کنید.' );
+		}
+
+		$validated = CRPCRM_Request_Forms::sanitize_and_validate( $form, $_POST );
+		if ( ! empty( $validated['errors'] ) ) {
+			CRPCRM_Logger::info( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'page' => $page, 'error_count' => count( $validated['errors'] ) ) );
+			$this->redirect_with_notice( $redirect_to, 'error', implode( ' ', $validated['errors'] ) );
+		}
+
+		$request_data    = $validated['data'];
+		$request_summary = CRPCRM_Request_Forms::build_summary( $form, $request_data );
+		$attribution     = $this->attribution_service->get_attribution_for_new_request();
+		$now             = CRPCRM_Helpers::current_datetime();
+
+		$request_id = $this->request_repository->create(
+			array(
+				'customer_id'          => $customer_id,
+				'user_id'              => $user_id,
+				'request_type'         => $form['request_type'],
+				'status'               => 'new',
+				'owner_id'             => null,
+				'request_title'        => $form['title'],
+				'request_summary'      => $request_summary,
+				'request_data'         => $request_data,
+				'request_source'       => $attribution['source'],
+				'request_medium'       => $attribution['medium'],
+				'request_campaign'     => $attribution['campaign'],
+				'request_content'      => $attribution['content'],
+				'request_term'         => $attribution['term'],
+				'request_landing_page' => $attribution['landing_page'],
+				'request_referrer'     => $attribution['referrer'],
+				'last_activity_at'     => $now,
+				'created_at'           => $now,
+				'updated_at'           => $now,
+			)
+		);
+
+		if ( ! $request_id ) {
+			CRPCRM_Logger::error( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'reason' => 'request_insert_failed' ) );
+			$this->redirect_with_notice( $redirect_to, 'error', 'در ثبت درخواست خطایی رخ داد. لطفاً دوباره تلاش کنید.' );
+		}
+
+		$request      = $this->request_repository->get( $request_id );
+		$request_code = $request && ! empty( $request['request_code'] ) ? $request['request_code'] : $this->request_repository->generate_request_code( $request_id );
+
+		$this->activity_repository->add_activity(
+			$request_id,
+			'request_created',
+			array(
+				'customer_id'   => $customer_id,
+				'actor_user_id' => $user_id,
+				'actor_type'    => 'customer',
+				'new_status'    => 'new',
+				'note'          => 'درخواست توسط مشتری ثبت شد.',
+				'is_internal'   => 0,
+				'meta'          => array(
+					'request_type' => $form['request_type'],
+					'request_code' => $request_code,
+					'source'       => $attribution['source'],
+					'campaign'     => $attribution['campaign'],
+				),
+			)
+		);
+
+		CRPCRM_Logger::info( 'customer_request_created', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code, 'request_type' => $form['request_type'], 'source' => $attribution['source'], 'campaign' => $attribution['campaign'] ) );
+
+		wp_safe_redirect( $this->get_portal_url( 'request_detail', array( 'request_code' => $request_code, 'created' => 1 ) ) );
+		exit;
+	}
+
 	public function handle_change_phone() {
 		check_admin_referer( 'crpcrm_change_otp_phone', 'crpcrm_otp_nonce' );
 		wp_safe_redirect( $this->posted_redirect_url() );
@@ -230,6 +338,8 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	private function render_portal( $page, $customer, $notice = null ) {
+		$portal_data = $this->get_portal_page_data( $page, $customer );
+
 		return $this->render_view(
 			'portal-layout.php',
 			array(
@@ -269,7 +379,7 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	private function get_allowed_portal_pages() {
-		return array( 'dashboard', 'profile', 'my_requests', 'new_car_registration', 'new_parts_request', 'new_repair_booking' );
+		return array( 'dashboard', 'profile', 'my_requests', 'new_car_registration', 'new_parts_request', 'new_repair_booking', 'request_detail' );
 	}
 
 	private function get_required_menu_items( $current_page ) {
@@ -359,7 +469,7 @@ class CRPCRM_Portal_Shortcode {
 			}
 		}
 
-		return remove_query_arg( 'crpcrm_page', $this->clean_portal_url() );
+		return remove_query_arg( array( 'crpcrm_page', 'request_code', 'created' ), $this->clean_portal_url() );
 	}
 
 	private function sanitize_query_args( $args ) {
@@ -379,10 +489,66 @@ class CRPCRM_Portal_Shortcode {
 		return $clean;
 	}
 
+
+	private function get_portal_page_data( $page, $customer ) {
+		$customer_id = absint( $customer['id'] );
+		$data        = array(
+			'form'            => null,
+			'my_requests'     => array(),
+			'latest_requests' => $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 3 ) ),
+			'request_detail'  => null,
+			'access_denied'   => false,
+		);
+
+		if ( in_array( $page, CRPCRM_Request_Forms::get_form_pages(), true ) ) {
+			$data['form'] = CRPCRM_Request_Forms::get_form( $page );
+			return $data;
+		}
+
+		if ( 'my_requests' === $page ) {
+			$data['my_requests'] = $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 50 ) );
+			return $data;
+		}
+
+		if ( 'request_detail' === $page ) {
+			$request_code = isset( $_GET['request_code'] ) ? sanitize_text_field( wp_unslash( $_GET['request_code'] ) ) : '';
+			$request      = $request_code ? $this->request_repository->get_by_code( $request_code ) : null;
+
+			if ( ! $request || absint( $request['customer_id'] ) !== $customer_id ) {
+				CRPCRM_Logger::warning( 'customer_request_access_denied', 'request', array( 'user_id' => get_current_user_id(), 'customer_id' => $customer_id, 'request_code' => $request_code ) );
+				$data['access_denied'] = true;
+				return $data;
+			}
+
+			$data['request_detail'] = $request;
+		}
+
+		return $data;
+	}
+
+	private function is_request_rate_limited( $customer_id, $user_id ) {
+		$limit   = max( 1, absint( CRPCRM_Settings::get( 'request_rate_limit_count', 5 ) ) );
+		$minutes = max( 1, absint( CRPCRM_Settings::get( 'request_rate_limit_minutes', 10 ) ) );
+		$since   = date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $minutes * MINUTE_IN_SECONDS ) );
+		$count   = $this->request_repository->count_recent_for_customer_user( $customer_id, $user_id, $since );
+
+		return $count >= $limit;
+	}
+
 	private function log_portal_page_view( $page, $customer, $user_id ) {
 		$meta = array( 'user_id' => $user_id, 'customer_id' => absint( $customer['id'] ), 'page' => $page );
 		if ( 'dashboard' === $page ) {
 			CRPCRM_Logger::info( 'customer_dashboard_viewed', 'customer', $meta );
+			return;
+		}
+
+		if ( in_array( $page, CRPCRM_Request_Forms::get_form_pages(), true ) ) {
+			CRPCRM_Logger::info( 'customer_request_form_viewed', 'request', $meta );
+			return;
+		}
+
+		if ( 'request_detail' === $page ) {
+			CRPCRM_Logger::info( 'customer_request_detail_viewed', 'request', $meta );
 			return;
 		}
 
