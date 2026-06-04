@@ -82,6 +82,7 @@ class CRPCRM_Settings {
 
 	private function sanitize_settings( $input ) {
 		$defaults = self::defaults();
+		$current  = self::get();
 
 		return array(
 			'portal_page_id'                => isset( $input['portal_page_id'] ) ? absint( $input['portal_page_id'] ) : $defaults['portal_page_id'],
@@ -92,7 +93,7 @@ class CRPCRM_Settings {
 			'otp_resend_seconds'            => isset( $input['otp_resend_seconds'] ) ? max( 1, absint( $input['otp_resend_seconds'] ) ) : $defaults['otp_resend_seconds'],
 			'otp_max_attempts'              => isset( $input['otp_max_attempts'] ) ? max( 1, absint( $input['otp_max_attempts'] ) ) : $defaults['otp_max_attempts'],
 			'melipayamak_username'          => isset( $input['melipayamak_username'] ) ? sanitize_text_field( $input['melipayamak_username'] ) : '',
-			'melipayamak_password'          => isset( $input['melipayamak_password'] ) ? sanitize_text_field( $input['melipayamak_password'] ) : '',
+			'melipayamak_password'          => isset( $input['melipayamak_password'] ) && '' !== trim( (string) $input['melipayamak_password'] ) ? sanitize_text_field( $input['melipayamak_password'] ) : $current['melipayamak_password'],
 			'melipayamak_pattern_code'      => isset( $input['melipayamak_pattern_code'] ) ? sanitize_text_field( $input['melipayamak_pattern_code'] ) : '',
 			'melipayamak_sender'            => isset( $input['melipayamak_sender'] ) ? sanitize_text_field( $input['melipayamak_sender'] ) : '',
 			'attribution_window_hours'      => isset( $input['attribution_window_hours'] ) ? max( 1, absint( $input['attribution_window_hours'] ) ) : $defaults['attribution_window_hours'],

@@ -30,6 +30,12 @@ class CRPCRM_DB {
 		update_option( 'crpcrm_db_version', CRPCRM_DB_VERSION );
 	}
 
+	public static function maybe_upgrade() {
+		if ( get_option( 'crpcrm_db_version' ) !== CRPCRM_DB_VERSION ) {
+			self::create_tables();
+		}
+	}
+
 	private static function get_schema_sql( $charset_collate ) {
 		$customers                  = self::table( 'customers' );
 		$attribution_events         = self::table( 'customer_attribution_events' );
@@ -170,6 +176,7 @@ class CRPCRM_DB {
 				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 				phone_normalized VARCHAR(30) NOT NULL,
 				otp_hash VARCHAR(255) NULL,
+				verification_token_hash VARCHAR(255) NULL,
 				status VARCHAR(50) NOT NULL DEFAULT 'created',
 				provider VARCHAR(100) NULL,
 				provider_response LONGTEXT NULL,

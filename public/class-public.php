@@ -10,8 +10,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Public {
+	private $portal_shortcode;
+
+	public function __construct() {
+		$this->portal_shortcode = new CRPCRM_Portal_Shortcode();
+	}
+
 	public function register_hooks() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		$this->portal_shortcode->register_hooks();
 	}
 
 	public function enqueue_assets() {

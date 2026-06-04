@@ -33,16 +33,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 
 		<div class="crpcrm-card">
-			<h2><?php echo esc_html( 'تنظیمات OTP (فعلاً فقط جایگاه تنظیمات)' ); ?></h2>
+			<h2><?php echo esc_html( 'تنظیمات پیامک و کد ورود' ); ?></h2>
 			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="otp_provider"><?php echo esc_html( 'ارائه‌دهنده OTP' ); ?></label></th><td><input name="crpcrm_settings[otp_provider]" id="otp_provider" type="text" value="<?php echo esc_attr( $settings['otp_provider'] ); ?>" class="regular-text" /></td></tr>
-				<tr><th scope="row"><label for="otp_expiration_minutes"><?php echo esc_html( 'اعتبار کد (دقیقه)' ); ?></label></th><td><input name="crpcrm_settings[otp_expiration_minutes]" id="otp_expiration_minutes" type="number" min="1" value="<?php echo esc_attr( $settings['otp_expiration_minutes'] ); ?>" /></td></tr>
-				<tr><th scope="row"><label for="otp_resend_seconds"><?php echo esc_html( 'زمان ارسال مجدد (ثانیه)' ); ?></label></th><td><input name="crpcrm_settings[otp_resend_seconds]" id="otp_resend_seconds" type="number" min="1" value="<?php echo esc_attr( $settings['otp_resend_seconds'] ); ?>" /></td></tr>
-				<tr><th scope="row"><label for="otp_max_attempts"><?php echo esc_html( 'حداکثر تلاش' ); ?></label></th><td><input name="crpcrm_settings[otp_max_attempts]" id="otp_max_attempts" type="number" min="1" value="<?php echo esc_attr( $settings['otp_max_attempts'] ); ?>" /></td></tr>
+				<tr>
+					<th scope="row"><label for="otp_provider"><?php echo esc_html( 'ارائه‌دهنده پیامک' ); ?></label></th>
+					<td>
+						<select name="crpcrm_settings[otp_provider]" id="otp_provider">
+							<option value="melipayamak" <?php selected( $settings['otp_provider'], 'melipayamak' ); ?>><?php echo esc_html( 'ملی پیامک' ); ?></option>
+						</select>
+					</td>
+				</tr>
 				<tr><th scope="row"><label for="melipayamak_username"><?php echo esc_html( 'نام کاربری ملی پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_username]" id="melipayamak_username" type="text" value="<?php echo esc_attr( $settings['melipayamak_username'] ); ?>" class="regular-text" /></td></tr>
-				<tr><th scope="row"><label for="melipayamak_password"><?php echo esc_html( 'رمز عبور ملی پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_password]" id="melipayamak_password" type="password" value="<?php echo esc_attr( $settings['melipayamak_password'] ); ?>" class="regular-text" autocomplete="new-password" /></td></tr>
-				<tr><th scope="row"><label for="melipayamak_pattern_code"><?php echo esc_html( 'کد پترن ملی پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_pattern_code]" id="melipayamak_pattern_code" type="text" value="<?php echo esc_attr( $settings['melipayamak_pattern_code'] ); ?>" class="regular-text" /></td></tr>
-				<tr><th scope="row"><label for="melipayamak_sender"><?php echo esc_html( 'شماره فرستنده ملی پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_sender]" id="melipayamak_sender" type="text" value="<?php echo esc_attr( $settings['melipayamak_sender'] ); ?>" class="regular-text" /></td></tr>
+				<tr><th scope="row"><label for="melipayamak_password"><?php echo esc_html( 'رمز عبور ملی پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_password]" id="melipayamak_password" type="password" value="" class="regular-text" autocomplete="new-password" placeholder="<?php echo esc_attr( empty( $settings['melipayamak_password'] ) ? 'ذخیره نشده' : 'برای تغییر، رمز جدید را وارد کنید' ); ?>" /></td></tr>
+				<tr><th scope="row"><label for="melipayamak_pattern_code"><?php echo esc_html( 'کد قالب پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_pattern_code]" id="melipayamak_pattern_code" type="text" value="<?php echo esc_attr( $settings['melipayamak_pattern_code'] ); ?>" class="regular-text" /></td></tr>
+				<tr><th scope="row"><label for="melipayamak_sender"><?php echo esc_html( 'شماره/خط ارسال‌کننده' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_sender]" id="melipayamak_sender" type="text" value="<?php echo esc_attr( $settings['melipayamak_sender'] ); ?>" class="regular-text" /></td></tr>
+				<tr><th scope="row"><label for="otp_expiration_minutes"><?php echo esc_html( 'مدت اعتبار کد، به دقیقه' ); ?></label></th><td><input name="crpcrm_settings[otp_expiration_minutes]" id="otp_expiration_minutes" type="number" min="1" value="<?php echo esc_attr( $settings['otp_expiration_minutes'] ); ?>" /></td></tr>
+				<tr><th scope="row"><label for="otp_resend_seconds"><?php echo esc_html( 'فاصله مجاز ارسال مجدد، به ثانیه' ); ?></label></th><td><input name="crpcrm_settings[otp_resend_seconds]" id="otp_resend_seconds" type="number" min="1" value="<?php echo esc_attr( $settings['otp_resend_seconds'] ); ?>" /></td></tr>
+				<tr><th scope="row"><label for="otp_max_attempts"><?php echo esc_html( 'حداکثر تلاش برای وارد کردن کد' ); ?></label></th><td><input name="crpcrm_settings[otp_max_attempts]" id="otp_max_attempts" type="number" min="1" value="<?php echo esc_attr( $settings['otp_max_attempts'] ); ?>" /></td></tr>
 			</table>
 		</div>
 
