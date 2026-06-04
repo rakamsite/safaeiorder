@@ -40,6 +40,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-attributi
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-attribution-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-menu.php';
 require_once CRPCRM_PLUGIN_DIR . 'admin/class-admin-pages.php';
+require_once CRPCRM_PLUGIN_DIR . 'public/class-request-forms.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-portal-shortcode.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-public.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-request-repository.php';

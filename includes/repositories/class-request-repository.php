@@ -24,10 +24,12 @@ class CRPCRM_Request_Repository {
 		$data = wp_parse_args(
 			$data,
 			array(
-				'request_code' => 'TEMP-' . wp_generate_uuid4(),
-				'status'       => 'new',
-				'created_at'   => $now,
-				'updated_at'   => $now,
+				'request_code'     => 'TEMP-' . wp_generate_uuid4(),
+				'status'           => 'new',
+				'owner_id'         => null,
+				'last_activity_at' => $now,
+				'created_at'       => $now,
+				'updated_at'       => $now,
 			)
 		);
 
@@ -60,6 +62,45 @@ class CRPCRM_Request_Repository {
 	public function get_by_code( $request_code ) {
 		global $wpdb;
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE request_code = %s LIMIT 1", sanitize_text_field( $request_code ) ), ARRAY_A );
+	}
+
+	public function get_by_customer( $customer_id, $args = array() ) {
+		return $this->list_for_customer( $customer_id, $args );
+	}
+
+	public function list_for_customer( $customer_id, $args = array() ) {
+		global $wpdb;
+
+		$defaults = array(
+			'limit'  => 20,
+			'offset' => 0,
+		);
+		$args     = wp_parse_args( $args, $defaults );
+		$limit    = max( 1, min( 100, absint( $args['limit'] ) ) );
+		$offset   = absint( $args['offset'] );
+
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$this->table} WHERE customer_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+				absint( $customer_id ),
+				$limit,
+				$offset
+			),
+			ARRAY_A
+		);
+	}
+
+	public function count_recent_for_customer_user( $customer_id, $user_id, $since_datetime ) {
+		global $wpdb;
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$this->table} WHERE customer_id = %d AND user_id = %d AND created_at >= %s",
+				absint( $customer_id ),
+				absint( $user_id ),
+				sanitize_text_field( $since_datetime )
+			)
+		);
 	}
 
 	public function generate_request_code( $id ) {
