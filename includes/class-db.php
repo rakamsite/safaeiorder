@@ -211,6 +211,7 @@ class CRPCRM_DB {
 				created_at DATETIME NOT NULL,
 				updated_at DATETIME NOT NULL,
 				PRIMARY KEY  (id),
+				UNIQUE KEY user_report_date (user_id,report_date),
 				KEY user_id (user_id),
 				KEY report_date (report_date),
 				KEY status (status),
