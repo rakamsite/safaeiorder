@@ -36,11 +36,12 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-otp-repository.php
 require_once CRPCRM_PLUGIN_DIR . 'includes/sms/class-sms-provider-interface.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/sms/class-melipayamak-provider.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-otp-service.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-attribution-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-attribution-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-menu.php';
 require_once CRPCRM_PLUGIN_DIR . 'admin/class-admin-pages.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-portal-shortcode.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-public.php';
-require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-attribution-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-request-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-activity-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-staff-repository.php';

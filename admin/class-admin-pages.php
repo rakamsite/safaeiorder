@@ -31,8 +31,17 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function settings() {
-		$settings = CRPCRM_Settings::get();
-		$this->render( 'settings.php', array( 'settings' => $settings ) );
+		$settings            = CRPCRM_Settings::get();
+		$attribution_service = class_exists( 'CRPCRM_Attribution_Service' ) ? new CRPCRM_Attribution_Service() : null;
+		$current_attribution = $attribution_service ? $attribution_service->get_current_attribution() : null;
+
+		$this->render(
+			'settings.php',
+			array(
+				'settings'            => $settings,
+				'current_attribution' => $current_attribution,
+			)
+		);
 	}
 
 	private function render( $view, $vars = array() ) {

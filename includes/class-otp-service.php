@@ -167,7 +167,8 @@ class CRPCRM_OTP_Service {
 			return $user;
 		}
 
-		$this->ensure_customer_record( $user->ID, $otp['phone_normalized'] );
+		$customer_id = $this->ensure_customer_record( $user->ID, $otp['phone_normalized'] );
+		$this->apply_current_attribution_after_login( $customer_id, $user->ID );
 
 		wp_set_current_user( $user->ID );
 		wp_set_auth_cookie( $user->ID, true );
@@ -210,6 +211,25 @@ class CRPCRM_OTP_Service {
 		}
 
 		return $state;
+	}
+
+
+	private function apply_current_attribution_after_login( $customer_id, $user_id ) {
+		$customer_id = absint( $customer_id );
+		$user_id     = absint( $user_id );
+
+		if ( ! $customer_id || ! class_exists( 'CRPCRM_Attribution_Service' ) ) {
+			return;
+		}
+
+		$attribution_service = new CRPCRM_Attribution_Service();
+		$attribution         = $attribution_service->get_current_attribution();
+		if ( ! $attribution ) {
+			return;
+		}
+
+		$attribution_service->apply_to_customer( $customer_id, $user_id, $attribution );
+		$attribution_service->record_event( $attribution, $customer_id, $user_id, true );
 	}
 
 	private function find_or_create_user( $phone_normalized ) {
