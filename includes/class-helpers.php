@@ -92,6 +92,55 @@ class CRPCRM_Helpers {
 		return isset( $labels[ $status ] ) ? $labels[ $status ] : $status;
 	}
 
+
+	public static function get_request_type_label( $request_type ) {
+		$labels = array(
+			'car_registration' => 'ثبت‌نام خودرو',
+			'parts_request'    => 'درخواست قطعات',
+			'repair_booking'   => 'درخواست تعمیرات',
+		);
+
+		return isset( $labels[ $request_type ] ) ? $labels[ $request_type ] : $request_type;
+	}
+
+	public static function get_source_label( $source ) {
+		$labels = array(
+			'direct'    => 'مستقیم',
+			'instagram' => 'اینستاگرام',
+			'whatsapp'  => 'واتساپ',
+			'google'    => 'گوگل',
+			'telegram'  => 'تلگرام',
+			'other'     => 'سایر',
+		);
+
+		return isset( $labels[ $source ] ) ? $labels[ $source ] : ( $source ? $source : '—' );
+	}
+
+	public static function get_activity_type_label( $activity_type ) {
+		$labels = array(
+			'request_created'          => 'ثبت درخواست',
+			'request_claimed'          => 'شروع پیگیری',
+			'request_owner_changed'    => 'تغییر مسئول',
+			'request_owner_released'   => 'آزادسازی مسئول',
+		);
+
+		return isset( $labels[ $activity_type ] ) ? $labels[ $activity_type ] : $activity_type;
+	}
+
+	public static function get_owner_label( $owner_id ) {
+		$owner_id = absint( $owner_id );
+		if ( ! $owner_id ) {
+			return 'بدون مسئول';
+		}
+
+		$user = get_userdata( $owner_id );
+		if ( ! $user ) {
+			return 'در حال پیگیری توسط: کاربر حذف‌شده';
+		}
+
+		return 'در حال پیگیری توسط: ' . $user->display_name;
+	}
+
 	private static function convert_persian_digits( $value ) {
 		$persian = array( '۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩' );
 		$latin   = array( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' );

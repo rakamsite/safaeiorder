@@ -55,7 +55,7 @@ class CRPCRM_Activity_Repository {
 		global $wpdb;
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table} WHERE request_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+				"SELECT * FROM {$this->table} WHERE request_id = %d ORDER BY created_at ASC, id ASC LIMIT %d OFFSET %d",
 				absint( $request_id ),
 				absint( $limit ),
 				absint( $offset )
