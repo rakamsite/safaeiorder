@@ -33,7 +33,8 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function dashboard() {
-		$this->render( 'dashboard.php' );
+		CRPCRM_Logger::info( 'admin_dashboard_viewed', 'admin_dashboard_viewed', array( 'user_id' => get_current_user_id() ) );
+		$this->render( 'dashboard.php', array( 'cards' => $this->get_admin_dashboard_cards() ) );
 	}
 
 	public function requests() {
@@ -59,7 +60,7 @@ class CRPCRM_Admin_Pages {
 		}
 
 		$page     = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
-		$per_page = 20;
+		$per_page = max( 5, absint( CRPCRM_Settings::get( 'requests_per_page', 20 ) ) );
 		$filters  = $this->get_customer_filters();
 		$args     = array_merge( $filters, array( 'limit' => $per_page, 'offset' => ( $page - 1 ) * $per_page, 'user_id' => get_current_user_id() ) );
 		$customers = $this->customer_repository->list_for_admin( $args );
@@ -133,7 +134,7 @@ class CRPCRM_Admin_Pages {
 		}
 
 		$page       = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
-		$per_page   = 20;
+		$per_page   = max( 5, absint( CRPCRM_Settings::get( 'staff_items_per_page', 20 ) ) );
 		$filters    = $this->reports_repository->normalize_filters( $_GET );
 		$pagination = array( 'limit' => $per_page, 'offset' => ( $page - 1 ) * $per_page );
 
@@ -170,6 +171,12 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function staff() {
+		if ( 'yes' !== CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) && ! current_user_can( 'manage_options' ) ) {
+			CRPCRM_Logger::warning( 'staff_access_denied', 'staff_access_denied', array( 'user_id' => get_current_user_id(), 'reason' => 'disabled' ) );
+			$this->render_message( 'پنل داخلی کارکنان در حال حاضر غیرفعال است.' );
+			return;
+		}
+
 		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) ) {
 			CRPCRM_Logger::warning( 'staff_access_denied', 'staff_access_denied', array( 'user_id' => get_current_user_id(), 'screen' => 'staff_portal' ) );
 			$this->render_message( 'شما اجازه دسترسی به پنل کارکنان را ندارید.' );
@@ -188,7 +195,7 @@ class CRPCRM_Admin_Pages {
 		$can_manage = current_user_can( 'crpcrm_manage_staff_portal' );
 		$today      = $this->staff_repository->today();
 		$page       = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
-		$per_page   = 20;
+		$per_page   = max( 5, absint( CRPCRM_Settings::get( 'staff_items_per_page', 20 ) ) );
 		$notice     = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_notice'] ) ) : '';
 		$staff_users = $this->staff_repository->get_staff_users();
 
@@ -250,6 +257,12 @@ class CRPCRM_Admin_Pages {
 
 	public function settings() {
 		$settings            = CRPCRM_Settings::get();
+		$active_tab          = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'portal';
+		$tabs                = CRPCRM_Settings::tabs();
+		if ( ! isset( $tabs[ $active_tab ] ) ) {
+			$active_tab = 'portal';
+		}
+		CRPCRM_Logger::info( 'settings_viewed', 'settings_viewed', array( 'user_id' => get_current_user_id(), 'tab' => $active_tab ) );
 		$attribution_service = class_exists( 'CRPCRM_Attribution_Service' ) ? new CRPCRM_Attribution_Service() : null;
 		$current_attribution = $attribution_service ? $attribution_service->get_current_attribution() : null;
 
@@ -258,10 +271,31 @@ class CRPCRM_Admin_Pages {
 			array(
 				'settings'            => $settings,
 				'current_attribution' => $current_attribution,
+				'tabs'                => $tabs,
+				'active_tab'          => $active_tab,
+				'role_configs'        => CRPCRM_Roles::get_roles(),
 			)
 		);
 	}
 
+
+
+	private function get_admin_dashboard_cards() {
+		$user_id = get_current_user_id();
+		$today   = wp_date( 'Y-m-d', current_time( 'timestamp' ) );
+		$month_start = wp_date( 'Y-m-01', current_time( 'timestamp' ) );
+		$stale_hours = absint( CRPCRM_Settings::get( 'stale_request_hours', 48 ) );
+		return array(
+			array( 'title' => 'درخواست‌های امروز', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'date_from' => $today, 'date_to' => $today ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&date_from=' . rawurlencode( $today ) . '&date_to=' . rawurlencode( $today ) ) ),
+			array( 'title' => 'درخواست‌های بدون مسئول', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&owner_filter=unassigned&status_group=open' ) ),
+			array( 'title' => 'پیگیری‌های عقب‌افتاده', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'overdue_followups' ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&workflow_filter=overdue_followups' ) ),
+			array( 'title' => 'درخواست‌های موفق این ماه', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'status' => 'won', 'date_from' => $month_start ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&status=won&date_from=' . rawurlencode( $month_start ) ) ),
+			array( 'title' => 'درخواست‌های ناموفق این ماه', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'status' => 'lost', 'date_from' => $month_start ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&status=lost&date_from=' . rawurlencode( $month_start ) ) ),
+			array( 'title' => 'گزارش‌های روزانه نیازمند توجه', 'count' => $this->staff_repository->count_daily_reports( array( 'needs_manager_attention' => 1 ) ), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=daily_reports&needs_manager_attention=1' ) ),
+			array( 'title' => 'درخواست‌های جدید از مدیریت', 'count' => $this->staff_repository->count_staff_requests( array( 'status' => 'new' ) ), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=requests&status=new' ) ),
+			array( 'title' => 'وظایف عقب‌افتاده', 'count' => $this->staff_repository->count_overdue_tasks(), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=tasks&overdue=1' ) ),
+		);
+	}
 
 
 	private function get_staff_filters( $tab, $can_manage, $user_id ) {
@@ -590,7 +624,7 @@ class CRPCRM_Admin_Pages {
 
 	private function render_request_list() {
 		$page     = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
-		$per_page = 20;
+		$per_page = max( 5, absint( CRPCRM_Settings::get( 'requests_per_page', 20 ) ) );
 		$filters  = $this->get_request_filters();
 		$args     = array_merge( $filters, array( 'limit' => $per_page, 'offset' => ( $page - 1 ) * $per_page, 'user_id' => get_current_user_id() ) );
 		$requests    = $this->request_repository->list_for_admin( $args );

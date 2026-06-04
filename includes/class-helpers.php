@@ -76,77 +76,23 @@ class CRPCRM_Helpers {
 	}
 
 	public static function get_persian_status_label( $status ) {
-		$labels = array(
-			'new'         => 'جدید',
-			'in_progress' => 'در حال پیگیری',
-			'no_answer'   => 'پاسخ نداد',
-			'follow_up'   => 'پیگیری بعدی',
-			'won'         => 'موفق',
-			'lost'        => 'ناموفق',
-			'invalid'     => 'نامعتبر',
-			'low'         => 'کم',
-			'normal'      => 'معمولی',
-			'high'        => 'زیاد',
-		);
-
-		return isset( $labels[ $status ] ) ? $labels[ $status ] : $status;
+		return CRPCRM_Labels::get_status_label( $status );
 	}
 
-
 	public static function get_request_type_label( $request_type ) {
-		$labels = array(
-			'car_registration' => 'ثبت‌نام خودرو',
-			'parts_request'    => 'درخواست قطعات',
-			'repair_booking'   => 'درخواست تعمیرات',
-		);
-
-		return isset( $labels[ $request_type ] ) ? $labels[ $request_type ] : $request_type;
+		return CRPCRM_Labels::get_request_type_label( $request_type );
 	}
 
 	public static function get_source_label( $source ) {
-		$labels = array(
-			'direct'    => 'مستقیم',
-			'instagram' => 'اینستاگرام',
-			'whatsapp'  => 'واتساپ',
-			'google'    => 'گوگل',
-			'bing'      => 'بینگ',
-			'telegram'  => 'تلگرام',
-			'other'     => 'سایر',
-		);
-
-		return isset( $labels[ $source ] ) ? $labels[ $source ] : ( $source ? $source : 'ثبت نشده' );
+		return CRPCRM_Labels::get_source_label( $source );
 	}
 
-
 	public static function get_medium_label( $medium ) {
-		$labels = array(
-			'social'   => 'شبکه اجتماعی',
-			'referral' => 'ارجاعی',
-			'organic'  => 'ارگانیک',
-			'none'     => 'بدون مدیوم',
-		);
-
-		return isset( $labels[ $medium ] ) ? $labels[ $medium ] : ( $medium ? $medium : 'ثبت نشده' );
+		return CRPCRM_Labels::get_medium_label( $medium );
 	}
 
 	public static function get_activity_type_label( $activity_type ) {
-		$labels = array(
-			'request_created'          => 'ثبت درخواست',
-			'request_claimed'          => 'شروع پیگیری',
-			'request_owner_changed'    => 'تغییر مسئول',
-			'request_owner_released'   => 'آزادسازی مسئول',
-			'call_answered'            => 'تماس پاسخ داده شد',
-			'call_no_answer'           => 'تماس پاسخ داده نشد',
-			'whatsapp_sent'            => 'پیام واتساپ ارسال شد',
-			'internal_note'            => 'یادداشت داخلی',
-			'follow_up_scheduled'      => 'پیگیری بعدی تنظیم شد',
-			'request_won'              => 'درخواست موفق شد',
-			'request_lost'             => 'درخواست ناموفق شد',
-			'request_invalid'          => 'درخواست نامعتبر شد',
-			'status_changed'           => 'تغییر وضعیت',
-		);
-
-		return isset( $labels[ $activity_type ] ) ? $labels[ $activity_type ] : $activity_type;
+		return CRPCRM_Labels::get_activity_label( $activity_type );
 	}
 
 	public static function get_owner_label( $owner_id ) {

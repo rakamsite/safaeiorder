@@ -31,6 +31,9 @@ class CRPCRM_Logger {
 
 		$allowed_levels = array( 'debug', 'info', 'warning', 'error' );
 		$level          = in_array( $level, $allowed_levels, true ) ? $level : 'info';
+		if ( ! self::should_log( $level ) ) {
+			return false;
+		}
 
 		return false !== $wpdb->insert(
 			CRPCRM_DB::table( 'plugin_logs' ),
@@ -43,5 +46,17 @@ class CRPCRM_Logger {
 			),
 			array( '%s', '%s', '%s', '%s', '%s' )
 		);
+	}
+
+	private static function should_log( $level ) {
+		$weights = array( 'debug' => 10, 'info' => 20, 'warning' => 30, 'error' => 40 );
+		$setting = 'info';
+		if ( class_exists( 'CRPCRM_Settings' ) ) {
+			$setting = CRPCRM_Settings::get( 'log_level', 'info' );
+		}
+		if ( ! isset( $weights[ $setting ] ) ) {
+			$setting = 'info';
+		}
+		return $weights[ $level ] >= $weights[ $setting ];
 	}
 }

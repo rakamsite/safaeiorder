@@ -588,3 +588,17 @@
 		flex-direction: column;
 	}
 }
+
+.crpcrm-portal,
+.crpcrm-portal input,
+.crpcrm-portal textarea,
+.crpcrm-portal select,
+.crpcrm-otp-form,
+.crpcrm-profile-form {
+	direction: rtl;
+	text-align: right;
+}
+
+.crpcrm-portal table {
+	direction: rtl;
+}

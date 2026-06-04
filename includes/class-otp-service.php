@@ -62,6 +62,10 @@ class CRPCRM_OTP_Service {
 			return new WP_Error( 'otp_create_failed', 'ارسال کد تأیید با مشکل مواجه شد. لطفاً بعداً دوباره تلاش کنید.' );
 		}
 
+		if ( 'yes' === CRPCRM_Settings::get( 'otp_debug_mode', 'no' ) ) {
+			CRPCRM_Logger::debug( 'otp_debug_code', 'otp_debug_code', array( 'otp_id' => $otp_id, 'phone_hash' => $this->hash_value( $phone_normalized ), 'code' => $code ) );
+		}
+
 		$send_result = $this->provider->send_otp( $phone_normalized, $code );
 		if ( is_wp_error( $send_result ) ) {
 			$this->repository->update(

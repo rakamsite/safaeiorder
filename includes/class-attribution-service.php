@@ -25,6 +25,10 @@ class CRPCRM_Attribution_Service {
 	}
 
 	public function maybe_track_current_request() {
+		if ( 'yes' !== CRPCRM_Settings::get( 'attribution_enabled', 'yes' ) ) {
+			return;
+		}
+
 		if ( $this->should_skip_tracking() ) {
 			return;
 		}
@@ -235,6 +239,10 @@ class CRPCRM_Attribution_Service {
 	}
 
 	public function record_event( $attribution, $customer_id = null, $user_id = null, $is_logged_in = false ) {
+		if ( 'yes' !== CRPCRM_Settings::get( 'attribution_events_enabled', 'yes' ) ) {
+			return false;
+		}
+
 		$attribution = $this->sanitize_attribution( $attribution );
 		if ( ! $this->is_valid_attribution( $attribution ) ) {
 			return false;
@@ -295,7 +303,20 @@ class CRPCRM_Attribution_Service {
 			return false;
 		}
 
-		return $referrer_host === $site_host || preg_replace( '/^www\./', '', $referrer_host ) === preg_replace( '/^www\./', '', $site_host );
+		$normalized_referrer = preg_replace( '/^www\./', '', $referrer_host );
+		$domains = preg_split( '/\r\n|\r|\n/', (string) CRPCRM_Settings::get( 'internal_domains', $site_host ) );
+		$domains[] = $site_host;
+		foreach ( $domains as $domain ) {
+			$domain = strtolower( trim( (string) $domain ) );
+			$domain = preg_replace( '/^https?:\/\//', '', $domain );
+			$domain = preg_replace( '/\/.*$/', '', $domain );
+			$domain = preg_replace( '/^www\./', '', $domain );
+			if ( '' !== $domain && $normalized_referrer === $domain ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public function get_attribution_for_new_request() {

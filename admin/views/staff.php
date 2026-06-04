@@ -25,6 +25,9 @@ $get_snapshot = function( $item ) use ( $sales_stats_service ) { return ( isset(
 	<?php if ( $notice && isset( $notice_labels[ $notice ] ) ) : ?>
 		<div class="notice <?php echo in_array( $notice, array( 'access_denied', 'validation_error' ), true ) ? 'notice-error' : 'notice-success'; ?> is-dismissible"><p><?php echo esc_html( $notice_labels[ $notice ] ); ?></p></div>
 	<?php endif; ?>
+	<?php if ( 'dashboard' === $tab && 'yes' === CRPCRM_Settings::get( 'daily_report_required', 'no' ) && empty( $today_report ) ) : ?>
+		<div class="notice notice-warning"><p><?php echo esc_html( 'گزارش روزانه امروز هنوز ثبت نشده است.' ); ?></p></div>
+	<?php endif; ?>
 	<nav class="nav-tab-wrapper">
 		<?php foreach ( $tabs as $key => $label ) : ?>
 			<a class="nav-tab <?php echo $tab === $key ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-staff', 'staff_tab' => $key ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( $label ); ?></a>

@@ -22,6 +22,8 @@ class CRPCRM_Admin_Menu {
 	}
 
 	public function register_menu() {
+		$settings_capability = current_user_can( 'crpcrm_manage_settings' ) ? 'crpcrm_manage_settings' : 'manage_options';
+
 		add_menu_page(
 			'پرتال و CRM',
 			'پرتال و CRM',
@@ -37,8 +39,10 @@ class CRPCRM_Admin_Menu {
 		add_submenu_page( 'crpcrm-dashboard', 'مشتریان', 'مشتریان', 'crpcrm_view_all_requests', 'crpcrm-customers', array( $this->admin_pages, 'customers' ) );
 		add_submenu_page( null, 'پروفایل مشتری', 'پروفایل مشتری', 'crpcrm_use_staff_portal', 'crpcrm-customer-profile', array( $this->admin_pages, 'customer_profile' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'گزارش‌ها', 'گزارش‌ها', 'crpcrm_view_reports', 'crpcrm-reports', array( $this->admin_pages, 'reports' ) );
-		add_submenu_page( 'crpcrm-dashboard', 'کارکنان', 'کارکنان', 'crpcrm_use_staff_portal', 'crpcrm-staff', array( $this->admin_pages, 'staff' ) );
-		add_submenu_page( 'crpcrm-dashboard', 'تنظیمات', 'تنظیمات', 'crpcrm_manage_settings', 'crpcrm-settings', array( $this->admin_pages, 'settings' ) );
+		if ( 'yes' === CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) || current_user_can( 'manage_options' ) ) {
+			add_submenu_page( 'crpcrm-dashboard', 'کارکنان', 'کارکنان', 'crpcrm_use_staff_portal', 'crpcrm-staff', array( $this->admin_pages, 'staff' ) );
+		}
+		add_submenu_page( 'crpcrm-dashboard', 'تنظیمات', 'تنظیمات', $settings_capability, 'crpcrm-settings', array( $this->admin_pages, 'settings' ) );
 	}
 
 	public function enqueue_assets( $hook_suffix ) {
