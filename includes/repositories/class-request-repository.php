@@ -381,6 +381,45 @@ class CRPCRM_Request_Repository {
 		);
 	}
 
+
+	public function count_by_customer_grouped_by_type( $customer_id ) {
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT request_type, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d GROUP BY request_type", absint( $customer_id ) ), ARRAY_A );
+		$counts = array();
+		foreach ( $rows as $row ) {
+			$counts[ $row['request_type'] ] = absint( $row['total'] );
+		}
+		return $counts;
+	}
+
+	public function count_by_customer_grouped_by_status( $customer_id ) {
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT status, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d GROUP BY status", absint( $customer_id ) ), ARRAY_A );
+		$counts = array();
+		foreach ( $rows as $row ) {
+			$counts[ $row['status'] ] = absint( $row['total'] );
+		}
+		return $counts;
+	}
+
+	public function get_last_request_for_customer( $customer_id ) {
+		global $wpdb;
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE customer_id = %d ORDER BY created_at DESC, id DESC LIMIT 1", absint( $customer_id ) ), ARRAY_A );
+	}
+
+	public function get_last_activity_for_customer( $customer_id ) {
+		global $wpdb;
+		$activities = CRPCRM_DB::table( 'request_activities' );
+		$requests   = CRPCRM_DB::table( 'requests' );
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT a.*, r.request_code FROM {$activities} a LEFT JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d ORDER BY a.created_at DESC, a.id DESC LIMIT 1",
+				absint( $customer_id )
+			),
+			ARRAY_A
+		);
+	}
+
 	public function user_can_access_request( $request_id, $user_id ) {
 		$request = $this->get( $request_id );
 		return CRPCRM_Request_Access_Service::can_view_request( $request, $user_id );
@@ -447,7 +486,7 @@ class CRPCRM_Request_Repository {
 		if ( ! empty( $args['source'] ) ) {
 			$source = sanitize_key( $args['source'] );
 			if ( 'other' === $source ) {
-				$where[] = "(r.request_source IS NOT NULL AND r.request_source <> '' AND r.request_source NOT IN ('direct','instagram','whatsapp','google','telegram'))";
+				$where[] = "(r.request_source IS NOT NULL AND r.request_source <> '' AND r.request_source NOT IN ('direct','instagram','whatsapp','telegram','google','bing'))";
 			} else {
 				$where[]  = 'r.request_source = %s';
 				$values[] = $source;

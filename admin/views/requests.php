@@ -38,6 +38,12 @@ function crpcrm_admin_requests_url( $args = array() ) {
 }
 }
 
+if ( ! function_exists( 'crpcrm_admin_customer_profile_url' ) ) {
+function crpcrm_admin_customer_profile_url( $customer_id, $args = array() ) {
+	return add_query_arg( array_merge( array( 'page' => 'crpcrm-customer-profile', 'customer_id' => absint( $customer_id ) ), $args ), admin_url( 'admin.php' ) );
+}
+}
+
 if ( ! function_exists( 'crpcrm_admin_owner_form' ) ) {
 function crpcrm_admin_owner_form( $request_id, $owner_id, $assignable_users ) {
 	?>
@@ -189,7 +195,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<label><?php echo esc_html( 'منبع' ); ?>
 					<select name="source">
 						<option value=""><?php echo esc_html( 'همه' ); ?></option>
-						<?php foreach ( array( 'direct', 'instagram', 'whatsapp', 'google', 'telegram', 'other' ) as $source_key ) : ?>
+						<?php foreach ( array( 'direct', 'instagram', 'whatsapp', 'telegram', 'google', 'bing', 'other' ) as $source_key ) : ?>
 							<option value="<?php echo esc_attr( $source_key ); ?>" <?php selected( $filters['source'], $source_key ); ?>><?php echo esc_html( CRPCRM_Helpers::get_source_label( $source_key ) ); ?></option>
 						<?php endforeach; ?>
 					</select>
@@ -299,7 +305,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<dt><?php echo esc_html( 'شماره موبایل' ); ?></dt><dd><?php echo esc_html( $request['customer_phone'] ? $request['customer_phone'] : $request['customer_phone_normalized'] ); ?></dd>
 				<dt><?php echo esc_html( 'استان' ); ?></dt><dd><?php echo esc_html( $request['customer_province'] ? $request['customer_province'] : '—' ); ?></dd>
 				<dt><?php echo esc_html( 'شهر' ); ?></dt><dd><?php echo esc_html( $request['customer_city'] ? $request['customer_city'] : '—' ); ?></dd>
-				<dt><?php echo esc_html( 'پروفایل مشتری' ); ?></dt><dd><a href="#crpcrm-customer-profile-placeholder"><?php echo esc_html( 'مشاهده پروفایل مشتری' ); ?></a></dd>
+				<dt><?php echo esc_html( 'پروفایل مشتری' ); ?></dt><dd><a href="<?php echo esc_url( crpcrm_admin_customer_profile_url( $request['customer_id'], array( 'return_request_id' => absint( $request['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده پروفایل مشتری' ); ?></a></dd>
 			</dl></div>
 		</div>
 
