@@ -37,44 +37,44 @@ class CRPCRM_Portal_Shortcode {
 		$notice = $this->get_notice();
 
 		if ( is_user_logged_in() ) {
-			$user_id         = get_current_user_id();
-			$customer        = $this->ensure_current_customer( $user_id );
-			$logout_url      = wp_nonce_url( admin_url( 'admin-post.php?action=crpcrm_portal_logout&redirect_to=' . rawurlencode( $this->current_url() ) ), 'crpcrm_portal_logout' );
-			$base_portal_url  = remove_query_arg( 'crpcrm_page', $this->clean_portal_url() );
-			$profile_url      = add_query_arg( 'crpcrm_page', 'profile', $base_portal_url );
+			$user_id  = get_current_user_id();
+			$customer = $this->ensure_current_customer( $user_id );
 
 			if ( is_wp_error( $customer ) || ! $customer ) {
 				CRPCRM_Logger::warning( 'customer_record_missing', 'customer', array( 'user_id' => $user_id ) );
 				return $this->render_view(
 					'portal-placeholder.php',
 					array(
-						'notice'              => array( 'type' => 'error', 'message' => 'اطلاعات حساب شما کامل نیست. لطفاً دوباره وارد شوید.' ),
-						'logout_url'          => $logout_url,
-						'placeholder_message' => 'اطلاعات حساب شما کامل نیست. لطفاً دوباره وارد شوید.',
+						'notice'              => array( 'type' => 'error', 'message' => 'امکان ساخت اطلاعات مشتری برای حساب شما وجود ندارد. لطفاً دوباره وارد شوید یا با پشتیبانی تماس بگیرید.' ),
+						'logout_url'          => $this->get_logout_url(),
+						'placeholder_message' => 'امکان ساخت اطلاعات مشتری برای حساب شما وجود ندارد. لطفاً دوباره وارد شوید یا با پشتیبانی تماس بگیرید.',
 					)
 				);
 			}
 
-			$is_profile_page = isset( $_GET['crpcrm_page'] ) && 'profile' === sanitize_key( wp_unslash( $_GET['crpcrm_page'] ) );
-			if ( ! absint( $customer['profile_completed'] ) || $is_profile_page ) {
-				CRPCRM_Logger::info( 'customer_profile_viewed', 'customer', array( 'user_id' => $user_id, 'customer_id' => absint( $customer['id'] ), 'mode' => absint( $customer['profile_completed'] ) ? 'edit' : 'complete' ) );
+			if ( ! absint( $customer['profile_completed'] ) ) {
+				CRPCRM_Logger::info( 'customer_profile_viewed', 'customer', array( 'user_id' => $user_id, 'customer_id' => absint( $customer['id'] ), 'mode' => 'complete' ) );
 
 				return $this->render_view(
 					'profile-form.php',
 					array(
 						'notice'             => $notice,
-						'logout_url'         => $logout_url,
+						'logout_url'         => $this->get_logout_url(),
 						'customer'           => $customer,
 						'phone_display'      => $this->format_phone_for_display( ! empty( $customer['phone_normalized'] ) ? $customer['phone_normalized'] : $customer['phone'] ),
 						'provinces'          => $this->get_iran_provinces(),
-						'is_edit'            => (bool) absint( $customer['profile_completed'] ),
+						'is_edit'            => false,
+						'is_embedded'        => false,
 						'admin_post_url'     => admin_url( 'admin-post.php' ),
-						'portal_redirect_to' => $is_profile_page && absint( $customer['profile_completed'] ) ? $profile_url : $base_portal_url,
+						'portal_redirect_to' => $this->get_portal_url( 'dashboard' ),
 					)
 				);
 			}
 
-			return $this->render_view( 'portal-placeholder.php', array( 'notice' => $notice, 'logout_url' => $logout_url, 'profile_url' => $profile_url ) );
+			$page = $this->get_current_portal_page();
+			$this->log_portal_page_view( $page, $customer, $user_id );
+
+			return $this->render_portal( $page, $customer, $notice );
 		}
 
 		$state_token = isset( $_GET['crpcrm_otp_state'] ) ? sanitize_text_field( wp_unslash( $_GET['crpcrm_otp_state'] ) ) : '';
@@ -221,9 +221,174 @@ class CRPCRM_Portal_Shortcode {
 
 	public function handle_logout() {
 		check_admin_referer( 'crpcrm_portal_logout' );
-		$redirect_to = isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : home_url( '/' );
+		$user_id     = get_current_user_id();
+		$redirect_to = isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : $this->get_base_portal_url();
+
+		CRPCRM_Logger::info( 'customer_logout_from_portal', 'customer', array( 'user_id' => $user_id ) );
 		wp_logout();
-		$this->redirect_with_notice( $redirect_to, 'success', 'با موفقیت از حساب کاربری خارج شدید.' );
+		$this->redirect_with_notice( $redirect_to, 'success', 'شما از حساب کاربری خارج شدید.' );
+	}
+
+	private function render_portal( $page, $customer, $notice = null ) {
+		return $this->render_view(
+			'portal-layout.php',
+			array(
+				'notice'          => $notice,
+				'current_page'    => $page,
+				'customer'        => $customer,
+				'menu_items'      => $this->get_required_menu_items( $page ),
+				'custom_links'    => $this->get_custom_menu_links(),
+				'logout_url'      => $this->get_logout_url(),
+				'portal_urls'     => array(
+					'dashboard'            => $this->get_portal_url( 'dashboard' ),
+					'profile'              => $this->get_portal_url( 'profile' ),
+					'my_requests'          => $this->get_portal_url( 'my_requests' ),
+					'new_car_registration' => $this->get_portal_url( 'new_car_registration' ),
+					'new_parts_request'    => $this->get_portal_url( 'new_parts_request' ),
+					'new_repair_booking'   => $this->get_portal_url( 'new_repair_booking' ),
+				),
+				'phone_display'   => $this->format_phone_for_display( ! empty( $customer['phone_normalized'] ) ? $customer['phone_normalized'] : $customer['phone'] ),
+				'provinces'       => $this->get_iran_provinces(),
+				'admin_post_url'  => admin_url( 'admin-post.php' ),
+			)
+		);
+	}
+
+	private function get_current_portal_page() {
+		$page = isset( $_GET['crpcrm_page'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_page'] ) ) : 'dashboard';
+		if ( '' === $page ) {
+			return 'dashboard';
+		}
+
+		if ( ! in_array( $page, $this->get_allowed_portal_pages(), true ) ) {
+			CRPCRM_Logger::warning( 'customer_portal_invalid_page', 'customer', array( 'requested_page' => $page, 'user_id' => get_current_user_id() ) );
+			return 'dashboard';
+		}
+
+		return $page;
+	}
+
+	private function get_allowed_portal_pages() {
+		return array( 'dashboard', 'profile', 'my_requests', 'new_car_registration', 'new_parts_request', 'new_repair_booking' );
+	}
+
+	private function get_required_menu_items( $current_page ) {
+		return array(
+			array(
+				'key'    => 'dashboard',
+				'label'  => 'داشبورد',
+				'url'    => $this->get_portal_url( 'dashboard' ),
+				'active' => 'dashboard' === $current_page,
+			),
+			array(
+				'key'    => 'my_requests',
+				'label'  => 'درخواست‌های من',
+				'url'    => $this->get_portal_url( 'my_requests' ),
+				'active' => 'my_requests' === $current_page,
+			),
+			array(
+				'key'    => 'profile',
+				'label'  => 'پروفایل من',
+				'url'    => $this->get_portal_url( 'profile' ),
+				'active' => 'profile' === $current_page,
+			),
+			array(
+				'key'    => 'logout',
+				'label'  => 'خروج',
+				'url'    => $this->get_logout_url(),
+				'active' => false,
+			),
+		);
+	}
+
+	private function get_custom_menu_links() {
+		$menu_id = absint( CRPCRM_Settings::get( 'portal_menu_id', 0 ) );
+		if ( ! $menu_id ) {
+			return array();
+		}
+
+		$items = wp_get_nav_menu_items( $menu_id );
+		if ( empty( $items ) || ! is_array( $items ) ) {
+			return array();
+		}
+
+		$links = array();
+		foreach ( $items as $item ) {
+			if ( empty( $item->url ) || empty( $item->title ) ) {
+				continue;
+			}
+
+			$links[] = array(
+				'label'  => wp_strip_all_tags( $item->title ),
+				'url'    => esc_url_raw( $item->url ),
+				'target' => ! empty( $item->target ) ? sanitize_key( $item->target ) : '',
+			);
+		}
+
+		return $links;
+	}
+
+	private function get_portal_url( $page, $args = array() ) {
+		$page = sanitize_key( $page );
+		if ( ! in_array( $page, $this->get_allowed_portal_pages(), true ) ) {
+			$page = 'dashboard';
+		}
+
+		$query_args = array_merge( array( 'crpcrm_page' => $page ), $this->sanitize_query_args( $args ) );
+		return add_query_arg( $query_args, $this->get_base_portal_url() );
+	}
+
+	private function get_logout_url() {
+		$url = add_query_arg(
+			array(
+				'action'      => 'crpcrm_portal_logout',
+				'redirect_to' => $this->get_base_portal_url(),
+			),
+			admin_url( 'admin-post.php' )
+		);
+
+		return wp_nonce_url( $url, 'crpcrm_portal_logout' );
+	}
+
+	private function get_base_portal_url() {
+		$portal_page_id = absint( CRPCRM_Settings::get( 'portal_page_id', 0 ) );
+		if ( $portal_page_id ) {
+			$permalink = get_permalink( $portal_page_id );
+			if ( $permalink ) {
+				return esc_url_raw( $permalink );
+			}
+		}
+
+		return remove_query_arg( 'crpcrm_page', $this->clean_portal_url() );
+	}
+
+	private function sanitize_query_args( $args ) {
+		$clean = array();
+		if ( empty( $args ) || ! is_array( $args ) ) {
+			return $clean;
+		}
+
+		foreach ( $args as $key => $value ) {
+			$key = sanitize_key( $key );
+			if ( '' === $key || 'crpcrm_page' === $key ) {
+				continue;
+			}
+			$clean[ $key ] = is_scalar( $value ) ? sanitize_text_field( (string) $value ) : '';
+		}
+
+		return $clean;
+	}
+
+	private function log_portal_page_view( $page, $customer, $user_id ) {
+		$meta = array( 'user_id' => $user_id, 'customer_id' => absint( $customer['id'] ), 'page' => $page );
+		if ( 'dashboard' === $page ) {
+			CRPCRM_Logger::info( 'customer_dashboard_viewed', 'customer', $meta );
+			return;
+		}
+
+		if ( in_array( $page, array( 'profile', 'my_requests' ), true ) ) {
+			CRPCRM_Logger::info( 'customer_portal_page_viewed', 'customer', $meta );
+		}
 	}
 
 	private function ensure_current_customer( $user_id ) {
