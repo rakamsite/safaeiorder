@@ -24,6 +24,7 @@ class CRPCRM_Plugin {
 
 	public function run() {
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+		add_action( 'plugins_loaded', array( 'CRPCRM_DB', 'maybe_upgrade' ) );
 		$this->settings->register_hooks();
 		$this->admin_menu->register_hooks();
 		$this->public->register_hooks();

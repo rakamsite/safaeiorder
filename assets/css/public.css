@@ -1,3 +1,127 @@
 .crpcrm-portal {
 	box-sizing: border-box;
 }
+
+.crpcrm-portal {
+	direction: rtl;
+	max-width: 520px;
+	margin: 2rem auto;
+	font-family: inherit;
+}
+
+.crpcrm-portal-card {
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 14px;
+	box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+	padding: 28px;
+	text-align: right;
+}
+
+.crpcrm-portal-card h2 {
+	margin: 0 0 12px;
+	font-size: 1.5rem;
+	color: #111827;
+}
+
+.crpcrm-portal-card p {
+	color: #4b5563;
+	line-height: 1.8;
+}
+
+.crpcrm-otp-form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+.crpcrm-otp-form label {
+	font-weight: 700;
+	color: #1f2937;
+}
+
+.crpcrm-otp-form input {
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid #d1d5db;
+	border-radius: 10px;
+	font-size: 1rem;
+	padding: 12px 14px;
+}
+
+.crpcrm-otp-form input:focus {
+	border-color: #2563eb;
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+	outline: none;
+}
+
+.crpcrm-button {
+	background: #2563eb;
+	border: 0;
+	border-radius: 10px;
+	color: #fff;
+	cursor: pointer;
+	font-weight: 700;
+	margin-top: 8px;
+	padding: 12px 18px;
+}
+
+.crpcrm-button:hover,
+.crpcrm-button:focus {
+	background: #1d4ed8;
+	color: #fff;
+}
+
+.crpcrm-notice {
+	border-radius: 10px;
+	font-weight: 600;
+	margin-bottom: 16px;
+	padding: 12px 14px;
+}
+
+.crpcrm-notice-success {
+	background: #ecfdf5;
+	border: 1px solid #a7f3d0;
+	color: #047857;
+}
+
+.crpcrm-notice-error {
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	color: #b91c1c;
+}
+
+.crpcrm-muted {
+	color: #6b7280;
+	font-size: 0.92rem;
+}
+
+.crpcrm-otp-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px 20px;
+	margin-top: 18px;
+}
+
+.crpcrm-otp-actions form {
+	align-items: center;
+	display: inline-flex;
+	gap: 8px;
+	margin: 0;
+}
+
+.crpcrm-link-button {
+	background: transparent;
+	border: 0;
+	color: #2563eb;
+	cursor: pointer;
+	font-weight: 700;
+	padding: 0;
+	text-decoration: underline;
+}
+
+.crpcrm-logout-link {
+	color: #b91c1c;
+	font-weight: 700;
+}

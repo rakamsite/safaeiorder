@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'CRPCRM_VERSION', '0.1.0' );
-define( 'CRPCRM_DB_VERSION', '0.1.0' );
+define( 'CRPCRM_DB_VERSION', '0.2.0' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -31,10 +31,15 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-deactivator.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-logger.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-activity.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-settings.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-otp-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/sms/class-sms-provider-interface.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/sms/class-melipayamak-provider.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-otp-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-menu.php';
 require_once CRPCRM_PLUGIN_DIR . 'admin/class-admin-pages.php';
+require_once CRPCRM_PLUGIN_DIR . 'public/class-portal-shortcode.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-public.php';
-require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-attribution-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-request-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-activity-repository.php';

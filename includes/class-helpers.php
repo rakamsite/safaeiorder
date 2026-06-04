@@ -15,14 +15,22 @@ class CRPCRM_Helpers {
 		$phone = preg_replace( '/[^0-9+]/', '', $phone );
 
 		if ( 0 === strpos( $phone, '+98' ) ) {
-			$phone = '0' . substr( $phone, 3 );
-		} elseif ( 0 === strpos( $phone, '98' ) && 12 === strlen( $phone ) ) {
-			$phone = '0' . substr( $phone, 2 );
+			$phone = substr( $phone, 1 );
+		} elseif ( 0 === strpos( $phone, '09' ) && 11 === strlen( $phone ) ) {
+			$phone = '98' . substr( $phone, 1 );
 		} elseif ( 0 === strpos( $phone, '9' ) && 10 === strlen( $phone ) ) {
-			$phone = '0' . $phone;
+			$phone = '98' . $phone;
 		}
 
 		return sanitize_text_field( $phone );
+	}
+
+	public static function is_valid_iran_phone_normalized( $phone ) {
+		return 1 === preg_match( '/^989\d{9}$/', (string) $phone );
+	}
+
+	public static function convert_digits_public( $value ) {
+		return self::convert_persian_digits( (string) $value );
 	}
 
 	public static function current_datetime() {
