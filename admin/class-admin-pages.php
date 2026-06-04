@@ -11,12 +11,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Admin_Pages {
 	private $request_repository;
+	private $workflow_service;
 
 	public function __construct() {
 		$this->request_repository = new CRPCRM_Request_Repository();
+		$this->workflow_service    = new CRPCRM_Request_Workflow_Service( $this->request_repository );
 		add_action( 'admin_post_crpcrm_claim_request', array( $this, 'handle_claim_request' ) );
 		add_action( 'admin_post_crpcrm_change_owner', array( $this, 'handle_change_owner' ) );
 		add_action( 'admin_post_crpcrm_release_owner', array( $this, 'handle_release_owner' ) );
+		add_action( 'admin_post_crpcrm_add_sales_action', array( $this, 'handle_add_sales_action' ) );
 	}
 
 	public function dashboard() {
@@ -123,13 +126,36 @@ class CRPCRM_Admin_Pages {
 		$this->redirect_to_request( $request_id, 'owner_released' );
 	}
 
+
+	public function handle_add_sales_action() {
+		$request_id = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
+		check_admin_referer( 'crpcrm_add_sales_action_' . $request_id );
+
+		$action_type = isset( $_POST['action_type'] ) ? sanitize_key( wp_unslash( $_POST['action_type'] ) ) : '';
+		$data        = array(
+			'note'              => isset( $_POST['action_note'] ) ? wp_unslash( $_POST['action_note'] ) : '',
+			'next_follow_up_at' => isset( $_POST['next_follow_up_at'] ) ? wp_unslash( $_POST['next_follow_up_at'] ) : '',
+			'close_reason'      => isset( $_POST['close_reason'] ) ? wp_unslash( $_POST['close_reason'] ) : '',
+			'invalid_reason'    => isset( $_POST['invalid_reason'] ) ? wp_unslash( $_POST['invalid_reason'] ) : '',
+		);
+
+		$result = $this->workflow_service->add_sales_action( $request_id, $action_type, $data, get_current_user_id() );
+		if ( is_wp_error( $result ) ) {
+			$this->redirect_to_request( $request_id, $result->get_error_code() );
+		}
+
+		$this->redirect_to_request( $request_id, 'sales_action_' . $action_type );
+	}
+
 	private function render_request_list() {
 		$page     = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
 		$per_page = 20;
 		$filters  = $this->get_request_filters();
 		$args     = array_merge( $filters, array( 'limit' => $per_page, 'offset' => ( $page - 1 ) * $per_page, 'user_id' => get_current_user_id() ) );
-		$requests = $this->request_repository->list_for_admin( $args );
-		$total    = $this->request_repository->count_for_admin( $args );
+		$requests    = $this->request_repository->list_for_admin( $args );
+		$total       = $this->request_repository->count_for_admin( $args );
+		$stale_hours = absint( CRPCRM_Settings::get( 'stale_request_hours', 48 ) );
+		$summary     = CRPCRM_Request_Access_Service::can_view_all( get_current_user_id() ) ? $this->request_repository->count_summary_for_manager( get_current_user_id(), $stale_hours ) : $this->request_repository->count_summary_for_user( get_current_user_id() );
 
 		CRPCRM_Logger::info( 'admin_requests_list_viewed', 'admin_requests_list_viewed', array( 'user_id' => get_current_user_id(), 'filters' => $filters ) );
 
@@ -145,6 +171,8 @@ class CRPCRM_Admin_Pages {
 				'total_pages'   => max( 1, (int) ceil( $total / $per_page ) ),
 				'assignable_users' => $this->get_assignable_users(),
 				'can_manage'    => CRPCRM_Request_Access_Service::can_manage_request(),
+				'summary'       => $summary,
+				'stale_hours'   => $stale_hours,
 			)
 		);
 	}
@@ -174,6 +202,8 @@ class CRPCRM_Admin_Pages {
 				'assignable_users' => $this->get_assignable_users(),
 				'can_manage'    => CRPCRM_Request_Access_Service::can_manage_request( $request ),
 				'can_claim'     => CRPCRM_Request_Access_Service::can_claim_request( $request ),
+				'can_add_action'=> $this->workflow_service->can_add_action( $request, get_current_user_id(), 'call_answered' ) || $this->workflow_service->can_add_action( $request, get_current_user_id(), 'internal_note' ),
+				'workflow'      => $this->workflow_service,
 			)
 		);
 	}
@@ -188,6 +218,8 @@ class CRPCRM_Admin_Pages {
 			'date_from'    => isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '',
 			'date_to'      => isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '',
 			'search'       => isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '',
+			'workflow_filter' => isset( $_GET['workflow_filter'] ) ? sanitize_key( wp_unslash( $_GET['workflow_filter'] ) ) : '',
+			'status_group' => isset( $_GET['status_group'] ) ? sanitize_key( wp_unslash( $_GET['status_group'] ) ) : '',
 		);
 	}
 

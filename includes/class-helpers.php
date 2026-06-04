@@ -122,6 +122,15 @@ class CRPCRM_Helpers {
 			'request_claimed'          => 'شروع پیگیری',
 			'request_owner_changed'    => 'تغییر مسئول',
 			'request_owner_released'   => 'آزادسازی مسئول',
+			'call_answered'            => 'تماس پاسخ داده شد',
+			'call_no_answer'           => 'تماس پاسخ داده نشد',
+			'whatsapp_sent'            => 'پیام واتساپ ارسال شد',
+			'internal_note'            => 'یادداشت داخلی',
+			'follow_up_scheduled'      => 'پیگیری بعدی تنظیم شد',
+			'request_won'              => 'درخواست موفق شد',
+			'request_lost'             => 'درخواست ناموفق شد',
+			'request_invalid'          => 'درخواست نامعتبر شد',
+			'status_changed'           => 'تغییر وضعیت',
 		);
 
 		return isset( $labels[ $activity_type ] ) ? $labels[ $activity_type ] : $activity_type;

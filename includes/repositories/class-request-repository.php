@@ -123,6 +123,9 @@ class CRPCRM_Request_Repository {
 			'date_from'      => '',
 			'date_to'        => '',
 			'search'         => '',
+			'workflow_filter' => '',
+			'status_group'    => '',
+			'stale_hours'     => absint( CRPCRM_Settings::get( 'stale_request_hours', 48 ) ),
 		);
 		$args = wp_parse_args( $args, $defaults );
 
@@ -145,7 +148,7 @@ class CRPCRM_Request_Repository {
 	public function count_for_admin( $args = array() ) {
 		global $wpdb;
 
-		$args  = wp_parse_args( $args, array( 'user_id' => get_current_user_id() ) );
+		$args  = wp_parse_args( $args, array( 'user_id' => get_current_user_id(), 'request_type' => '', 'status' => '', 'owner_filter' => 'all', 'source' => '', 'campaign' => '', 'date_from' => '', 'date_to' => '', 'search' => '', 'status_group' => '', 'workflow_filter' => '', 'stale_hours' => absint( CRPCRM_Settings::get( 'stale_request_hours', 48 ) ) ) );
 		$where = $this->build_admin_where( $args );
 		$sql   = "SELECT COUNT(*) FROM {$this->table} r LEFT JOIN " . CRPCRM_DB::table( 'customers' ) . " c ON c.id = r.customer_id {$where['sql']}";
 
@@ -309,6 +312,75 @@ class CRPCRM_Request_Repository {
 		return true;
 	}
 
+
+	public function update_status( $request_id, $status, $last_action = '' ) {
+		$data = array( 'status' => sanitize_key( $status ), 'last_activity_at' => CRPCRM_Helpers::current_datetime() );
+		if ( '' !== $last_action ) {
+			$data['last_action'] = sanitize_key( $last_action );
+		}
+		return $this->update( $request_id, $data );
+	}
+
+	public function update_follow_up( $request_id, $next_follow_up_at, $last_action = 'schedule_follow_up' ) {
+		return $this->update(
+			$request_id,
+			array(
+				'status'             => 'follow_up',
+				'next_follow_up_at'  => sanitize_text_field( $next_follow_up_at ),
+				'last_action'        => sanitize_key( $last_action ),
+				'last_activity_at'   => CRPCRM_Helpers::current_datetime(),
+			)
+		);
+	}
+
+	public function close_request( $request_id, $status, $reason_key = '', $last_action = '' ) {
+		$status = sanitize_key( $status );
+		$data   = array(
+			'status'             => $status,
+			'closed_at'          => CRPCRM_Helpers::current_datetime(),
+			'next_follow_up_at'  => null,
+			'last_activity_at'   => CRPCRM_Helpers::current_datetime(),
+		);
+		if ( '' !== $last_action ) {
+			$data['last_action'] = sanitize_key( $last_action );
+		}
+		if ( 'lost' === $status ) {
+			$data['close_reason'] = sanitize_key( $reason_key );
+		} elseif ( 'invalid' === $status ) {
+			$data['invalid_reason'] = sanitize_key( $reason_key );
+		}
+		return $this->update( $request_id, $data );
+	}
+
+	public function list_followups_today( $user_id = 0 ) {
+		return $this->list_for_admin( array( 'user_id' => $user_id ? absint( $user_id ) : get_current_user_id(), 'workflow_filter' => 'followups_today', 'limit' => 100 ) );
+	}
+
+	public function list_overdue_followups( $user_id = 0 ) {
+		return $this->list_for_admin( array( 'user_id' => $user_id ? absint( $user_id ) : get_current_user_id(), 'workflow_filter' => 'overdue_followups', 'limit' => 100 ) );
+	}
+
+	public function count_summary_for_user( $user_id ) {
+		$user_id = absint( $user_id );
+		return array(
+			'unassigned'        => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ),
+			'mine'              => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me' ) ),
+			'followups_today'   => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'workflow_filter' => 'followups_today' ) ),
+			'overdue_followups' => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'workflow_filter' => 'overdue_followups' ) ),
+		);
+	}
+
+	public function count_summary_for_manager( $user_id, $stale_hours = 48 ) {
+		$user_id = absint( $user_id );
+		return array(
+			'unassigned'        => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ),
+			'open'              => $this->count_for_admin( array( 'user_id' => $user_id, 'status_group' => 'open' ) ),
+			'followups_today'   => $this->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'followups_today' ) ),
+			'overdue_followups' => $this->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'overdue_followups' ) ),
+			'stale'             => $this->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'stale', 'stale_hours' => absint( $stale_hours ) ) ),
+		);
+	}
+
 	public function user_can_access_request( $request_id, $user_id ) {
 		$request = $this->get( $request_id );
 		return CRPCRM_Request_Access_Service::can_view_request( $request, $user_id );
@@ -331,6 +403,34 @@ class CRPCRM_Request_Repository {
 		if ( ! empty( $args['status'] ) ) {
 			$where[]  = 'r.status = %s';
 			$values[] = sanitize_key( $args['status'] );
+		}
+		if ( empty( $args['status'] ) && ! empty( $args['status_group'] ) ) {
+			if ( 'open' === $args['status_group'] ) {
+				$where[] = "r.status IN ('new','in_progress','no_answer','follow_up')";
+			} elseif ( 'closed' === $args['status_group'] ) {
+				$where[] = "r.status IN ('won','lost','invalid')";
+			}
+		}
+		if ( ! empty( $args['workflow_filter'] ) ) {
+			$workflow_filter = sanitize_key( $args['workflow_filter'] );
+			if ( 'followups_today' === $workflow_filter ) {
+				$where[]  = 'r.status = %s AND r.next_follow_up_at >= %s AND r.next_follow_up_at <= %s';
+				$values[] = 'follow_up';
+				$values[] = wp_date( 'Y-m-d 00:00:00', current_time( 'timestamp' ) );
+				$values[] = wp_date( 'Y-m-d 23:59:59', current_time( 'timestamp' ) );
+			} elseif ( 'overdue_followups' === $workflow_filter ) {
+				$where[]  = 'r.status = %s AND r.next_follow_up_at < %s';
+				$values[] = 'follow_up';
+				$values[] = CRPCRM_Helpers::current_datetime();
+			} elseif ( 'stale' === $workflow_filter ) {
+				if ( CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
+					$stale_hours = max( 1, absint( $args['stale_hours'] ) );
+					$where[]     = "r.status IN ('new','in_progress','no_answer','follow_up') AND r.owner_id IS NOT NULL AND (r.last_activity_at IS NULL OR r.last_activity_at < %s)";
+					$values[]    = wp_date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( HOUR_IN_SECONDS * $stale_hours ) );
+				} else {
+					$where[] = '1=0';
+				}
+			}
 		}
 		if ( isset( $args['owner_filter'] ) && '' !== $args['owner_filter'] && 'all' !== $args['owner_filter'] ) {
 			$owner_filter = sanitize_text_field( $args['owner_filter'] );
@@ -411,7 +511,7 @@ class CRPCRM_Request_Repository {
 		}
 		foreach ( $date_fields as $field ) {
 			if ( array_key_exists( $field, $data ) ) {
-				$clean[ $field ] = sanitize_text_field( $data[ $field ] );
+				$clean[ $field ] = null === $data[ $field ] || '' === $data[ $field ] ? null : sanitize_text_field( $data[ $field ] );
 			}
 		}
 		if ( array_key_exists( 'request_data', $data ) ) {

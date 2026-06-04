@@ -176,3 +176,86 @@
 	line-height: 30px;
 	padding: 0 10px;
 }
+
+.crpcrm-summary-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 12px;
+	margin: 16px 0;
+}
+
+.crpcrm-summary-cards > div,
+.crpcrm-sales-action-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 14px;
+}
+
+.crpcrm-summary-cards strong {
+	display: block;
+	font-size: 24px;
+	color: #135e96;
+}
+
+.crpcrm-summary-cards span {
+	color: #50575e;
+}
+
+.crpcrm-sales-action-form {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(220px, 1fr));
+	gap: 14px;
+	align-items: end;
+}
+
+.crpcrm-sales-action-form label,
+.crpcrm-sales-action-form textarea,
+.crpcrm-sales-action-form select,
+.crpcrm-sales-action-form input {
+	width: 100%;
+}
+
+.crpcrm-sales-action-form .crpcrm-full-field,
+.crpcrm-sales-action-form .submit {
+	grid-column: 1 / -1;
+}
+
+.crpcrm-conditional-field {
+	display: block;
+}
+
+.crpcrm-status-won,
+.crpcrm-status-lost,
+.crpcrm-status-invalid,
+.crpcrm-closed-request-badge {
+	background: #f0f0f1;
+	border-color: #c3c4c7;
+	color: #3c434a;
+}
+
+.crpcrm-closed-request-badge {
+	display: inline-block;
+	padding: 8px 12px;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+}
+
+.crpcrm-overdue-followup {
+	background: #fcf0f1;
+	color: #8a2424;
+	font-weight: 600;
+}
+
+.crpcrm-activity-timeline em {
+	display: inline-block;
+	margin: 4px 0;
+	color: #646970;
+	font-style: normal;
+}
+
+@media (max-width: 782px) {
+	.crpcrm-sales-action-form {
+		grid-template-columns: 1fr;
+	}
+}
