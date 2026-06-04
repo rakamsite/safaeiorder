@@ -41,6 +41,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-otp-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-attribution-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-reports-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-staff-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-sales-daily-stats-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-attribution-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-menu.php';
 require_once CRPCRM_PLUGIN_DIR . 'admin/class-admin-pages.php';

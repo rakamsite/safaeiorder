@@ -15,6 +15,7 @@ class CRPCRM_Admin_Pages {
 	private $workflow_service;
 	private $reports_repository;
 	private $staff_repository;
+	private $sales_daily_stats_service;
 
 	public function __construct() {
 		$this->request_repository = new CRPCRM_Request_Repository();
@@ -22,6 +23,7 @@ class CRPCRM_Admin_Pages {
 		$this->workflow_service    = new CRPCRM_Request_Workflow_Service( $this->request_repository );
 		$this->reports_repository = new CRPCRM_Reports_Repository();
 		$this->staff_repository = new CRPCRM_Staff_Repository();
+		$this->sales_daily_stats_service = new CRPCRM_Sales_Daily_Stats_Service( $this->staff_repository );
 		add_action( 'admin_post_crpcrm_claim_request', array( $this, 'handle_claim_request' ) );
 		add_action( 'admin_post_crpcrm_change_owner', array( $this, 'handle_change_owner' ) );
 		add_action( 'admin_post_crpcrm_release_owner', array( $this, 'handle_release_owner' ) );
@@ -203,8 +205,11 @@ class CRPCRM_Admin_Pages {
 		$items = array();
 		$total = 0;
 		if ( 'daily_reports' === $tab ) {
-			$items = $this->staff_repository->list_daily_reports( $list_args );
+			$items = $this->staff_repository->list_daily_reports_with_snapshot( $list_args );
 			$total = $this->staff_repository->count_daily_reports( $list_args );
+			if ( $can_manage ) {
+				CRPCRM_Logger::info( 'sales_daily_snapshot_viewed', 'sales_daily_snapshot_viewed', array( 'viewer_user_id' => $user_id, 'report_count' => count( $items ) ) );
+			}
 		} elseif ( 'requests' === $tab ) {
 			$items = $this->staff_repository->list_staff_requests( $list_args );
 			$total = $this->staff_repository->count_staff_requests( $list_args );
@@ -235,6 +240,9 @@ class CRPCRM_Admin_Pages {
 				'staff_users'      => $staff_users,
 				'repository'       => $this->staff_repository,
 				'today_report'     => $this->staff_repository->get_today_report( $user_id ),
+				'sales_stats_service' => $this->sales_daily_stats_service,
+				'current_sales_stats' => $this->sales_daily_stats_service->is_sales_user( $user_id ) ? $this->sales_daily_stats_service->get_stats_for_user( $user_id ) : array(),
+				'is_sales_user'    => $this->sales_daily_stats_service->is_sales_user( $user_id ),
 				'dashboard_counts' => $this->get_staff_dashboard_counts( $user_id, $can_manage, $staff_users ),
 			)
 		);
@@ -310,8 +318,29 @@ class CRPCRM_Admin_Pages {
 		);
 		if ( $can_manage ) {
 			foreach ( $staff_ids as $id ) { $counts['all_unread_announcements'] += $this->staff_repository->count_unread_announcements_for_user( $id ); }
+			$counts['sales_today_summary'] = $this->get_sales_today_summary( $reported );
+		} else {
+			$counts['sales_today_summary'] = array();
 		}
 		return $counts;
+	}
+
+	private function get_sales_today_summary( $reported_user_ids ) {
+		$summary = array();
+		$reported_user_ids = array_map( 'absint', (array) $reported_user_ids );
+		foreach ( $this->sales_daily_stats_service->get_sales_users() as $user ) {
+			if ( in_array( 'customer', (array) $user->roles, true ) ) {
+				continue;
+			}
+			$user_id = absint( $user->ID );
+			$summary[] = array(
+				'user_id' => $user_id,
+				'display_name' => $user->display_name,
+				'reported_today' => in_array( $user_id, $reported_user_ids, true ),
+				'stats' => $this->sales_daily_stats_service->get_stats_for_user( $user_id ),
+			);
+		}
+		return $summary;
 	}
 
 	public function handle_staff_action() {
@@ -328,7 +357,12 @@ class CRPCRM_Admin_Pages {
 
 		if ( 'save_daily_report' === $action ) {
 			$tab = 'daily_reports';
-			$report_id = isset( $_POST['report_id'] ) ? absint( $_POST['report_id'] ) : 0;
+			$is_sales_user = $this->sales_daily_stats_service->is_sales_user( $user_id );
+			$sales_comment = sanitize_textarea_field( wp_unslash( $_POST['sales_comment'] ?? '' ) );
+			if ( $is_sales_user && '' === trim( $sales_comment ) ) {
+				$this->staff_redirect( $tab, 'validation_error' );
+			}
+
 			$data = array(
 				'user_id' => $user_id,
 				'report_date' => $this->staff_repository->today(),
@@ -338,13 +372,23 @@ class CRPCRM_Admin_Pages {
 				'tomorrow_plan' => sanitize_textarea_field( wp_unslash( $_POST['tomorrow_plan'] ?? '' ) ),
 				'needs_manager_attention' => isset( $_POST['needs_manager_attention'] ) ? 1 : 0,
 			);
+			if ( $is_sales_user ) {
+				$snapshot = $this->sales_daily_stats_service->build_snapshot( $user_id );
+				$data['sales_comment'] = $sales_comment;
+				$data['sales_crm_snapshot'] = $this->sales_daily_stats_service->snapshot_to_json( $snapshot );
+			}
+
 			$existing = $this->staff_repository->get_today_report( $user_id );
 			if ( $existing ) {
 				$this->staff_repository->update_daily_report( $existing['id'], $data );
-				CRPCRM_Logger::info( 'staff_daily_report_updated', 'staff_daily_report_updated', array( 'user_id' => $user_id, 'report_id' => $existing['id'] ) );
+				$report_id = absint( $existing['id'] );
+				CRPCRM_Logger::info( 'staff_daily_report_updated', 'staff_daily_report_updated', array( 'user_id' => $user_id, 'report_id' => $report_id ) );
 			} else {
-				$id = $this->staff_repository->create_daily_report( $data );
-				CRPCRM_Logger::info( 'staff_daily_report_created', 'staff_daily_report_created', array( 'user_id' => $user_id, 'report_id' => $id ) );
+				$report_id = $this->staff_repository->create_daily_report( $data );
+				CRPCRM_Logger::info( 'staff_daily_report_created', 'staff_daily_report_created', array( 'user_id' => $user_id, 'report_id' => $report_id ) );
+			}
+			if ( $is_sales_user ) {
+				CRPCRM_Logger::info( 'sales_daily_snapshot_saved', 'sales_daily_snapshot_saved', array( 'user_id' => $user_id, 'report_id' => $report_id, 'date' => $this->staff_repository->today() ) );
 			}
 		} elseif ( 'manage_daily_report' === $action && $can_manage ) {
 			$tab = 'daily_reports';
