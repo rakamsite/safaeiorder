@@ -1,0 +1,51 @@
+<?php
+/**
+ * Plugin Name: پرتال درخواست و CRM مشتریان
+ * Plugin URI: https://example.com/
+ * Description: اسکلت پایه پرتال مشتریان، ثبت درخواست، CRM فروش و پنل داخلی کارکنان.
+ * Version: 0.1.0
+ * Author: Safaei
+ * Text Domain: customer-request-portal-crm
+ * Domain Path: /languages
+ * Requires at least: 6.0
+ * Requires PHP: 7.4
+ *
+ * @package CRPCRM
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'CRPCRM_VERSION', '0.1.0' );
+define( 'CRPCRM_DB_VERSION', '0.1.0' );
+define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
+define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-helpers.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-db.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-roles.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-activator.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-deactivator.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-logger.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-activity.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-settings.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-menu.php';
+require_once CRPCRM_PLUGIN_DIR . 'admin/class-admin-pages.php';
+require_once CRPCRM_PLUGIN_DIR . 'public/class-public.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-attribution-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-request-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-activity-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-staff-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-plugin.php';
+
+register_activation_hook( __FILE__, array( 'CRPCRM_Activator', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'CRPCRM_Deactivator', 'deactivate' ) );
+
+function crpcrm_run_plugin() {
+	$plugin = new CRPCRM_Plugin();
+	$plugin->run();
+}
+crpcrm_run_plugin();
