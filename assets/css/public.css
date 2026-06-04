@@ -125,3 +125,62 @@
 	color: #b91c1c;
 	font-weight: 700;
 }
+
+.crpcrm-profile-form {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-top: 20px;
+}
+
+.crpcrm-profile-form label {
+	font-weight: 700;
+	color: #1f2937;
+}
+
+.crpcrm-profile-form input,
+.crpcrm-profile-form select {
+	width: 100%;
+	box-sizing: border-box;
+	background: #fff;
+	border: 1px solid #d1d5db;
+	border-radius: 10px;
+	color: #111827;
+	font-family: inherit;
+	font-size: 1rem;
+	padding: 12px 14px;
+}
+
+.crpcrm-profile-form input[readonly] {
+	background: #f9fafb;
+	color: #6b7280;
+	cursor: not-allowed;
+}
+
+.crpcrm-profile-form input:focus,
+.crpcrm-profile-form select:focus {
+	border-color: #2563eb;
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+	outline: none;
+}
+
+.crpcrm-profile-card .crpcrm-logout-link {
+	display: inline-block;
+	margin-top: 18px;
+}
+
+.crpcrm-profile-link {
+	color: #2563eb;
+	font-weight: 700;
+}
+
+@media (max-width: 600px) {
+	.crpcrm-portal {
+		margin: 1rem auto;
+		padding: 0 12px;
+	}
+
+	.crpcrm-portal-card {
+		padding: 20px;
+	}
+}
