@@ -55,6 +55,19 @@ class CRPCRM_Staff_Repository {
 		return $this->list_rows( 'daily_reports', $args, 'report_date DESC, created_at DESC' );
 	}
 
+	public function save_daily_report_snapshot( $report_id, $snapshot ) {
+		$snapshot_json = is_string( $snapshot ) ? $snapshot : wp_json_encode( $snapshot );
+		return $this->update_daily_report( absint( $report_id ), array( 'sales_crm_snapshot' => $snapshot_json ) );
+	}
+
+	public function get_daily_report_with_snapshot( $report_id ) {
+		return $this->get_daily_report( $report_id );
+	}
+
+	public function list_daily_reports_with_snapshot( $args = array() ) {
+		return $this->list_daily_reports( $args );
+	}
+
 	public function count_daily_reports( $args = array() ) {
 		return $this->count_rows( 'daily_reports', $args );
 	}

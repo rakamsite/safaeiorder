@@ -14,12 +14,16 @@ $user_label = function( $id ) { $u = get_userdata( absint( $id ) ); return $u ? 
 $badge = function( $value, $labels ) { return '<span class="crpcrm-badge crpcrm-status-badge crpcrm-status-' . esc_attr( $value ) . '">' . esc_html( isset( $labels[ $value ] ) ? $labels[ $value ] : $value ) . '</span>'; };
 $selected = function( $a, $b ) { selected( (string) $a, (string) $b ); };
 $edit_id = isset( $_GET['staff_item_id'] ) ? absint( $_GET['staff_item_id'] ) : 0;
-$notice_labels = array( 'saved' => 'اطلاعات با موفقیت ذخیره شد.', 'access_denied' => 'شما اجازه انجام این عملیات را ندارید.' );
+$notice_labels = array( 'saved' => 'اطلاعات با موفقیت ذخیره شد.', 'access_denied' => 'شما اجازه انجام این عملیات را ندارید.', 'validation_error' => 'لطفاً فیلدهای الزامی گزارش فروش را تکمیل کنید.' );
+$sales_stat_labels = isset( $sales_stats_service ) ? $sales_stats_service->get_labels() : array();
+$sales_form_keys = array( 'claimed_today', 'current_owned_requests', 'actions_today', 'call_answered_today', 'call_no_answer_today', 'whatsapp_sent_today', 'internal_notes_today', 'followups_scheduled_today', 'followups_due_today', 'overdue_followups', 'won_today', 'lost_today', 'invalid_today', 'open_requests', 'closed_today' );
+$sales_snapshot_keys = array( 'claimed_today', 'actions_today', 'call_answered_today', 'call_no_answer_today', 'whatsapp_sent_today', 'followups_due_today', 'overdue_followups', 'won_today', 'lost_today', 'invalid_today', 'open_requests', 'generated_at' );
+$get_snapshot = function( $item ) use ( $sales_stats_service ) { return ( isset( $sales_stats_service ) && ! empty( $item['sales_crm_snapshot'] ) ) ? $sales_stats_service->decode_snapshot( $item['sales_crm_snapshot'] ) : array(); };
 ?>
 <div class="wrap crpcrm-admin-wrap crpcrm-staff-admin" dir="rtl">
 	<h1><?php echo esc_html( 'پنل کارکنان' ); ?></h1>
 	<?php if ( $notice && isset( $notice_labels[ $notice ] ) ) : ?>
-		<div class="notice <?php echo 'access_denied' === $notice ? 'notice-error' : 'notice-success'; ?> is-dismissible"><p><?php echo esc_html( $notice_labels[ $notice ] ); ?></p></div>
+		<div class="notice <?php echo in_array( $notice, array( 'access_denied', 'validation_error' ), true ) ? 'notice-error' : 'notice-success'; ?> is-dismissible"><p><?php echo esc_html( $notice_labels[ $notice ] ); ?></p></div>
 	<?php endif; ?>
 	<nav class="nav-tab-wrapper">
 		<?php foreach ( $tabs as $key => $label ) : ?>
@@ -50,25 +54,83 @@ $notice_labels = array( 'saved' => 'اطلاعات با موفقیت ذخیره 
 			<div class="crpcrm-card"><h2>گزارش داده‌اند</h2><p><?php echo esc_html( implode( '، ', array_map( $user_label, $dashboard_counts['reported_users'] ) ) ?: 'موردی نیست' ); ?></p></div>
 			<div class="crpcrm-card"><h2>گزارش نداده‌اند</h2><p><?php echo esc_html( implode( '، ', array_map( $user_label, $dashboard_counts['not_reported_users'] ) ) ?: 'موردی نیست' ); ?></p></div>
 		</div>
+		<div class="crpcrm-card">
+			<h2>خلاصه فروش امروز</h2>
+			<table class="widefat striped"><thead><tr><th>کارشناس</th><th>گزارش امروز</th><th>اقدامات امروز</th><th>تماس پاسخ داده</th><th>تماس پاسخ نداد</th><th>پیگیری عقب‌افتاده</th><th>موفق امروز</th><th>ناموفق امروز</th></tr></thead><tbody>
+			<?php foreach ( $dashboard_counts['sales_today_summary'] as $row ) : $stats = $row['stats']; ?>
+				<tr><td><?php echo esc_html( $row['display_name'] ); ?></td><td><?php echo esc_html( $row['reported_today'] ? 'ثبت شده' : 'ثبت نشده' ); ?></td><td><?php echo esc_html( absint( $stats['actions_today'] ?? 0 ) ); ?></td><td><?php echo esc_html( absint( $stats['call_answered_today'] ?? 0 ) ); ?></td><td><?php echo esc_html( absint( $stats['call_no_answer_today'] ?? 0 ) ); ?></td><td><?php echo esc_html( absint( $stats['overdue_followups'] ?? 0 ) ); ?></td><td><?php echo esc_html( absint( $stats['won_today'] ?? 0 ) ); ?></td><td><?php echo esc_html( absint( $stats['lost_today'] ?? 0 ) ); ?></td></tr>
+			<?php endforeach; ?>
+			<?php if ( empty( $dashboard_counts['sales_today_summary'] ) ) : ?><tr><td colspan="8">فروشنده‌ای یافت نشد.</td></tr><?php endif; ?>
+			</tbody></table>
+		</div>
 	<?php endif; ?>
 <?php endif; ?>
 
 <?php if ( 'daily_reports' === $tab ) : ?>
 	<div class="crpcrm-card"><h2><?php echo $today_report ? 'ویرایش گزارش امروز' : 'ثبت گزارش روزانه'; ?></h2>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<?php wp_nonce_field( 'crpcrm_staff_save_daily_report' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_daily_report">
+			<?php wp_nonce_field( 'crpcrm_staff_save_daily_report' ); ?>
+			<input type="hidden" name="action" value="crpcrm_staff_action">
+			<input type="hidden" name="staff_action_type" value="save_daily_report">
+
+			<?php if ( ! empty( $is_sales_user ) ) : ?>
+				<div class="crpcrm-card">
+					<h3>آمار امروز شما در CRM</h3>
+					<?php if ( $sales_stats_service->all_zero( $current_sales_stats ) ) : ?>
+						<p class="description">برای امروز فعالیتی در CRM ثبت نشده است.</p>
+					<?php endif; ?>
+					<?php if ( ! empty( $current_sales_stats['overdue_followups'] ) ) : ?>
+						<div class="notice notice-warning inline"><p>شما پیگیری عقب‌افتاده دارید. لطفاً در توضیح گزارش روزانه وضعیت آن‌ها را مشخص کنید.</p></div>
+					<?php endif; ?>
+					<table class="widefat striped"><tbody>
+						<?php foreach ( $sales_form_keys as $key ) : ?>
+							<tr><th><?php echo esc_html( $sales_stat_labels[ $key ] ?? $key ); ?></th><td><?php echo esc_html( absint( $current_sales_stats[ $key ] ?? 0 ) ); ?></td></tr>
+						<?php endforeach; ?>
+					</tbody></table>
+				</div>
+			<?php endif; ?>
+
 			<textarea name="completed_work" required placeholder="کارهای انجام‌شده امروز" rows="4" class="large-text"><?php echo esc_textarea( $today_report['completed_work'] ?? '' ); ?></textarea><br><br>
 			<textarea name="unfinished_work" required placeholder="کارهای نیمه‌تمام" rows="4" class="large-text"><?php echo esc_textarea( $today_report['unfinished_work'] ?? '' ); ?></textarea><br><br>
 			<textarea name="problems" required placeholder="مشکلات امروز" rows="4" class="large-text"><?php echo esc_textarea( $today_report['problems'] ?? '' ); ?></textarea><br><br>
 			<textarea name="tomorrow_plan" required placeholder="برنامه فردا" rows="4" class="large-text"><?php echo esc_textarea( $today_report['tomorrow_plan'] ?? '' ); ?></textarea><br><br>
 			<label><input type="checkbox" name="needs_manager_attention" value="1" <?php checked( ! empty( $today_report['needs_manager_attention'] ) ); ?>> نیاز به توجه مدیر دارد؟</label>
+			<?php if ( ! empty( $is_sales_user ) ) : ?>
+				<p><label><strong>توضیح تکمیلی فروش</strong><br>
+					<textarea name="sales_comment" required rows="4" class="large-text" placeholder="اگر درباره کیفیت لیدها، مشکلات پیگیری، کمپین‌ها یا نتیجه تماس‌های امروز نکته‌ای دارید، اینجا بنویسید."><?php echo esc_textarea( $today_report['sales_comment'] ?? '' ); ?></textarea>
+				</label></p>
+				<p class="description">اگر درباره کیفیت لیدها، مشکلات پیگیری، کمپین‌ها یا نتیجه تماس‌های امروز نکته‌ای دارید، اینجا بنویسید.</p>
+			<?php endif; ?>
 			<?php submit_button( 'ثبت گزارش روزانه' ); ?>
 		</form>
 		<?php if ( ! empty( $today_report['manager_response'] ) ) : ?><p><strong>پاسخ مدیر:</strong> <?php echo esc_html( $today_report['manager_response'] ); ?></p><?php endif; ?>
 	</div>
 	<?php include __DIR__ . '/staff-parts/filters-daily.php'; ?>
-	<table class="widefat striped crpcrm-requests-table"><thead><tr><th>تاریخ</th><th>کارمند</th><th>نیازمند توجه مدیر</th><th>وضعیت</th><th>تاریخ ثبت</th><th>عملیات</th></tr></thead><tbody>
-	<?php foreach ( $items as $item ) : ?><tr><td><?php echo esc_html( $item['report_date'] ); ?></td><td><?php echo esc_html( $user_label( $item['user_id'] ) ); ?></td><td><?php echo $item['needs_manager_attention'] ? 'بله' : 'خیر'; ?></td><td><?php echo $badge( $item['status'], $report_statuses ); ?></td><td><?php echo esc_html( $item['created_at'] ); ?></td><td><?php if ( ! empty( $item['manager_response'] ) ) echo '<p><strong>پاسخ:</strong> ' . esc_html( $item['manager_response'] ) . '</p>'; if ( $can_manage ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_manage_daily_report' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="manage_daily_report"><input type="hidden" name="report_id" value="<?php echo esc_attr( $item['id'] ); ?>"><select name="manager_action"><option value="seen">دیده شد</option><option value="responded">پاسخ داده شد</option><option value="closed">بسته شد</option></select><textarea name="manager_response" rows="2" class="large-text" placeholder="پاسخ مدیریتی"><?php echo esc_textarea( $item['manager_response'] ); ?></textarea><?php submit_button( 'ثبت عملیات', 'secondary small', '', false ); ?></form><?php endif; ?></td></tr><?php endforeach; ?>
+	<table class="widefat striped crpcrm-requests-table"><thead><tr><th>تاریخ</th><th>کارمند</th><th>نیازمند توجه مدیر</th><th>وضعیت</th><?php if ( $can_manage ) : ?><th>آمار CRM</th><?php endif; ?><th>تاریخ ثبت</th><th>عملیات</th></tr></thead><tbody>
+	<?php foreach ( $items as $item ) : $snapshot = $get_snapshot( $item ); ?>
+		<tr>
+			<td><?php echo esc_html( $item['report_date'] ); ?></td>
+			<td><?php echo esc_html( $user_label( $item['user_id'] ) ); ?></td>
+			<td><?php echo esc_html( $item['needs_manager_attention'] ? 'بله' : 'خیر' ); ?></td>
+			<td><?php echo $badge( $item['status'], $report_statuses ); ?></td>
+			<?php if ( $can_manage ) : ?><td><?php echo $snapshot ? esc_html( 'اقدام: ' . absint( $snapshot['actions_today'] ) . ' | موفق: ' . absint( $snapshot['won_today'] ) . ' | عقب‌افتاده: ' . absint( $snapshot['overdue_followups'] ) ) : ( $sales_stats_service->is_sales_user( $item['user_id'] ) ? esc_html( 'ندارد' ) : esc_html( '—' ) ); ?></td><?php endif; ?>
+			<td><?php echo esc_html( $item['created_at'] ); ?></td>
+			<td>
+				<?php if ( ! empty( $item['manager_response'] ) ) echo '<p><strong>پاسخ:</strong> ' . esc_html( $item['manager_response'] ) . '</p>'; ?>
+				<?php if ( $can_manage ) : ?>
+					<div class="crpcrm-card"><h3>آمار CRM ثبت‌شده در زمان ارسال گزارش</h3>
+						<?php if ( $snapshot ) : ?>
+							<table class="widefat striped"><tbody><?php foreach ( $sales_snapshot_keys as $key ) : ?><tr><th><?php echo esc_html( $sales_stat_labels[ $key ] ?? $key ); ?></th><td><?php echo esc_html( 'generated_at' === $key ? $snapshot[ $key ] : absint( $snapshot[ $key ] ?? 0 ) ); ?></td></tr><?php endforeach; ?></tbody></table>
+						<?php else : ?>
+							<p>برای این گزارش، آمار CRM ثبت نشده است.</p>
+						<?php endif; ?>
+					</div>
+					<?php if ( ! empty( $item['sales_comment'] ) ) : ?><p><strong>توضیح تکمیلی فروش:</strong> <?php echo esc_html( $item['sales_comment'] ); ?></p><?php endif; ?>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_manage_daily_report' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="manage_daily_report"><input type="hidden" name="report_id" value="<?php echo esc_attr( $item['id'] ); ?>"><select name="manager_action"><option value="seen">دیده شد</option><option value="responded">پاسخ داده شد</option><option value="closed">بسته شد</option></select><textarea name="manager_response" rows="2" class="large-text" placeholder="پاسخ مدیریتی"><?php echo esc_textarea( $item['manager_response'] ); ?></textarea><?php submit_button( 'ثبت عملیات', 'secondary small', '', false ); ?></form>
+				<?php endif; ?>
+			</td>
+		</tr>
+	<?php endforeach; ?>
 	</tbody></table>
 <?php endif; ?>
 
