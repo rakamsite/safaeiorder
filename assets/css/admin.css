@@ -287,3 +287,59 @@
 .crpcrm-customers-admin .widefat td {
 	vertical-align: top;
 }
+
+.crpcrm-reports-admin .crpcrm-report-section {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	margin: 18px 0;
+	padding: 16px;
+}
+
+.crpcrm-reports-admin .crpcrm-report-section h2 {
+	margin-top: 0;
+}
+
+.crpcrm-reports-admin .widefat th,
+.crpcrm-reports-admin .widefat td {
+	vertical-align: top;
+}
+
+.crpcrm-kpi-cards {
+	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.crpcrm-status-funnel {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 12px;
+}
+
+.crpcrm-funnel-card {
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	color: #1d2327;
+	display: block;
+	padding: 14px;
+	text-decoration: none;
+}
+
+.crpcrm-funnel-card strong {
+	color: #135e96;
+	display: block;
+	font-size: 24px;
+}
+
+.crpcrm-funnel-card span,
+.crpcrm-funnel-card em {
+	display: block;
+	font-style: normal;
+	margin-top: 4px;
+}
+
+.crpcrm-two-columns {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 16px;
+}
