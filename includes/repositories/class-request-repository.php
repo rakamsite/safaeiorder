@@ -107,6 +107,286 @@ class CRPCRM_Request_Repository {
 		return 'REQ-' . str_pad( absint( $id ), 6, '0', STR_PAD_LEFT );
 	}
 
+
+	public function list_for_admin( $args = array() ) {
+		global $wpdb;
+
+		$defaults = array(
+			'limit'          => 20,
+			'offset'         => 0,
+			'user_id'        => get_current_user_id(),
+			'request_type'   => '',
+			'status'         => '',
+			'owner_filter'   => 'all',
+			'source'         => '',
+			'campaign'       => '',
+			'date_from'      => '',
+			'date_to'        => '',
+			'search'         => '',
+		);
+		$args = wp_parse_args( $args, $defaults );
+
+		$where  = $this->build_admin_where( $args );
+		$limit  = max( 1, min( 100, absint( $args['limit'] ) ) );
+		$offset = absint( $args['offset'] );
+
+		$sql = "SELECT r.*, c.full_name AS customer_name, c.phone AS customer_phone, c.phone_normalized AS customer_phone_normalized, c.province AS customer_province, c.city AS customer_city
+			FROM {$this->table} r
+			LEFT JOIN " . CRPCRM_DB::table( 'customers' ) . " c ON c.id = r.customer_id
+			{$where['sql']}
+			ORDER BY r.created_at DESC, r.id DESC
+			LIMIT %d OFFSET %d";
+		$where['values'][] = $limit;
+		$where['values'][] = $offset;
+
+		return $wpdb->get_results( $wpdb->prepare( $sql, $where['values'] ), ARRAY_A );
+	}
+
+	public function count_for_admin( $args = array() ) {
+		global $wpdb;
+
+		$args  = wp_parse_args( $args, array( 'user_id' => get_current_user_id() ) );
+		$where = $this->build_admin_where( $args );
+		$sql   = "SELECT COUNT(*) FROM {$this->table} r LEFT JOIN " . CRPCRM_DB::table( 'customers' ) . " c ON c.id = r.customer_id {$where['sql']}";
+
+		return (int) $wpdb->get_var( empty( $where['values'] ) ? $sql : $wpdb->prepare( $sql, $where['values'] ) );
+	}
+
+	public function get_with_customer( $request_id ) {
+		global $wpdb;
+		$customers = CRPCRM_DB::table( 'customers' );
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT r.*, c.full_name AS customer_name, c.phone AS customer_phone, c.phone_normalized AS customer_phone_normalized, c.province AS customer_province, c.city AS customer_city, c.user_id AS customer_user_id
+				FROM {$this->table} r
+				LEFT JOIN {$customers} c ON c.id = r.customer_id
+				WHERE r.id = %d LIMIT 1",
+				absint( $request_id )
+			),
+			ARRAY_A
+		);
+	}
+
+	public function claim_request( $request_id, $user_id ) {
+		global $wpdb;
+
+		$request_id = absint( $request_id );
+		$user_id    = absint( $user_id );
+		$request    = $this->get( $request_id );
+		if ( ! $request ) {
+			return new WP_Error( 'request_not_found', 'درخواست موردنظر یافت نشد.' );
+		}
+		if ( ! CRPCRM_Request_Access_Service::can_claim_request( $request, $user_id ) ) {
+			if ( ! empty( $request['owner_id'] ) ) {
+				return new WP_Error( 'request_already_owned', 'این درخواست قبلاً توسط کارشناس دیگری در حال پیگیری است.' );
+			}
+			return new WP_Error( 'request_claim_denied', 'شما اجازه دسترسی به این بخش را ندارید.' );
+		}
+
+		$now        = CRPCRM_Helpers::current_datetime();
+		$old_status = $request['status'];
+		$new_status = 'new' === $old_status ? 'in_progress' : $old_status;
+		$data       = array(
+			'owner_id'         => $user_id,
+			'status'           => $new_status,
+			'last_action'      => 'request_claimed',
+			'last_activity_at' => $now,
+			'updated_at'       => $now,
+		);
+		$formats    = array( '%d', '%s', '%s', '%s', '%s' );
+		if ( empty( $request['first_assigned_at'] ) ) {
+			$data['first_assigned_at'] = $now;
+			$formats[]                 = '%s';
+		}
+
+		$set_parts = array();
+		$values    = array();
+		foreach ( $data as $field => $value ) {
+			$set_parts[] = sanitize_key( $field ) . ' = ' . ( is_int( $value ) ? '%d' : '%s' );
+			$values[]    = $value;
+		}
+		$values[] = $request_id;
+		$result   = $wpdb->query( $wpdb->prepare( "UPDATE {$this->table} SET " . implode( ', ', $set_parts ) . ' WHERE id = %d AND owner_id IS NULL', $values ) );
+		if ( false === $result || 0 === $result ) {
+			return new WP_Error( 'request_already_owned', 'این درخواست قبلاً توسط کارشناس دیگری در حال پیگیری است.' );
+		}
+
+		CRPCRM_Activity::add(
+			$request_id,
+			'request_claimed',
+			array(
+				'customer_id'   => $request['customer_id'],
+				'actor_user_id' => $user_id,
+				'actor_type'    => 'sales_agent',
+				'old_status'    => $old_status,
+				'new_status'    => $new_status,
+				'note'          => 'درخواست توسط کارشناس شروع به پیگیری شد.',
+				'is_internal'   => 1,
+			)
+		);
+
+		return true;
+	}
+
+	public function change_owner( $request_id, $new_owner_id, $actor_user_id ) {
+		$request_id    = absint( $request_id );
+		$new_owner_id  = absint( $new_owner_id );
+		$actor_user_id = absint( $actor_user_id );
+		$request       = $this->get( $request_id );
+		if ( ! $request ) {
+			return new WP_Error( 'request_not_found', 'درخواست موردنظر یافت نشد.' );
+		}
+		if ( ! CRPCRM_Request_Access_Service::can_manage_request( $request, $actor_user_id ) || ! $this->is_assignable_owner( $new_owner_id ) ) {
+			return new WP_Error( 'request_owner_change_denied', 'شما اجازه دسترسی به این بخش را ندارید.' );
+		}
+
+		$old_status = $request['status'];
+		$new_status = 'new' === $old_status ? 'in_progress' : $old_status;
+		$now        = CRPCRM_Helpers::current_datetime();
+		$data       = array(
+			'owner_id'         => $new_owner_id,
+			'status'           => $new_status,
+			'last_action'      => 'request_owner_changed',
+			'last_activity_at' => $now,
+		);
+		if ( empty( $request['first_assigned_at'] ) ) {
+			$data['first_assigned_at'] = $now;
+		}
+		if ( ! $this->update( $request_id, $data ) ) {
+			return new WP_Error( 'request_owner_change_failed', 'تغییر مسئول درخواست انجام نشد.' );
+		}
+
+		CRPCRM_Activity::add(
+			$request_id,
+			'request_owner_changed',
+			array(
+				'customer_id'   => $request['customer_id'],
+				'actor_user_id' => $actor_user_id,
+				'actor_type'    => 'sales_manager',
+				'old_status'    => $old_status,
+				'new_status'    => $new_status,
+				'note'          => 'مسئول درخواست تغییر کرد.',
+				'is_internal'   => 1,
+				'meta'          => array( 'old_owner_id' => absint( $request['owner_id'] ), 'new_owner_id' => $new_owner_id ),
+			)
+		);
+
+		return true;
+	}
+
+	public function release_owner( $request_id, $actor_user_id ) {
+		$request_id    = absint( $request_id );
+		$actor_user_id = absint( $actor_user_id );
+		$request       = $this->get( $request_id );
+		if ( ! $request ) {
+			return new WP_Error( 'request_not_found', 'درخواست موردنظر یافت نشد.' );
+		}
+		if ( ! CRPCRM_Request_Access_Service::can_manage_request( $request, $actor_user_id ) ) {
+			return new WP_Error( 'request_owner_release_denied', 'شما اجازه دسترسی به این بخش را ندارید.' );
+		}
+
+		$old_status = $request['status'];
+		$new_status = ( 'in_progress' === $old_status && empty( $request['closed_at'] ) ) ? 'new' : $old_status;
+		if ( ! $this->update( $request_id, array( 'owner_id' => null, 'status' => $new_status, 'last_action' => 'request_owner_released', 'last_activity_at' => CRPCRM_Helpers::current_datetime() ) ) ) {
+			return new WP_Error( 'request_owner_release_failed', 'آزادسازی درخواست انجام نشد.' );
+		}
+
+		CRPCRM_Activity::add(
+			$request_id,
+			'request_owner_released',
+			array(
+				'customer_id'   => $request['customer_id'],
+				'actor_user_id' => $actor_user_id,
+				'actor_type'    => 'sales_manager',
+				'old_status'    => $old_status,
+				'new_status'    => $new_status,
+				'note'          => 'مسئول درخواست آزاد شد.',
+				'is_internal'   => 1,
+				'meta'          => array( 'old_owner_id' => absint( $request['owner_id'] ) ),
+			)
+		);
+
+		return true;
+	}
+
+	public function user_can_access_request( $request_id, $user_id ) {
+		$request = $this->get( $request_id );
+		return CRPCRM_Request_Access_Service::can_view_request( $request, $user_id );
+	}
+
+	private function build_admin_where( $args ) {
+		$user_id = isset( $args['user_id'] ) ? absint( $args['user_id'] ) : get_current_user_id();
+		$where   = array( '1=1' );
+		$values  = array();
+
+		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
+			$where[]  = '(r.owner_id = %d OR r.owner_id IS NULL)';
+			$values[] = $user_id;
+		}
+
+		if ( ! empty( $args['request_type'] ) ) {
+			$where[]  = 'r.request_type = %s';
+			$values[] = sanitize_key( $args['request_type'] );
+		}
+		if ( ! empty( $args['status'] ) ) {
+			$where[]  = 'r.status = %s';
+			$values[] = sanitize_key( $args['status'] );
+		}
+		if ( isset( $args['owner_filter'] ) && '' !== $args['owner_filter'] && 'all' !== $args['owner_filter'] ) {
+			$owner_filter = sanitize_text_field( $args['owner_filter'] );
+			if ( 'unassigned' === $owner_filter ) {
+				$where[] = 'r.owner_id IS NULL';
+			} elseif ( 'me' === $owner_filter ) {
+				$where[]  = 'r.owner_id = %d';
+				$values[] = $user_id;
+			} elseif ( CRPCRM_Request_Access_Service::can_view_all( $user_id ) && absint( $owner_filter ) ) {
+				$where[]  = 'r.owner_id = %d';
+				$values[] = absint( $owner_filter );
+			}
+		}
+		if ( ! empty( $args['source'] ) ) {
+			$source = sanitize_key( $args['source'] );
+			if ( 'other' === $source ) {
+				$where[] = "(r.request_source IS NOT NULL AND r.request_source <> '' AND r.request_source NOT IN ('direct','instagram','whatsapp','google','telegram'))";
+			} else {
+				$where[]  = 'r.request_source = %s';
+				$values[] = $source;
+			}
+		}
+		if ( ! empty( $args['campaign'] ) ) {
+			$where[]  = 'r.request_campaign LIKE %s';
+			$values[] = '%' . $GLOBALS['wpdb']->esc_like( sanitize_text_field( $args['campaign'] ) ) . '%';
+		}
+		if ( ! empty( $args['date_from'] ) ) {
+			$where[]  = 'r.created_at >= %s';
+			$values[] = sanitize_text_field( $args['date_from'] ) . ' 00:00:00';
+		}
+		if ( ! empty( $args['date_to'] ) ) {
+			$where[]  = 'r.created_at <= %s';
+			$values[] = sanitize_text_field( $args['date_to'] ) . ' 23:59:59';
+		}
+		if ( ! empty( $args['search'] ) ) {
+			$like     = '%' . $GLOBALS['wpdb']->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
+			$where[]  = '(r.request_code LIKE %s OR c.full_name LIKE %s OR c.phone LIKE %s OR c.phone_normalized LIKE %s OR r.request_summary LIKE %s)';
+			$values[] = $like;
+			$values[] = $like;
+			$values[] = $like;
+			$values[] = $like;
+			$values[] = $like;
+		}
+
+		return array( 'sql' => 'WHERE ' . implode( ' AND ', $where ), 'values' => $values );
+	}
+
+	private function is_assignable_owner( $user_id ) {
+		$user = get_userdata( absint( $user_id ) );
+		if ( ! $user ) {
+			return false;
+		}
+		$roles = (array) $user->roles;
+		return in_array( 'sales_agent', $roles, true ) || in_array( 'sales_manager', $roles, true );
+	}
+
 	private function sanitize_data( $data ) {
 		$clean = array();
 		$int_fields = array( 'customer_id', 'user_id', 'owner_id' );

@@ -30,6 +30,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-activator.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-deactivator.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-logger.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-activity.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-request-access-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-settings.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-otp-repository.php';
