@@ -220,7 +220,22 @@ $known_source_keys = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegr
 	</div></div>
 
 	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'جزئیات درخواست‌ها' ); ?></h2>
-		<p><a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( array_merge( $_GET, array( 'action' => 'crpcrm_reports_csv' ) ), admin_url( 'admin-post.php' ) ), 'crpcrm_reports_csv' ) ); ?>"><?php echo esc_html( 'خروجی CSV' ); ?></a></p>
+		<?php
+		$csv_args = array(
+			'action'       => 'crpcrm_reports_csv',
+			'date_range'   => $filters['date_range'],
+			'date_from'    => $filters['date_from'],
+			'date_to'      => $filters['date_to'],
+			'request_type' => $filters['request_type'],
+			'source'       => $filters['source'],
+			'campaign'     => $filters['campaign'],
+			'content'      => $filters['content'],
+			'status'       => $filters['status'],
+			'owner_filter' => $filters['owner_filter'],
+		);
+		$csv_args = array_filter( $csv_args, static function( $value ) { return '' !== $value && null !== $value; } );
+		?>
+		<p><a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( $csv_args, admin_url( 'admin-post.php' ) ), 'crpcrm_reports_csv' ) ); ?>"><?php echo esc_html( 'خروجی CSV' ); ?></a></p>
 		<table class="widefat striped crpcrm-requests-table"><thead><tr><th>کد پیگیری</th><th>تاریخ ثبت</th><th>مشتری</th><th>موبایل</th><th>نوع درخواست</th><th>خلاصه درخواست</th><th>منبع</th><th>کمپین</th><th>محتوا</th><th>وضعیت</th><th>مسئول</th><th>آخرین فعالیت</th><th>عملیات</th></tr></thead><tbody>
 		<?php if ( empty( $request_details ) ) : ?><tr><td colspan="13"><?php echo esc_html( 'درخواستی مطابق فیلترها یافت نشد.' ); ?></td></tr><?php endif; ?>
 		<?php foreach ( $request_details as $request ) : ?>
