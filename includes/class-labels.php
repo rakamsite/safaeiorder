@@ -105,6 +105,17 @@ class CRPCRM_Labels {
 		) );
 	}
 
+
+	public static function get_severity_label( $severity ) {
+		return self::from_map( $severity, array(
+			'low'      => 'کم',
+			'medium'   => 'متوسط',
+			'high'     => 'زیاد',
+			'critical' => 'بحرانی',
+			'urgent'   => 'فوری',
+		) );
+	}
+
 	public static function get_staff_status_label( $status, $context = '' ) {
 		return self::from_map( $status, array(
 			'new'        => 'جدید',

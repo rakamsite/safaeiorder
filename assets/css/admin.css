@@ -411,3 +411,37 @@
 .crpcrm-rebuild-roles-form {
 	margin-top: 18px;
 }
+
+.crpcrm-tools-grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.crpcrm-export-form {
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	padding: 14px;
+}
+
+.crpcrm-export-form label {
+	display: block;
+	margin: 8px 0;
+}
+
+.crpcrm-export-form input,
+.crpcrm-export-form select {
+	width: 100%;
+}
+
+.crpcrm-status-ok {
+	color: #008a20;
+}
+
+.crpcrm-status-warning {
+	color: #996800;
+}
+
+.crpcrm-status-error {
+	color: #b32d2e;
+}

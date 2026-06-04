@@ -22,7 +22,7 @@ class CRPCRM_Admin_Menu {
 	}
 
 	public function register_menu() {
-		$settings_capability = current_user_can( 'crpcrm_manage_settings' ) ? 'crpcrm_manage_settings' : 'manage_options';
+		$settings_capability = current_user_can( 'crpcrm_manage_settings' ) ? 'crpcrm_manage_settings' : ( current_user_can( 'crpcrm_manage_plugin' ) ? 'crpcrm_manage_plugin' : ( current_user_can( 'crpcrm_view_reports' ) ? 'crpcrm_view_reports' : 'manage_options' ) );
 
 		add_menu_page(
 			'پرتال و CRM',

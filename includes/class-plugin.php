@@ -15,6 +15,7 @@ class CRPCRM_Plugin {
 	private $admin_menu;
 	private $public;
 	private $attribution_service;
+	private $admin_tools;
 
 	public function __construct() {
 		$this->settings            = new CRPCRM_Settings();
@@ -22,6 +23,7 @@ class CRPCRM_Plugin {
 		$this->admin_menu          = new CRPCRM_Admin_Menu( $this->admin_pages );
 		$this->public              = new CRPCRM_Public();
 		$this->attribution_service = new CRPCRM_Attribution_Service();
+		$this->admin_tools          = new CRPCRM_Admin_Tools();
 	}
 
 	public function run() {
@@ -32,6 +34,7 @@ class CRPCRM_Plugin {
 		$this->admin_menu->register_hooks();
 		$this->public->register_hooks();
 		$this->attribution_service->register_hooks();
+		$this->admin_tools->register_hooks();
 	}
 
 	public function load_textdomain() {

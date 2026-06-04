@@ -72,7 +72,7 @@ class CRPCRM_Settings {
 	}
 
 	public static function current_user_can_manage() {
-		return current_user_can( 'crpcrm_manage_settings' ) || current_user_can( 'manage_options' );
+		return current_user_can( 'crpcrm_manage_settings' ) || current_user_can( 'crpcrm_manage_plugin' ) || current_user_can( 'manage_options' );
 	}
 
 	public static function tabs() {
@@ -84,6 +84,7 @@ class CRPCRM_Settings {
 			'staff'       => 'تنظیمات پنل کارکنان',
 			'roles'       => 'تنظیمات نقش‌ها و دسترسی‌ها',
 			'maintenance' => 'تنظیمات نگهداری داده‌ها',
+			'tools'       => 'ابزارها و نگهداری',
 		);
 	}
 
