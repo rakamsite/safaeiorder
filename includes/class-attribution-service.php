@@ -430,6 +430,18 @@ class CRPCRM_Attribution_Service {
 	}
 
 	private function set_cookie_compat( $name, $value, $expire ) {
+		if ( headers_sent( $file, $line ) ) {
+			CRPCRM_Logger::warning(
+				'attribution_cookie_headers_sent',
+				'attribution',
+				array(
+					'file' => $file,
+					'line' => $line,
+				)
+			);
+			return false;
+		}
+
 		$args = array(
 			'expires'  => $expire,
 			'path'     => '/',
@@ -439,11 +451,10 @@ class CRPCRM_Attribution_Service {
 		);
 
 		if ( PHP_VERSION_ID >= 70300 ) {
-			setcookie( $name, $value, $args );
-			return;
+			return setcookie( $name, $value, $args );
 		}
 
-		setcookie( $name, $value, $expire, '/; samesite=Lax', '', is_ssl(), true );
+		return setcookie( $name, $value, $expire, '/; samesite=Lax', '', is_ssl(), true );
 	}
 
 	private function sign_attribution( $data ) {
