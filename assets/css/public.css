@@ -725,3 +725,17 @@
 .crpcrm-action-card.is-active {
 	transform: translateY(-3px);
 }
+
+.crpcrm-request-form .crpcrm-button,
+.crpcrm-otp-form .crpcrm-button {
+	background: #2563eb;
+	color: #ffffff !important;
+}
+
+.crpcrm-request-form .crpcrm-button:hover,
+.crpcrm-request-form .crpcrm-button:focus,
+.crpcrm-otp-form .crpcrm-button:hover,
+.crpcrm-otp-form .crpcrm-button:focus {
+	background: #1d4ed8;
+	color: #ffffff !important;
+}

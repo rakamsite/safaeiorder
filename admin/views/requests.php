@@ -278,8 +278,8 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		$request_data = CRPCRM_Helpers::maybe_json_decode( $request['request_data'], true );
 		$request_data = is_array( $request_data ) ? $request_data : array();
 		$form_labels  = array(
-			'car_registration' => array( 'desired_vehicle' => 'خودروی موردنظر', 'request_kind' => 'نوع درخواست', 'budget_range' => 'بودجه حدودی', 'description' => 'توضیحات' ),
-			'parts_request'    => array( 'part_name' => 'نام قطعه موردنیاز', 'vehicle_model' => 'مدل خودرو', 'vehicle_year' => 'سال خودرو', 'description' => 'توضیحات' ),
+			'car_registration' => array( 'desired_vehicle' => 'خودروی موردنظر' ),
+			'parts_request'    => array( 'part_name' => 'نام قطعه موردنیاز', 'vehicle_model' => 'مدل خودرو', 'description' => 'توضیحات' ),
 			'repair_booking'   => array( 'vehicle_model' => 'مدل خودرو', 'service_type' => 'نوع سرویس یا مشکل', 'problem_description' => 'شرح مشکل', 'preferred_date' => 'تاریخ پیشنهادی مراجعه', 'preferred_call_time' => 'زمان مناسب تماس' ),
 		);
 		$type_labels = isset( $form_labels[ $request['request_type'] ] ) ? $form_labels[ $request['request_type'] ] : array();

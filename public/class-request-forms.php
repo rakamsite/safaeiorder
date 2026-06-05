@@ -11,6 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Request_Forms {
 	public static function get_forms() {
+		$vehicle_options = CRPCRM_Settings::get_active_vehicle_options();
+
 		return array(
 			'new_car_registration' => array(
 				'page'         => 'new_car_registration',
@@ -18,10 +20,7 @@ class CRPCRM_Request_Forms {
 				'title'        => 'ثبت‌نام خودرو',
 				'submit_label' => 'ثبت درخواست خودرو',
 				'fields'       => array(
-					array( 'name' => 'desired_vehicle', 'type' => 'text', 'required' => true, 'label' => 'خودروی موردنظر', 'placeholder' => 'مثلاً فونیکس FX، تیگو ۷، آریزو ۶', 'required_message' => 'خودروی موردنظر الزامی است.' ),
-					array( 'name' => 'request_kind', 'type' => 'select', 'required' => true, 'label' => 'نوع درخواست', 'required_message' => 'نوع درخواست الزامی است.', 'options' => array( 'ثبت‌نام', 'خرید نقدی', 'خرید اقساطی', 'اطلاع از شرایط فروش', 'مشاوره' ) ),
-					array( 'name' => 'budget_range', 'type' => 'select', 'required' => true, 'label' => 'بودجه حدودی', 'required_message' => 'بودجه حدودی الزامی است.', 'options' => array( 'مشخص نیست', 'تا ۱ میلیارد', '۱ تا ۱.۵ میلیارد', '۱.۵ تا ۲ میلیارد', 'بیشتر از ۲ میلیارد' ) ),
-					array( 'name' => 'description', 'type' => 'textarea', 'required' => true, 'label' => 'توضیحات', 'placeholder' => 'اگر توضیح بیشتری درباره درخواست خود دارید، بنویسید.', 'required_message' => 'توضیحات الزامی است.' ),
+					array( 'name' => 'desired_vehicle', 'type' => 'select', 'required' => true, 'label' => 'خودروی موردنظر', 'required_message' => 'خودروی موردنظر الزامی است.', 'options' => $vehicle_options ),
 				),
 			),
 			'new_parts_request' => array(
@@ -31,8 +30,7 @@ class CRPCRM_Request_Forms {
 				'submit_label' => 'ثبت درخواست قطعه',
 				'fields'       => array(
 					array( 'name' => 'part_name', 'type' => 'text', 'required' => true, 'label' => 'نام قطعه موردنیاز', 'placeholder' => 'مثلاً چراغ جلو، سپر، لنت، فیلتر روغن', 'required_message' => 'نام قطعه موردنیاز الزامی است.' ),
-					array( 'name' => 'vehicle_model', 'type' => 'text', 'required' => true, 'label' => 'مدل خودرو', 'placeholder' => 'مثلاً تیگو ۷، آریزو ۵، X22', 'required_message' => 'مدل خودرو الزامی است.' ),
-					array( 'name' => 'vehicle_year', 'type' => 'select', 'required' => true, 'label' => 'سال خودرو', 'required_message' => 'سال خودرو الزامی است.', 'options' => array( '۱۴۰۴', '۱۴۰۳', '۱۴۰۲', '۱۴۰۱', '۱۴۰۰', '۱۳۹۹', '۱۳۹۸', '۱۳۹۷', '۱۳۹۶', '۱۳۹۵', 'قبل از ۱۳۹۵', 'نمی‌دانم' ) ),
+					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $vehicle_options ),
 					array( 'name' => 'description', 'type' => 'textarea', 'required' => true, 'label' => 'توضیحات', 'placeholder' => 'توضیحات بیشتر درباره قطعه موردنیاز را وارد کنید.', 'required_message' => 'توضیحات الزامی است.' ),
 				),
 			),
@@ -42,7 +40,7 @@ class CRPCRM_Request_Forms {
 				'title'        => 'درخواست تعمیرات',
 				'submit_label' => 'ثبت درخواست تعمیرات',
 				'fields'       => array(
-					array( 'name' => 'vehicle_model', 'type' => 'text', 'required' => true, 'label' => 'مدل خودرو', 'placeholder' => 'مثلاً تیگو ۸، آریزو ۶، X55', 'required_message' => 'مدل خودرو الزامی است.' ),
+					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $vehicle_options ),
 					array( 'name' => 'service_type', 'type' => 'select', 'required' => true, 'label' => 'نوع سرویس یا مشکل', 'required_message' => 'نوع سرویس یا مشکل الزامی است.', 'options' => array( 'سرویس دوره‌ای', 'تعمیر موتور', 'گیربکس', 'برق خودرو', 'جلوبندی', 'صافکاری و بدنه', 'عیب‌یابی', 'تعویض قطعه', 'سایر' ) ),
 					array( 'name' => 'problem_description', 'type' => 'textarea', 'required' => true, 'label' => 'شرح مشکل', 'placeholder' => 'لطفاً مشکل خودرو یا سرویس موردنظر را توضیح دهید.', 'required_message' => 'شرح مشکل الزامی است.' ),
 					array( 'name' => 'preferred_date', 'type' => 'date', 'required' => true, 'label' => 'تاریخ پیشنهادی مراجعه', 'required_message' => 'تاریخ پیشنهادی مراجعه الزامی است.' ),
