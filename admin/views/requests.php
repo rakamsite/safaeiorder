@@ -44,6 +44,13 @@ function crpcrm_admin_customer_profile_url( $customer_id, $args = array() ) {
 }
 }
 
+if ( ! function_exists( 'crpcrm_admin_request_display_summary' ) ) {
+function crpcrm_admin_request_display_summary( $request ) {
+	$request_data = CRPCRM_Helpers::maybe_json_decode( isset( $request['request_data'] ) ? $request['request_data'] : '', true );
+	return CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] );
+}
+}
+
 if ( ! function_exists( 'crpcrm_admin_owner_form' ) ) {
 function crpcrm_admin_owner_form( $request_id, $owner_id, $assignable_users ) {
 	?>
@@ -237,7 +244,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 						<td><?php echo esc_html( $item['customer_name'] ? $item['customer_name'] : '—' ); ?></td>
 						<td><?php echo esc_html( $item['customer_phone'] ? $item['customer_phone'] : $item['customer_phone_normalized'] ); ?></td>
 						<td><?php echo esc_html( CRPCRM_Helpers::get_request_type_label( $item['request_type'] ) ); ?></td>
-						<td><?php echo esc_html( wp_trim_words( $item['request_summary'], 14, '…' ) ); ?></td>
+						<td><?php echo esc_html( wp_trim_words( crpcrm_admin_request_display_summary( $item ), 14, '…' ) ); ?></td>
 						<td><span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( sanitize_html_class( $item['status'] ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $item['status'] ) ); ?></span></td>
 						<td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $item['request_source'] ) ); ?></span></td>
 						<td><?php echo esc_html( $item['request_campaign'] ? $item['request_campaign'] : '—' ); ?></td>
@@ -277,12 +284,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		<?php
 		$request_data = CRPCRM_Helpers::maybe_json_decode( $request['request_data'], true );
 		$request_data = is_array( $request_data ) ? $request_data : array();
-		$form_labels  = array(
-			'car_registration' => array( 'desired_vehicle' => 'خودروی موردنظر' ),
-			'parts_request'    => array( 'part_name' => 'نام قطعه موردنیاز', 'vehicle_model' => 'مدل خودرو', 'description' => 'توضیحات' ),
-			'repair_booking'   => array( 'vehicle_model' => 'مدل خودرو', 'service_type' => 'نوع سرویس یا مشکل', 'problem_description' => 'شرح مشکل', 'preferred_date' => 'تاریخ پیشنهادی مراجعه', 'preferred_call_time' => 'زمان مناسب تماس' ),
-		);
-		$type_labels = isset( $form_labels[ $request['request_type'] ] ) ? $form_labels[ $request['request_type'] ] : array();
+		$type_labels  = CRPCRM_Request_Forms::get_field_labels_for_request_type( $request['request_type'] );
 		?>
 		<p><a class="button" href="<?php echo esc_url( crpcrm_admin_requests_url() ); ?>"><?php echo esc_html( 'بازگشت به لیست درخواست‌ها' ); ?></a></p>
 		<div class="crpcrm-detail-grid">
