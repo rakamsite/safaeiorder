@@ -25,6 +25,8 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function register_hooks() {
+		add_filter( 'query_vars', array( $this, 'register_query_vars' ) );
+		add_action( 'template_redirect', array( $this, 'maybe_send_no_cache_headers' ), 0 );
 		add_shortcode( 'crpcrm_portal', array( $this, 'render' ) );
 		add_action( 'admin_post_nopriv_crpcrm_request_otp', array( $this, 'handle_request_otp' ) );
 		add_action( 'admin_post_crpcrm_request_otp', array( $this, 'handle_request_otp' ) );
@@ -37,6 +39,34 @@ class CRPCRM_Portal_Shortcode {
 		add_action( 'admin_post_crpcrm_portal_logout', array( $this, 'handle_logout' ) );
 		add_action( 'admin_post_crpcrm_save_profile', array( $this, 'handle_save_profile' ) );
 		add_action( 'admin_post_crpcrm_submit_request', array( $this, 'handle_submit_request' ) );
+	}
+
+	public function register_query_vars( $vars ) {
+		foreach ( array( 'crpcrm_page', 'request_code', 'created', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $var ) {
+			if ( ! in_array( $var, $vars, true ) ) {
+				$vars[] = $var;
+			}
+		}
+
+		return $vars;
+	}
+
+	public function maybe_send_no_cache_headers() {
+		if ( ! $this->is_portal_request() ) {
+			return;
+		}
+
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		if ( ! defined( 'DONOTCACHEOBJECT' ) ) {
+			define( 'DONOTCACHEOBJECT', true );
+		}
+		if ( ! defined( 'DONOTCACHEDB' ) ) {
+			define( 'DONOTCACHEDB', true );
+		}
+
+		nocache_headers();
 	}
 
 	public function render() {
@@ -365,7 +395,7 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	private function get_current_portal_page() {
-		$page = isset( $_GET['crpcrm_page'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_page'] ) ) : 'dashboard';
+		$page = sanitize_key( $this->get_query_value( 'crpcrm_page', 'dashboard' ) );
 		if ( '' === $page ) {
 			return 'dashboard';
 		}
@@ -511,7 +541,7 @@ class CRPCRM_Portal_Shortcode {
 		}
 
 		if ( 'request_detail' === $page ) {
-			$request_code = isset( $_GET['request_code'] ) ? sanitize_text_field( wp_unslash( $_GET['request_code'] ) ) : '';
+			$request_code = $this->get_query_value( 'request_code' );
 			$request      = $request_code ? $this->request_repository->get_by_code( $request_code ) : null;
 
 			if ( ! $request || absint( $request['customer_id'] ) !== $customer_id ) {
@@ -632,16 +662,16 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	private function get_notice() {
-		if ( empty( $_GET['crpcrm_portal_notice'] ) || empty( $_GET['crpcrm_portal_message'] ) ) {
+		if ( '' === $this->get_query_value( 'crpcrm_portal_notice' ) || '' === $this->get_query_value( 'crpcrm_portal_message' ) ) {
 			return null;
 		}
 
-		$type = sanitize_key( wp_unslash( $_GET['crpcrm_portal_notice'] ) );
+		$type = sanitize_key( $this->get_query_value( 'crpcrm_portal_notice' ) );
 		$type = in_array( $type, array( 'success', 'error' ), true ) ? $type : 'error';
 
 		return array(
 			'type'    => $type,
-			'message' => sanitize_text_field( wp_unslash( $_GET['crpcrm_portal_message'] ) ),
+			'message' => sanitize_text_field( $this->get_query_value( 'crpcrm_portal_message' ) ),
 		);
 	}
 
@@ -664,6 +694,41 @@ class CRPCRM_Portal_Shortcode {
 
 	private function clean_portal_url() {
 		return remove_query_arg( array( 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ), $this->current_url() );
+	}
+
+	private function get_query_value( $key, $default = '' ) {
+		$key = sanitize_key( $key );
+		if ( '' === $key ) {
+			return $default;
+		}
+
+		$value = null;
+		if ( isset( $_GET[ $key ] ) ) {
+			$value = wp_unslash( $_GET[ $key ] );
+		} elseif ( function_exists( 'get_query_var' ) ) {
+			$value = get_query_var( $key, null );
+		}
+
+		if ( null === $value || is_array( $value ) || is_object( $value ) ) {
+			return $default;
+		}
+
+		return sanitize_text_field( (string) $value );
+	}
+
+	private function is_portal_request() {
+		$portal_page_id = absint( CRPCRM_Settings::get( 'portal_page_id', 0 ) );
+		if ( $portal_page_id && function_exists( 'is_page' ) && is_page( $portal_page_id ) ) {
+			return true;
+		}
+
+		foreach ( array( 'crpcrm_page', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $key ) {
+			if ( '' !== $this->get_query_value( $key ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private function current_url() {

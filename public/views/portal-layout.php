@@ -184,16 +184,43 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 				<p><?php echo esc_html( 'از این داشبورد می‌توانید درخواست‌های خود را ثبت و پیگیری کنید.' ); ?></p>
 				<div class="crpcrm-portal-actions">
 					<a class="crpcrm-action-card" href="<?php echo esc_url( $portal_urls['new_car_registration'] ); ?>">
+						<span class="crpcrm-action-icon" aria-hidden="true">
+							<svg viewBox="0 0 32 32" focusable="false">
+								<path d="M3.5 12.5h14v12h-14z" />
+								<path d="M17.5 15.5h5l4.5 5v4.5h-3" />
+								<path d="M17.5 24.5h-6" />
+								<path d="M3.5 24.5h2" />
+								<path d="M21.5 18.5v3h5" />
+								<circle cx="8.5" cy="24.5" r="3" />
+								<circle cx="24.5" cy="24.5" r="3" />
+							</svg>
+						</span>
 						<strong><?php echo esc_html( 'ثبت‌نام خودرو' ); ?></strong>
-						<span><?php echo esc_html( 'برای ثبت درخواست مشاوره یا خرید خودرو از این بخش استفاده کنید.' ); ?></span>
 					</a>
 					<a class="crpcrm-action-card" href="<?php echo esc_url( $portal_urls['new_parts_request'] ); ?>">
+						<span class="crpcrm-action-icon" aria-hidden="true">
+							<svg viewBox="0 0 32 32" focusable="false">
+								<circle cx="16" cy="16" r="4" />
+								<path d="M16 4.5v4" />
+								<path d="M16 23.5v4" />
+								<path d="M4.5 16h4" />
+								<path d="M23.5 16h4" />
+								<path d="M7.9 7.9l2.8 2.8" />
+								<path d="M21.3 21.3l2.8 2.8" />
+								<path d="M24.1 7.9l-2.8 2.8" />
+								<path d="M10.7 21.3l-2.8 2.8" />
+							</svg>
+						</span>
 						<strong><?php echo esc_html( 'درخواست قطعات' ); ?></strong>
-						<span><?php echo esc_html( 'برای ثبت درخواست خرید قطعه موردنیاز خودرو از این بخش استفاده کنید.' ); ?></span>
 					</a>
 					<a class="crpcrm-action-card" href="<?php echo esc_url( $portal_urls['new_repair_booking'] ); ?>">
+						<span class="crpcrm-action-icon" aria-hidden="true">
+							<svg viewBox="0 0 32 32" focusable="false">
+								<path d="M21.5 5.5a6.2 6.2 0 0 0-6.6 8.2L6.2 22.4a2.8 2.8 0 0 0 4 4l8.7-8.7a6.2 6.2 0 0 0 7.6-7.7l-4.1 4.1-3.5-3.5 4.1-4.1a6.1 6.1 0 0 0-1.5-1Z" />
+								<path d="M8.2 24.4h.1" />
+							</svg>
+						</span>
 						<strong><?php echo esc_html( 'درخواست تعمیرات' ); ?></strong>
-						<span><?php echo esc_html( 'برای ثبت درخواست رزرو یا پیگیری خدمات تعمیرات از این بخش استفاده کنید.' ); ?></span>
 					</a>
 				</div>
 			</section>
