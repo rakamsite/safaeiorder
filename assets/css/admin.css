@@ -412,6 +412,33 @@
 	margin-top: 18px;
 }
 
+
+.crpcrm-settings-actions {
+	align-items: center;
+	display: flex;
+	justify-content: flex-start;
+	margin: 16px 0;
+	max-width: 980px;
+}
+
+.crpcrm-settings-actions .button-primary {
+	font-weight: 700;
+	min-height: 36px;
+	padding-inline: 22px;
+}
+
+.crpcrm-settings-actions-top {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+	padding: 12px 20px;
+}
+
+.crpcrm-settings-actions-bottom {
+	margin-top: -4px;
+}
+
 .crpcrm-tools-grid {
 	display: grid;
 	gap: 16px;

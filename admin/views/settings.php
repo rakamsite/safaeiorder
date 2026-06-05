@@ -14,7 +14,8 @@ if ( ! $portal_page_id ) {
 		CRPCRM_Logger::warning( 'portal_shortcode_missing', 'portal_shortcode_missing', array( 'page_id' => $portal_page_id, 'user_id' => get_current_user_id() ) );
 	}
 }
-$log_levels = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسانی', 'warning' => 'هشدار', 'error' => 'خطا' );
+$log_levels    = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسانی', 'warning' => 'هشدار', 'error' => 'خطا' );
+$saveable_tabs = CRPCRM_Settings::saveable_tabs();
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
 	<h1><?php echo esc_html( 'تنظیمات پرتال و CRM' ); ?></h1>
@@ -38,11 +39,15 @@ $log_levels = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسا
 		<?php endforeach; ?>
 	</nav>
 
-	<?php if ( 'roles' !== $active_tab && 'tools' !== $active_tab ) : ?>
+	<?php if ( isset( $saveable_tabs[ $active_tab ] ) ) : ?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-settings-form">
 		<input type="hidden" name="action" value="crpcrm_save_settings" />
 		<input type="hidden" name="crpcrm_active_tab" value="<?php echo esc_attr( $active_tab ); ?>" />
 		<?php wp_nonce_field( 'crpcrm_save_settings', 'crpcrm_settings_nonce' ); ?>
+
+		<div class="crpcrm-settings-actions crpcrm-settings-actions-top">
+			<?php submit_button( 'ذخیره تنظیمات', 'primary', 'submit', false ); ?>
+		</div>
 
 		<div class="crpcrm-card">
 		<?php if ( 'portal' === $active_tab ) : ?>
@@ -100,7 +105,9 @@ $log_levels = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسا
 			</tbody></table>
 		<?php endif; ?>
 		</div>
-		<?php submit_button( 'ذخیره تنظیمات' ); ?>
+		<div class="crpcrm-settings-actions crpcrm-settings-actions-bottom">
+			<?php submit_button( 'ذخیره تنظیمات', 'primary', 'submit', false ); ?>
+		</div>
 	</form>
 	<?php elseif ( 'roles' === $active_tab ) : ?>
 		<div class="crpcrm-card">
