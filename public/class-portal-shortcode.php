@@ -74,7 +74,14 @@ class CRPCRM_Portal_Shortcode {
 		$notice = $this->get_notice();
 
 		if ( is_user_logged_in() ) {
-			$user_id  = get_current_user_id();
+			$user_id = get_current_user_id();
+			$user    = get_user_by( 'id', $user_id );
+
+			if ( $this->should_redirect_to_dashboard_after_otp( $user ) ) {
+				wp_safe_redirect( $this->get_staff_dashboard_url() );
+				exit;
+			}
+
 			$customer = $this->ensure_current_customer( $user_id );
 
 			if ( is_wp_error( $customer ) || ! $customer ) {
@@ -180,6 +187,12 @@ class CRPCRM_Portal_Shortcode {
 
 		if ( is_wp_error( $result ) ) {
 			$this->redirect_with_notice( add_query_arg( 'crpcrm_otp_state', $state_token, $redirect_to ), 'error', $result->get_error_message() );
+		}
+
+		if ( $this->should_redirect_to_dashboard_after_otp( $result ) ) {
+			CRPCRM_Logger::info( 'staff_otp_login_redirected', 'otp', array( 'user_id' => absint( $result->ID ), 'roles' => (array) $result->roles ) );
+			wp_safe_redirect( $this->get_staff_dashboard_url() );
+			exit;
 		}
 
 		$this->redirect_with_notice( $redirect_to, 'success', 'ورود شما با موفقیت انجام شد.' );
@@ -347,7 +360,17 @@ class CRPCRM_Portal_Shortcode {
 
 		CRPCRM_Logger::info( 'customer_request_created', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code, 'request_type' => $form['request_type'], 'source' => $attribution['source'], 'campaign' => $attribution['campaign'] ) );
 
-		wp_safe_redirect( $this->get_portal_url( 'request_detail', array( 'request_code' => $request_code, 'created' => 1 ) ) );
+		wp_safe_redirect(
+			$this->get_portal_url(
+				'request_detail',
+				array(
+					'request_code'           => $request_code,
+					'created'                => 1,
+					'crpcrm_portal_notice'   => 'success',
+					'crpcrm_portal_message'  => CRPCRM_Settings::get( 'request_success_message', 'درخواست شما با موفقیت ثبت شد. کارشناسان ما در اولین فرصت آن را بررسی می‌کنند.' ),
+				)
+			)
+		);
 		exit;
 	}
 
@@ -410,6 +433,21 @@ class CRPCRM_Portal_Shortcode {
 
 	private function get_allowed_portal_pages() {
 		return array( 'dashboard', 'profile', 'my_requests', 'new_car_registration', 'new_parts_request', 'new_repair_booking', 'request_detail' );
+	}
+
+	private function should_redirect_to_dashboard_after_otp( $user ) {
+		if ( ! $user instanceof WP_User ) {
+			return false;
+		}
+
+		return (bool) array_intersect(
+			array( 'sales_agent', 'sales_manager', 'internal_employee', 'crm_admin' ),
+			(array) $user->roles
+		);
+	}
+
+	private function get_staff_dashboard_url() {
+		return admin_url( 'admin.php?page=crpcrm-dashboard' );
 	}
 
 	private function get_required_menu_items( $current_page ) {
@@ -525,7 +563,7 @@ class CRPCRM_Portal_Shortcode {
 		$data        = array(
 			'form'            => null,
 			'my_requests'     => array(),
-			'latest_requests' => $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 3 ) ),
+			'latest_requests' => $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 3, 'user_id' => get_current_user_id() ) ),
 			'request_detail'  => null,
 			'access_denied'   => false,
 			'request_forms'   => CRPCRM_Request_Forms::get_forms(),
@@ -537,7 +575,7 @@ class CRPCRM_Portal_Shortcode {
 		}
 
 		if ( 'my_requests' === $page ) {
-			$data['my_requests'] = $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 50 ) );
+			$data['my_requests'] = $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 50, 'user_id' => get_current_user_id() ) );
 			return $data;
 		}
 
@@ -545,7 +583,7 @@ class CRPCRM_Portal_Shortcode {
 			$request_code = $this->get_query_value( 'request_code' );
 			$request      = $request_code ? $this->request_repository->get_by_code( $request_code ) : null;
 
-			if ( ! $request || absint( $request['customer_id'] ) !== $customer_id ) {
+			if ( ! $request || ( absint( $request['customer_id'] ) !== $customer_id && absint( $request['user_id'] ) !== get_current_user_id() ) ) {
 				CRPCRM_Logger::warning( 'customer_request_access_denied', 'request', array( 'user_id' => get_current_user_id(), 'customer_id' => $customer_id, 'request_code' => $request_code ) );
 				$data['access_denied'] = true;
 				return $data;
@@ -680,7 +718,7 @@ class CRPCRM_Portal_Shortcode {
 		$url = add_query_arg(
 			array(
 				'crpcrm_portal_notice'  => sanitize_key( $type ),
-				'crpcrm_portal_message' => $message,
+				'crpcrm_portal_message'  => $message,
 			),
 			$url
 		);
