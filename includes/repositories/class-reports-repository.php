@@ -29,8 +29,8 @@ class CRPCRM_Reports_Repository {
 	public function normalize_filters( $input ) {
 		$filters = array(
 			'date_range'      => isset( $input['date_range'] ) ? sanitize_key( wp_unslash( $input['date_range'] ) ) : 'today',
-			'date_from'       => isset( $input['date_from'] ) ? sanitize_text_field( wp_unslash( $input['date_from'] ) ) : '',
-			'date_to'         => isset( $input['date_to'] ) ? sanitize_text_field( wp_unslash( $input['date_to'] ) ) : '',
+			'date_from'       => isset( $input['date_from'] ) ? CRPCRM_Helpers::normalize_date_input( wp_unslash( $input['date_from'] ) ) : '',
+			'date_to'         => isset( $input['date_to'] ) ? CRPCRM_Helpers::normalize_date_input( wp_unslash( $input['date_to'] ) ) : '',
 			'request_type'    => isset( $input['request_type'] ) ? sanitize_key( wp_unslash( $input['request_type'] ) ) : '',
 			'source'          => isset( $input['source'] ) ? sanitize_key( wp_unslash( $input['source'] ) ) : '',
 			'campaign'        => isset( $input['campaign'] ) ? sanitize_text_field( wp_unslash( $input['campaign'] ) ) : '',
@@ -88,7 +88,8 @@ class CRPCRM_Reports_Repository {
 		$week_filters['end_date']     = $now->setTime( 23, 59, 59 )->format( 'Y-m-d H:i:s' );
 		$week_where                   = $this->build_request_filters_where( $week_filters );
 		$month_filters                = $filters;
-		$month_filters['start_date']  = $now->modify( 'first day of this month' )->setTime( 0, 0, 0 )->format( 'Y-m-d H:i:s' );
+		$jalali_month                = CRPCRM_Helpers::get_jalali_month_range();
+		$month_filters['start_date']  = $jalali_month['start'];
 		$month_filters['end_date']    = $now->setTime( 23, 59, 59 )->format( 'Y-m-d H:i:s' );
 		$month_where                  = $this->build_request_filters_where( $month_filters );
 		$followups_today_filters      = $filters;
@@ -489,12 +490,14 @@ class CRPCRM_Reports_Repository {
 				$end   = $now->setTime( 23, 59, 59 );
 				break;
 			case 'current_month':
-				$start = $now->modify( 'first day of this month' )->setTime( 0, 0, 0 );
-				$end   = $now->setTime( 23, 59, 59 );
+				$range = CRPCRM_Helpers::get_jalali_month_range();
+				$start = new DateTimeImmutable( $range['start'], $timezone );
+				$end   = new DateTimeImmutable( $range['end'], $timezone );
 				break;
 			case 'last_month':
-				$start = $now->modify( 'first day of last month' )->setTime( 0, 0, 0 );
-				$end   = $now->modify( 'last day of last month' )->setTime( 23, 59, 59 );
+				$range = CRPCRM_Helpers::get_jalali_month_range( -1 );
+				$start = new DateTimeImmutable( $range['start'], $timezone );
+				$end   = new DateTimeImmutable( $range['end'], $timezone );
 				break;
 			case 'custom':
 				if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $filters['date_from'] ) ) {

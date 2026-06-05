@@ -61,7 +61,7 @@ class CRPCRM_CSV_Exporter {
 			return '';
 		}
 		$timestamp = strtotime( $value );
-		return $timestamp ? wp_date( 'Y-m-d H:i', $timestamp ) : sanitize_text_field( $value );
+		return $timestamp ? CRPCRM_Helpers::format_jalali_datetime( $value ) : sanitize_text_field( $value );
 	}
 
 	public function format_boolean( $value ) {

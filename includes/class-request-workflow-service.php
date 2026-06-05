@@ -151,14 +151,15 @@ class CRPCRM_Request_Workflow_Service {
 			if ( '' === $raw ) {
 				return new WP_Error( 'follow_up_required', 'تاریخ پیگیری بعدی الزامی است.' );
 			}
-			$timestamp = strtotime( str_replace( 'T', ' ', $raw ) );
+			$normalized = CRPCRM_Helpers::normalize_datetime_input( $raw );
+			$timestamp  = $normalized ? strtotime( $normalized ) : false;
 			if ( ! $timestamp ) {
 				return new WP_Error( 'follow_up_required', 'تاریخ پیگیری بعدی الزامی است.' );
 			}
 			if ( $timestamp < current_time( 'timestamp' ) ) {
 				return new WP_Error( 'follow_up_in_past', 'تاریخ پیگیری نمی‌تواند در گذشته باشد.' );
 			}
-			$clean['next_follow_up_at'] = wp_date( 'Y-m-d H:i:s', $timestamp );
+			$clean['next_follow_up_at'] = $normalized;
 		}
 
 		if ( 'mark_lost' === $action_type ) {
