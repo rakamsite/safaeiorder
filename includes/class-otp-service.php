@@ -43,10 +43,10 @@ class CRPCRM_OTP_Service {
 			return $rate_check;
 		}
 
-		$code          = (string) wp_rand( 100000, 999999 );
+		$code          = (string) wp_rand( 100, 999 );
 		$token         = wp_generate_password( 48, false, false );
 		$expiration    = max( 1, absint( CRPCRM_Settings::get( 'otp_expiration_minutes', 2 ) ) );
-		$expires_stamp = time() + ( $expiration * MINUTE_IN_SECONDS );
+		$expires_stamp = current_time( 'timestamp' ) + ( $expiration * MINUTE_IN_SECONDS );
 		$ip_hash       = $this->current_ip_hash();
 		$ua_hash       = $this->current_user_agent_hash();
 
@@ -128,7 +128,7 @@ class CRPCRM_OTP_Service {
 		}
 
 		$code = preg_replace( '/\D+/', '', CRPCRM_Helpers::convert_digits_public( $code ) );
-		if ( ! preg_match( '/^\d{5,6}$/', $code ) ) {
+		if ( ! preg_match( '/^\d{3}$/', $code ) ) {
 			return new WP_Error( 'invalid_code', 'کد واردشده صحیح نیست.' );
 		}
 

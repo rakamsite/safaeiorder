@@ -4,9 +4,7 @@
 			<div class="crpcrm-notice crpcrm-notice-<?php echo esc_attr( $notice['type'] ); ?>"><?php echo esc_html( $notice['message'] ); ?></div>
 		<?php endif; ?>
 
-		<h2><?php echo esc_html( 'تأیید شماره موبایل' ); ?></h2>
 		<p><?php echo esc_html( 'کد تأیید ارسال‌شده را وارد کنید.' ); ?></p>
-		<p class="crpcrm-muted"><?php echo esc_html( 'کد تأیید به شماره ' . ( 0 === strpos( $phone_normalized, '98' ) ? '0' . substr( $phone_normalized, 2 ) : $phone_normalized ) . ' ارسال شد.' ); ?></p>
 
 		<form method="post" action="<?php echo esc_url( $admin_post_url ); ?>" class="crpcrm-otp-form">
 			<input type="hidden" name="action" value="crpcrm_verify_otp" />
@@ -14,27 +12,31 @@
 			<input type="hidden" name="crpcrm_otp_state" value="<?php echo esc_attr( $state_token ); ?>" />
 			<?php wp_nonce_field( 'crpcrm_verify_otp', 'crpcrm_otp_nonce' ); ?>
 
-			<label for="crpcrm_otp_code"><?php echo esc_html( 'کد تأیید' ); ?></label>
-			<input id="crpcrm_otp_code" name="crpcrm_otp_code" type="text" inputmode="numeric" pattern="[0-9۰-۹٠-٩]{5,6}" maxlength="6" autocomplete="one-time-code" required />
+			<div class="crpcrm-otp-code-boxes" dir="ltr" data-otp-length="3">
+				<input class="crpcrm-otp-code-box" type="text" inputmode="numeric" pattern="[0-9۰-۹٠-٩]*" maxlength="3" autocomplete="one-time-code" aria-label="<?php echo esc_attr( 'رقم اول کد تأیید' ); ?>" required />
+				<input class="crpcrm-otp-code-box" type="text" inputmode="numeric" pattern="[0-9۰-۹٠-٩]*" maxlength="1" autocomplete="off" aria-label="<?php echo esc_attr( 'رقم دوم کد تأیید' ); ?>" required />
+				<input class="crpcrm-otp-code-box" type="text" inputmode="numeric" pattern="[0-9۰-۹٠-٩]*" maxlength="1" autocomplete="off" aria-label="<?php echo esc_attr( 'رقم سوم کد تأیید' ); ?>" required />
+			</div>
+			<input id="crpcrm_otp_code" name="crpcrm_otp_code" type="hidden" value="" />
 
-			<button type="submit" class="crpcrm-button"><?php echo esc_html( 'ورود به پرتال' ); ?></button>
+			<button type="submit" class="crpcrm-button"><?php echo esc_html( 'ورود' ); ?></button>
 		</form>
 
 		<div class="crpcrm-otp-actions">
-			<form method="post" action="<?php echo esc_url( $admin_post_url ); ?>">
+			<form method="post" action="<?php echo esc_url( $admin_post_url ); ?>" class="crpcrm-change-phone-form">
 				<input type="hidden" name="action" value="crpcrm_change_otp_phone" />
 				<input type="hidden" name="crpcrm_redirect_to" value="<?php echo esc_attr( $portal_redirect_to ); ?>" />
 				<?php wp_nonce_field( 'crpcrm_change_otp_phone', 'crpcrm_otp_nonce' ); ?>
-				<button type="submit" class="crpcrm-link-button"><?php echo esc_html( 'تغییر شماره موبایل' ); ?></button>
+				<button type="submit" class="crpcrm-text-link"><?php echo esc_html( 'تغییر شماره موبایل' ); ?></button>
 			</form>
 
-			<form method="post" action="<?php echo esc_url( $admin_post_url ); ?>">
+			<form method="post" action="<?php echo esc_url( $admin_post_url ); ?>" class="crpcrm-resend-otp-form" data-resend-seconds="<?php echo esc_attr( absint( $resend_seconds ) ); ?>">
 				<input type="hidden" name="action" value="crpcrm_resend_otp" />
 				<input type="hidden" name="crpcrm_redirect_to" value="<?php echo esc_attr( $portal_redirect_to ); ?>" />
 				<input type="hidden" name="crpcrm_otp_state" value="<?php echo esc_attr( $state_token ); ?>" />
 				<?php wp_nonce_field( 'crpcrm_resend_otp', 'crpcrm_otp_nonce' ); ?>
-				<button type="submit" class="crpcrm-link-button"><?php echo esc_html( 'ارسال مجدد کد' ); ?></button>
-				<span class="crpcrm-muted"><?php echo esc_html( 'فاصله مجاز ارسال مجدد: ' . absint( $resend_seconds ) . ' ثانیه' ); ?></span>
+				<span class="crpcrm-resend-countdown"><?php echo esc_html( 'تا ارسال مجدد کد تأیید ' . absint( $resend_seconds ) . ' ثانیه' ); ?></span>
+				<button type="submit" class="crpcrm-link-button crpcrm-resend-button" hidden><?php echo esc_html( 'ارسال مجدد کد تأیید' ); ?></button>
 			</form>
 		</div>
 	</div>
