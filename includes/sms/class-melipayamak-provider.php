@@ -11,13 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Melipayamak_Provider implements CRPCRM_SMS_Provider_Interface {
 	private $username;
-	private $password;
+	private $api_key;
 	private $pattern_code;
 	private $sender;
 
 	public function __construct() {
 		$this->username     = (string) CRPCRM_Settings::get( 'melipayamak_username', '' );
-		$this->password     = (string) CRPCRM_Settings::get( 'melipayamak_password', '' );
+		$this->api_key      = (string) CRPCRM_Settings::get( 'melipayamak_api_key', '' );
+		if ( '' === $this->api_key ) {
+			$this->api_key = (string) CRPCRM_Settings::get( 'melipayamak_password', '' );
+		}
 		$this->pattern_code = (string) CRPCRM_Settings::get( 'melipayamak_pattern_code', '' );
 		$this->sender       = (string) CRPCRM_Settings::get( 'melipayamak_sender', '' );
 	}
@@ -31,7 +34,7 @@ class CRPCRM_Melipayamak_Provider implements CRPCRM_SMS_Provider_Interface {
 		$to   = $this->to_national_phone( $phone_normalized );
 		$body = array(
 			'username' => $this->username,
-			'password' => $this->password,
+			'password' => $this->api_key,
 			'text'     => $code,
 			'to'       => $to,
 			'bodyId'   => absint( $this->pattern_code ),
@@ -61,6 +64,10 @@ class CRPCRM_Melipayamak_Provider implements CRPCRM_SMS_Provider_Interface {
 		$result  = is_array( $decoded ) && isset( $decoded['Value'] ) ? (string) $decoded['Value'] : $body_text;
 		$result  = trim( $result, '" ' );
 
+		if ( '-110' === $result ) {
+			return new WP_Error( 'crpcrm_sms_api_key_required', 'Melipayamak requires an API key instead of the account password.', array( 'provider_result' => $result ) );
+		}
+
 		if ( preg_match( '/^\d{16,}$/', $result ) ) {
 			return true;
 		}
@@ -69,7 +76,7 @@ class CRPCRM_Melipayamak_Provider implements CRPCRM_SMS_Provider_Interface {
 	}
 
 	private function has_required_credentials() {
-		return '' !== $this->username && '' !== $this->password && '' !== $this->pattern_code;
+		return '' !== $this->username && '' !== $this->api_key && '' !== $this->pattern_code;
 	}
 
 	private function to_national_phone( $phone_normalized ) {
