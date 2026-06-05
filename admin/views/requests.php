@@ -112,7 +112,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			<textarea name="action_note" rows="4" required></textarea>
 		</label>
 		<label class="crpcrm-conditional-field crpcrm-follow-up-field"><?php echo esc_html( 'تاریخ پیگیری بعدی' ); ?>
-			<input type="datetime-local" name="next_follow_up_at">
+			<?php echo CRPCRM_Helpers::jalali_datetime_input( 'next_follow_up_at' ); ?>
 		</label>
 		<label class="crpcrm-conditional-field crpcrm-lost-reason-field"><?php echo esc_html( 'دلیل ناموفق' ); ?>
 			<select name="close_reason">
@@ -201,8 +201,8 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 					</select>
 				</label>
 				<label><?php echo esc_html( 'کمپین' ); ?><input type="text" name="campaign" value="<?php echo esc_attr( $filters['campaign'] ); ?>"></label>
-				<label><?php echo esc_html( 'از تاریخ' ); ?><input type="date" name="date_from" value="<?php echo esc_attr( $filters['date_from'] ); ?>"></label>
-				<label><?php echo esc_html( 'تا تاریخ' ); ?><input type="date" name="date_to" value="<?php echo esc_attr( $filters['date_to'] ); ?>"></label>
+				<label><?php echo esc_html( 'از تاریخ' ); ?><?php echo CRPCRM_Helpers::jalali_date_input( 'date_from', $filters['date_from'] ); ?></label>
+				<label><?php echo esc_html( 'تا تاریخ' ); ?><?php echo CRPCRM_Helpers::jalali_date_input( 'date_to', $filters['date_to'] ); ?></label>
 				<label><?php echo esc_html( 'فیلتر کاری' ); ?>
 					<select name="workflow_filter">
 						<option value=""><?php echo esc_html( 'همه' ); ?></option>
@@ -242,9 +242,9 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 						<td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $item['request_source'] ) ); ?></span></td>
 						<td><?php echo esc_html( $item['request_campaign'] ? $item['request_campaign'] : '—' ); ?></td>
 						<td><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $item['owner_id'] ) ); ?></td>
-						<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && strtotime( $item['next_follow_up_at'] ) < current_time( 'timestamp' ) && 'follow_up' === $item['status'] ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? $item['next_follow_up_at'] : 'ثبت نشده' ); ?></td>
-						<td><?php echo esc_html( $item['created_at'] ); ?></td>
-						<td><?php echo esc_html( $item['updated_at'] ); ?></td>
+						<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && strtotime( $item['next_follow_up_at'] ) < current_time( 'timestamp' ) && 'follow_up' === $item['status'] ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $item['next_follow_up_at'] ) : 'ثبت نشده' ); ?></td>
+						<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['created_at'] ) ); ?></td>
+						<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['updated_at'] ) ); ?></td>
 						<td class="crpcrm-actions">
 							<a class="button button-small" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'request_id' => absint( $item['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده' ); ?></a>
 							<?php if ( empty( $item['owner_id'] ) && CRPCRM_Request_Access_Service::can_claim_request( $item ) ) : ?><?php crpcrm_admin_claim_form( $item['id'] ); ?><?php endif; ?>
@@ -291,9 +291,9 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<dt><?php echo esc_html( 'نوع درخواست' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_request_type_label( $request['request_type'] ) ); ?></dd>
 				<dt><?php echo esc_html( 'وضعیت داخلی' ); ?></dt><dd><span class="crpcrm-badge crpcrm-status-badge"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></dd>
 				<dt><?php echo esc_html( 'مسئول' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $request['owner_id'] ) ); ?></dd>
-				<dt><?php echo esc_html( 'پیگیری بعدی' ); ?></dt><dd><?php echo esc_html( ! empty( $request['next_follow_up_at'] ) ? $request['next_follow_up_at'] : 'ثبت نشده' ); ?></dd>
-				<dt><?php echo esc_html( 'تاریخ ثبت' ); ?></dt><dd><?php echo esc_html( $request['created_at'] ); ?></dd>
-				<dt><?php echo esc_html( 'آخرین بروزرسانی' ); ?></dt><dd><?php echo esc_html( $request['updated_at'] ); ?></dd>
+				<dt><?php echo esc_html( 'پیگیری بعدی' ); ?></dt><dd><?php echo esc_html( ! empty( $request['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $request['next_follow_up_at'] ) : 'ثبت نشده' ); ?></dd>
+				<dt><?php echo esc_html( 'تاریخ ثبت' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></dd>
+				<dt><?php echo esc_html( 'آخرین بروزرسانی' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['updated_at'] ) ); ?></dd>
 				<dt><?php echo esc_html( 'منبع' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_source_label( $request['request_source'] ) ); ?></dd>
 				<dt><?php echo esc_html( 'کمپین' ); ?></dt><dd><?php echo esc_html( $request['request_campaign'] ? $request['request_campaign'] : '—' ); ?></dd>
 				<dt><?php echo esc_html( 'محتوا / utm_content' ); ?></dt><dd><?php echo esc_html( $request['request_content'] ? $request['request_content'] : '—' ); ?></dd>
@@ -335,7 +335,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			<?php if ( empty( $activities ) ) : ?><p><?php echo esc_html( 'هنوز فعالیتی ثبت نشده است.' ); ?></p><?php else : ?>
 				<ol class="crpcrm-activity-timeline">
 					<?php foreach ( $activities as $activity ) : $actor = ! empty( $activity['actor_user_id'] ) ? get_userdata( absint( $activity['actor_user_id'] ) ) : null; ?>
-						<li><time><?php echo esc_html( $activity['created_at'] ); ?></time><strong><?php echo esc_html( CRPCRM_Helpers::get_activity_type_label( $activity['activity_type'] ) ); ?></strong><span><?php echo esc_html( $actor ? $actor->display_name : $activity['actor_type'] ); ?></span><?php if ( $activity['old_status'] || $activity['new_status'] ) : ?><em><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $activity['old_status'] ) . ' ← ' . CRPCRM_Helpers::get_persian_status_label( $activity['new_status'] ) ); ?></em><?php endif; ?><p><?php echo esc_html( $activity['note'] ? $activity['note'] : '—' ); ?></p></li>
+						<li><time><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $activity['created_at'] ) ); ?></time><strong><?php echo esc_html( CRPCRM_Helpers::get_activity_type_label( $activity['activity_type'] ) ); ?></strong><span><?php echo esc_html( $actor ? $actor->display_name : $activity['actor_type'] ); ?></span><?php if ( $activity['old_status'] || $activity['new_status'] ) : ?><em><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $activity['old_status'] ) . ' ← ' . CRPCRM_Helpers::get_persian_status_label( $activity['new_status'] ) ); ?></em><?php endif; ?><p><?php echo esc_html( $activity['note'] ? $activity['note'] : '—' ); ?></p></li>
 					<?php endforeach; ?>
 				</ol>
 			<?php endif; ?>

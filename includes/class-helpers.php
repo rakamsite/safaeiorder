@@ -37,6 +37,241 @@ class CRPCRM_Helpers {
 		return current_time( 'mysql' );
 	}
 
+
+	public static function format_jalali_date( $value, $include_time = false ) {
+		if ( empty( $value ) || '0000-00-00' === $value || '0000-00-00 00:00:00' === $value ) {
+			return '';
+		}
+
+		$value    = self::convert_persian_digits( (string) $value );
+		$timezone = wp_timezone();
+		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+			$date = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $value . ' 00:00:00', $timezone );
+		} else {
+			$timestamp = strtotime( $value );
+			if ( ! $timestamp ) {
+				return sanitize_text_field( (string) $value );
+			}
+			$date = new DateTimeImmutable( '@' . $timestamp );
+			$date = $date->setTimezone( $timezone );
+		}
+		if ( ! $date ) {
+			return sanitize_text_field( (string) $value );
+		}
+		$jalali   = self::gregorian_to_jalali( (int) $date->format( 'Y' ), (int) $date->format( 'n' ), (int) $date->format( 'j' ) );
+		$output   = sprintf( '%04d/%02d/%02d', $jalali[0], $jalali[1], $jalali[2] );
+
+		if ( $include_time ) {
+			$output .= ' ' . $date->format( 'H:i' );
+		}
+
+		return self::to_persian_digits( $output );
+	}
+
+	public static function format_jalali_datetime( $value ) {
+		return self::format_jalali_date( $value, true );
+	}
+
+
+	public static function get_jalali_month_range( $month_offset = 0 ) {
+		$timezone = wp_timezone();
+		$now      = new DateTimeImmutable( 'now', $timezone );
+		$jalali   = self::gregorian_to_jalali( (int) $now->format( 'Y' ), (int) $now->format( 'n' ), (int) $now->format( 'j' ) );
+		$year     = (int) $jalali[0];
+		$month    = (int) $jalali[1] + (int) $month_offset;
+		while ( $month < 1 ) {
+			$month += 12;
+			$year--;
+		}
+		while ( $month > 12 ) {
+			$month -= 12;
+			$year++;
+		}
+
+		$next_year  = $year;
+		$next_month = $month + 1;
+		if ( $next_month > 12 ) {
+			$next_month = 1;
+			$next_year++;
+		}
+
+		$start_parts = self::jalali_to_gregorian( $year, $month, 1 );
+		$next_parts  = self::jalali_to_gregorian( $next_year, $next_month, 1 );
+		$start       = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', sprintf( '%04d-%02d-%02d 00:00:00', $start_parts[0], $start_parts[1], $start_parts[2] ), $timezone );
+		$end         = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', sprintf( '%04d-%02d-%02d 00:00:00', $next_parts[0], $next_parts[1], $next_parts[2] ), $timezone )->modify( '-1 second' );
+
+		return array(
+			'start' => $start->format( 'Y-m-d H:i:s' ),
+			'end'   => $end->format( 'Y-m-d H:i:s' ),
+		);
+	}
+
+	public static function normalize_date_input( $value ) {
+		$value = trim( self::convert_persian_digits( (string) $value ) );
+		if ( '' === $value ) {
+			return '';
+		}
+
+		$value = str_replace( '/', '-', $value );
+		if ( preg_match( '/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $value, $matches ) ) {
+			$year  = (int) $matches[1];
+			$month = (int) $matches[2];
+			$day   = (int) $matches[3];
+			if ( $year < 1700 ) {
+				if ( $month < 1 || $month > 12 || $day < 1 || $day > self::jalali_month_days( $year, $month ) ) {
+					return '';
+				}
+				$gregorian = self::jalali_to_gregorian( $year, $month, $day );
+				return sprintf( '%04d-%02d-%02d', $gregorian[0], $gregorian[1], $gregorian[2] );
+			}
+			if ( checkdate( $month, $day, $year ) ) {
+				return sprintf( '%04d-%02d-%02d', $year, $month, $day );
+			}
+		}
+
+		$timestamp = strtotime( $value );
+		return $timestamp ? wp_date( 'Y-m-d', $timestamp ) : '';
+	}
+
+	public static function normalize_datetime_input( $value ) {
+		$value = trim( self::convert_persian_digits( (string) $value ) );
+		if ( '' === $value ) {
+			return '';
+		}
+
+		$value = str_replace( 'T', ' ', $value );
+		if ( preg_match( '/^(\d{4}[\/-]\d{1,2}[\/-]\d{1,2})(?:\s+(\d{1,2}:\d{2})(?::\d{2})?)?$/', $value, $matches ) ) {
+			$date = self::normalize_date_input( $matches[1] );
+			$time = isset( $matches[2] ) && '' !== $matches[2] ? $matches[2] : '00:00';
+			if ( $date ) {
+				return $date . ' ' . $time . ':00';
+			}
+		}
+
+		$timestamp = strtotime( $value );
+		return $timestamp ? wp_date( 'Y-m-d H:i:s', $timestamp ) : '';
+	}
+
+	public static function jalali_date_input( $name, $value = '', $args = array() ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'required'    => false,
+				'class'       => '',
+				'placeholder' => 'مثلاً ۱۴۰۳/۰۱/۱۵',
+				'id'          => '',
+			)
+		);
+		$id       = $args['id'] ? $args['id'] : 'crpcrm-' . sanitize_key( $name ) . '-' . wp_generate_uuid4();
+		$iso      = self::normalize_date_input( $value );
+		$display  = $iso ? self::format_jalali_date( $iso ) : '';
+		$required = $args['required'] ? ' required' : '';
+		$class    = trim( 'crpcrm-jalali-date ' . $args['class'] );
+
+		return sprintf(
+			'<span class="crpcrm-jalali-field"><input type="hidden" name="%1$s" id="%2$s" value="%3$s"><input type="text" class="%4$s" data-crpcrm-date-target="%2$s" value="%5$s" placeholder="%6$s" autocomplete="off"%7$s></span>',
+			esc_attr( $name ),
+			esc_attr( $id ),
+			esc_attr( $iso ),
+			esc_attr( $class ),
+			esc_attr( $display ),
+			esc_attr( $args['placeholder'] ),
+			$required
+		);
+	}
+
+	public static function jalali_datetime_input( $name, $value = '', $args = array() ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'required' => false,
+				'class'    => '',
+				'id'       => '',
+			)
+		);
+		$id       = $args['id'] ? $args['id'] : 'crpcrm-' . sanitize_key( $name ) . '-' . wp_generate_uuid4();
+		$datetime = self::normalize_datetime_input( $value );
+		$date     = $datetime ? substr( $datetime, 0, 10 ) : '';
+		$time     = $datetime ? substr( $datetime, 11, 5 ) : '';
+		$required = $args['required'] ? ' required' : '';
+		$class    = trim( 'crpcrm-jalali-date crpcrm-jalali-datetime-date ' . $args['class'] );
+
+		return sprintf(
+			'<span class="crpcrm-jalali-field crpcrm-jalali-datetime-field"><input type="hidden" name="%1$s" id="%2$s" value="%3$s"><input type="text" class="%4$s" data-crpcrm-date-target="%2$s" data-crpcrm-datetime-time="%2$s-time" value="%5$s" placeholder="مثلاً ۱۴۰۳/۰۱/۱۵" autocomplete="off"%7$s><input type="time" id="%2$s-time" class="crpcrm-jalali-time" value="%6$s" data-crpcrm-datetime-target="%2$s"%7$s></span>',
+			esc_attr( $name ),
+			esc_attr( $id ),
+			esc_attr( $datetime ? str_replace( ' ', 'T', substr( $datetime, 0, 16 ) ) : '' ),
+			esc_attr( $class ),
+			esc_attr( $date ? self::format_jalali_date( $date ) : '' ),
+			esc_attr( $time ),
+			$required
+		);
+	}
+
+	public static function to_persian_digits( $value ) {
+		$latin   = array( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' );
+		$persian = array( '۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹' );
+		return str_replace( $latin, $persian, (string) $value );
+	}
+
+
+	private static function jalali_month_days( $year, $month ) {
+		if ( $month <= 6 ) {
+			return 31;
+		}
+		if ( $month <= 11 ) {
+			return 30;
+		}
+		$current = self::jalali_to_gregorian( $year, 1, 1 );
+		$next    = self::jalali_to_gregorian( $year + 1, 1, 1 );
+		$start   = strtotime( sprintf( '%04d-%02d-%02d 00:00:00', $current[0], $current[1], $current[2] ) );
+		$end     = strtotime( sprintf( '%04d-%02d-%02d 00:00:00', $next[0], $next[1], $next[2] ) );
+		return ( ( $end - $start ) / DAY_IN_SECONDS ) === 366 ? 30 : 29;
+	}
+
+	private static function gregorian_to_jalali( $gy, $gm, $gd ) {
+		$g_d_m = array( 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 );
+		$gy2   = ( $gm > 2 ) ? ( $gy + 1 ) : $gy;
+		$days  = 355666 + ( 365 * $gy ) + (int) floor( ( $gy2 + 3 ) / 4 ) - (int) floor( ( $gy2 + 99 ) / 100 ) + (int) floor( ( $gy2 + 399 ) / 400 ) + $gd + $g_d_m[ $gm - 1 ];
+		$jy    = -1595 + ( 33 * (int) floor( $days / 12053 ) );
+		$days %= 12053;
+		$jy   += 4 * (int) floor( $days / 1461 );
+		$days %= 1461;
+		if ( $days > 365 ) {
+			$jy   += (int) floor( ( $days - 1 ) / 365 );
+			$days  = ( $days - 1 ) % 365;
+		}
+		$jm = ( $days < 186 ) ? 1 + (int) floor( $days / 31 ) : 7 + (int) floor( ( $days - 186 ) / 30 );
+		$jd = 1 + ( ( $days < 186 ) ? ( $days % 31 ) : ( ( $days - 186 ) % 30 ) );
+		return array( $jy, $jm, $jd );
+	}
+
+	private static function jalali_to_gregorian( $jy, $jm, $jd ) {
+		$jy   += 1595;
+		$days  = -355668 + ( 365 * $jy ) + ( (int) floor( $jy / 33 ) * 8 ) + (int) floor( ( ( $jy % 33 ) + 3 ) / 4 ) + $jd + ( ( $jm < 7 ) ? ( ( $jm - 1 ) * 31 ) : ( ( ( $jm - 7 ) * 30 ) + 186 ) );
+		$gy    = 400 * (int) floor( $days / 146097 );
+		$days %= 146097;
+		if ( $days > 36524 ) {
+			$gy   += 100 * (int) floor( --$days / 36524 );
+			$days %= 36524;
+			if ( $days >= 365 ) {
+				$days++;
+			}
+		}
+		$gy   += 4 * (int) floor( $days / 1461 );
+		$days %= 1461;
+		if ( $days > 365 ) {
+			$gy   += (int) floor( ( $days - 1 ) / 365 );
+			$days  = ( $days - 1 ) % 365;
+		}
+		$gd    = $days + 1;
+		$sal_a = array( 0, 31, ( ( 0 === $gy % 4 && 0 !== $gy % 100 ) || ( 0 === $gy % 400 ) ) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 );
+		for ( $gm = 1; $gm <= 12 && $gd > $sal_a[ $gm ]; $gm++ ) {
+			$gd -= $sal_a[ $gm ];
+		}
+		return array( $gy, $gm, $gd );
+	}
+
 	public static function sanitize_array( $value ) {
 		if ( is_array( $value ) ) {
 			$clean = array();
