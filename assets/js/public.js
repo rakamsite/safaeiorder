@@ -131,8 +131,82 @@
 		render();
 	}
 
+
+	function setupInlineRequestForms() {
+		var triggers = Array.prototype.slice.call(document.querySelectorAll('[data-crpcrm-open-form]'));
+		var forms = Array.prototype.slice.call(document.querySelectorAll('[data-crpcrm-request-form]'));
+
+		if (!triggers.length || !forms.length) {
+			return;
+		}
+
+		function getForm(page) {
+			return forms.filter(function (form) {
+				return form.getAttribute('data-crpcrm-request-form') === page;
+			})[0] || null;
+		}
+
+		function openForm(page, shouldFocus) {
+			var target = getForm(page);
+
+			if (!target) {
+				return false;
+			}
+
+			forms.forEach(function (form) {
+				var isTarget = form === target;
+				form.hidden = !isTarget;
+				form.classList.toggle('is-open', isTarget);
+			});
+
+			triggers.forEach(function (trigger) {
+				var isActive = trigger.getAttribute('data-crpcrm-open-form') === page;
+				trigger.classList.toggle('is-active', isActive);
+				trigger.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+			});
+
+			if (window.history && window.history.replaceState) {
+				window.history.replaceState(null, '', '#crpcrm-request-form-' + page);
+			}
+
+			if (shouldFocus) {
+				target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				window.setTimeout(function () {
+					var firstField = target.querySelector('input:not([type="hidden"]), select, textarea, button, a');
+					if (firstField) {
+						firstField.focus();
+					}
+				}, 250);
+			}
+
+			return true;
+		}
+
+		triggers.forEach(function (trigger) {
+			var page = trigger.getAttribute('data-crpcrm-open-form');
+			var target = getForm(page);
+
+			if (!target) {
+				return;
+			}
+
+			trigger.setAttribute('aria-controls', target.id);
+			trigger.setAttribute('aria-expanded', 'false');
+			trigger.addEventListener('click', function (event) {
+				if (openForm(page, true)) {
+					event.preventDefault();
+				}
+			});
+		});
+
+		if (window.location.hash && 0 === window.location.hash.indexOf('#crpcrm-request-form-')) {
+			openForm(window.location.hash.replace('#crpcrm-request-form-', ''), false);
+		}
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
 		document.querySelectorAll('.crpcrm-otp-code-boxes').forEach(setupOtpBoxes);
 		document.querySelectorAll('.crpcrm-resend-otp-form').forEach(setupResendTimer);
+		setupInlineRequestForms();
 	});
 }());
