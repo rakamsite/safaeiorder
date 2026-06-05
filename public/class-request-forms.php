@@ -11,7 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Request_Forms {
 	public static function get_forms() {
-		$vehicle_options = CRPCRM_Settings::get_active_vehicle_options();
+		$registration_vehicle_options = CRPCRM_Settings::get_active_vehicle_options( 'new_car_registration' );
+		$parts_vehicle_options        = CRPCRM_Settings::get_active_vehicle_options( 'new_parts_request' );
+		$repair_vehicle_options       = CRPCRM_Settings::get_active_vehicle_options( 'new_repair_booking' );
 
 		return array(
 			'new_car_registration' => array(
@@ -20,7 +22,7 @@ class CRPCRM_Request_Forms {
 				'title'        => 'ثبت‌نام خودرو',
 				'submit_label' => 'ثبت درخواست خودرو',
 				'fields'       => array(
-					array( 'name' => 'desired_vehicle', 'type' => 'select', 'required' => true, 'label' => 'خودروی موردنظر', 'required_message' => 'خودروی موردنظر الزامی است.', 'options' => $vehicle_options ),
+					array( 'name' => 'desired_vehicle', 'type' => 'select', 'required' => true, 'label' => 'خودروی موردنظر', 'required_message' => 'خودروی موردنظر الزامی است.', 'options' => $registration_vehicle_options ),
 				),
 			),
 			'new_parts_request' => array(
@@ -30,7 +32,7 @@ class CRPCRM_Request_Forms {
 				'submit_label' => 'ثبت درخواست قطعه',
 				'fields'       => array(
 					array( 'name' => 'part_name', 'type' => 'text', 'required' => true, 'label' => 'نام قطعه موردنیاز', 'placeholder' => 'مثلاً چراغ جلو، سپر، لنت، فیلتر روغن', 'required_message' => 'نام قطعه موردنیاز الزامی است.' ),
-					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $vehicle_options ),
+					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $parts_vehicle_options ),
 					array( 'name' => 'description', 'type' => 'textarea', 'required' => true, 'label' => 'توضیحات', 'placeholder' => 'توضیحات بیشتر درباره قطعه موردنیاز را وارد کنید.', 'required_message' => 'توضیحات الزامی است.' ),
 				),
 			),
@@ -40,7 +42,7 @@ class CRPCRM_Request_Forms {
 				'title'        => 'درخواست تعمیرات',
 				'submit_label' => 'ثبت درخواست تعمیرات',
 				'fields'       => array(
-					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $vehicle_options ),
+					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $repair_vehicle_options ),
 					array( 'name' => 'service_type', 'type' => 'select', 'required' => true, 'label' => 'نوع سرویس یا مشکل', 'required_message' => 'نوع سرویس یا مشکل الزامی است.', 'options' => array( 'سرویس دوره‌ای', 'تعمیر موتور', 'گیربکس', 'برق خودرو', 'جلوبندی', 'صافکاری و بدنه', 'عیب‌یابی', 'تعویض قطعه', 'سایر' ) ),
 					array( 'name' => 'problem_description', 'type' => 'textarea', 'required' => true, 'label' => 'شرح مشکل', 'placeholder' => 'لطفاً مشکل خودرو یا سرویس موردنظر را توضیح دهید.', 'required_message' => 'شرح مشکل الزامی است.' ),
 					array( 'name' => 'preferred_date', 'type' => 'date', 'required' => true, 'label' => 'تاریخ پیشنهادی مراجعه', 'required_message' => 'تاریخ پیشنهادی مراجعه الزامی است.' ),

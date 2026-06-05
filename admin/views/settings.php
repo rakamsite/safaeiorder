@@ -18,10 +18,20 @@ $log_levels      = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌�
 $saveable_tabs   = CRPCRM_Settings::saveable_tabs();
 $portal_menu_id  = absint( $settings['portal_menu_id'] ?? 0 );
 $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( array( 'hide_empty' => false ) ) : array();
-$vehicle_options = isset( $settings['vehicle_options'] ) && is_array( $settings['vehicle_options'] ) ? $settings['vehicle_options'] : CRPCRM_Settings::default_vehicle_options();
-$vehicle_rows    = count( $vehicle_options );
-for ( $i = $vehicle_rows; $i < $vehicle_rows + 5; $i++ ) {
-	$vehicle_options[] = array( 'label' => '', 'priority' => ( $i + 1 ) * 10, 'enabled' => 'yes' );
+$vehicle_form_labels      = CRPCRM_Settings::vehicle_form_labels();
+$stored_settings          = get_option( CRPCRM_Settings::OPTION_NAME, array() );
+$stored_settings          = is_array( $stored_settings ) ? $stored_settings : array();
+$legacy_vehicle_options  = isset( $settings['vehicle_options'] ) && is_array( $settings['vehicle_options'] ) ? $settings['vehicle_options'] : CRPCRM_Settings::default_vehicle_options();
+$vehicle_options_by_form = isset( $stored_settings['vehicle_options_by_form'] ) && is_array( $stored_settings['vehicle_options_by_form'] ) ? $stored_settings['vehicle_options_by_form'] : array();
+foreach ( $vehicle_form_labels as $vehicle_form_key => $vehicle_form_label ) {
+	if ( ! isset( $vehicle_options_by_form[ $vehicle_form_key ] ) || ! is_array( $vehicle_options_by_form[ $vehicle_form_key ] ) ) {
+		$vehicle_options_by_form[ $vehicle_form_key ] = $legacy_vehicle_options;
+	}
+
+	$vehicle_rows = count( $vehicle_options_by_form[ $vehicle_form_key ] );
+	for ( $i = $vehicle_rows; $i < $vehicle_rows + 5; $i++ ) {
+		$vehicle_options_by_form[ $vehicle_form_key ][] = array( 'label' => '', 'priority' => ( $i + 1 ) * 10, 'enabled' => 'yes' );
+	}
 }
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
@@ -101,21 +111,28 @@ for ( $i = $vehicle_rows; $i < $vehicle_rows + 5; $i++ ) {
 			<h2><?php echo esc_html( 'تنظیمات درخواست‌ها و CRM' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
-					<th><?php echo esc_html( 'خودروهای قابل انتخاب در فرم‌ها' ); ?></th>
+					<th><?php echo esc_html( 'خودروهای قابل انتخاب هر فرم' ); ?></th>
 					<td>
-						<table class="widefat striped crpcrm-vehicle-options-table">
-							<thead><tr><th><?php echo esc_html( 'نام خودرو' ); ?></th><th><?php echo esc_html( 'اولویت نمایش' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th></tr></thead>
-							<tbody>
-								<?php foreach ( $vehicle_options as $vehicle_index => $vehicle ) : ?>
-									<tr>
-										<td><input class="regular-text" name="crpcrm_settings[vehicle_options][<?php echo esc_attr( $vehicle_index ); ?>][label]" type="text" value="<?php echo esc_attr( $vehicle['label'] ?? '' ); ?>" placeholder="<?php echo esc_attr( 'مثلاً تیگو ۸' ); ?>" /></td>
-										<td><input name="crpcrm_settings[vehicle_options][<?php echo esc_attr( $vehicle_index ); ?>][priority]" type="number" min="0" value="<?php echo esc_attr( absint( $vehicle['priority'] ?? 999 ) ); ?>" /></td>
-										<td><label><input name="crpcrm_settings[vehicle_options][<?php echo esc_attr( $vehicle_index ); ?>][enabled]" type="checkbox" value="yes" <?php checked( $vehicle['enabled'] ?? 'yes', 'yes' ); ?> /> <?php echo esc_html( 'نمایش داده شود' ); ?></label></td>
-									</tr>
-								<?php endforeach; ?>
-							</tbody>
-						</table>
-						<p class="description"><?php echo esc_html( 'ردیف‌های خالی ذخیره نمی‌شوند. عدد کمتر در اولویت نمایش، بالاتر در فهرست فرم‌های ثبت‌نام خودرو، درخواست قطعه و تعمیرات نمایش داده می‌شود.' ); ?></p>
+						<div class="crpcrm-vehicle-options-groups">
+							<?php foreach ( $vehicle_form_labels as $vehicle_form_key => $vehicle_form_label ) : ?>
+								<div class="crpcrm-vehicle-options-group">
+									<h3><?php echo esc_html( $vehicle_form_label ); ?></h3>
+									<table class="widefat striped crpcrm-vehicle-options-table">
+										<thead><tr><th><?php echo esc_html( 'نام خودرو' ); ?></th><th><?php echo esc_html( 'اولویت نمایش' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th></tr></thead>
+										<tbody>
+											<?php foreach ( $vehicle_options_by_form[ $vehicle_form_key ] as $vehicle_index => $vehicle ) : ?>
+												<tr>
+													<td><input class="regular-text" name="crpcrm_settings[vehicle_options_by_form][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][label]" type="text" value="<?php echo esc_attr( $vehicle['label'] ?? '' ); ?>" placeholder="<?php echo esc_attr( 'مثلاً تیگو ۸' ); ?>" /></td>
+													<td><input name="crpcrm_settings[vehicle_options_by_form][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][priority]" type="number" min="0" value="<?php echo esc_attr( absint( $vehicle['priority'] ?? 999 ) ); ?>" /></td>
+													<td><label><input name="crpcrm_settings[vehicle_options_by_form][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][enabled]" type="checkbox" value="yes" <?php checked( $vehicle['enabled'] ?? 'yes', 'yes' ); ?> /> <?php echo esc_html( 'نمایش داده شود' ); ?></label></td>
+												</tr>
+											<?php endforeach; ?>
+										</tbody>
+									</table>
+								</div>
+							<?php endforeach; ?>
+						</div>
+						<p class="description"><?php echo esc_html( 'ردیف‌های خالی ذخیره نمی‌شوند. عدد کمتر در اولویت نمایش، بالاتر در همان فرم نمایش داده می‌شود. تنظیمات هر فرم مستقل از فرم‌های دیگر ذخیره می‌شود.' ); ?></p>
 					</td>
 				</tr>
 				<tr><th><label for="request_rate_limit_count"><?php echo esc_html( 'محدودیت تعداد درخواست' ); ?></label></th><td><input name="crpcrm_settings[request_rate_limit_count]" id="request_rate_limit_count" type="number" min="1" max="100" value="<?php echo esc_attr( $settings['request_rate_limit_count'] ); ?>" /></td></tr>
