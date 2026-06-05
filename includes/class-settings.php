@@ -88,6 +88,13 @@ class CRPCRM_Settings {
 		);
 	}
 
+	public static function saveable_tabs() {
+		$tabs = self::tabs();
+		unset( $tabs['roles'], $tabs['tools'] );
+
+		return $tabs;
+	}
+
 	public function handle_save() {
 		if ( ! self::current_user_can_manage() ) {
 			wp_die( esc_html__( 'شما اجازه دسترسی به تنظیمات افزونه را ندارید.', 'customer-request-portal-crm' ) );
@@ -96,8 +103,8 @@ class CRPCRM_Settings {
 		check_admin_referer( 'crpcrm_save_settings', 'crpcrm_settings_nonce' );
 
 		$active_tab = isset( $_POST['crpcrm_active_tab'] ) ? sanitize_key( wp_unslash( $_POST['crpcrm_active_tab'] ) ) : 'portal';
-		if ( ! isset( self::tabs()[ $active_tab ] ) ) {
-			$active_tab = 'portal';
+		if ( ! isset( self::saveable_tabs()[ $active_tab ] ) ) {
+			wp_die( esc_html__( 'این تب تنظیمات قابل ذخیره‌سازی نیست.', 'customer-request-portal-crm' ) );
 		}
 
 		$input    = isset( $_POST['crpcrm_settings'] ) && is_array( $_POST['crpcrm_settings'] ) ? wp_unslash( $_POST['crpcrm_settings'] ) : array();
