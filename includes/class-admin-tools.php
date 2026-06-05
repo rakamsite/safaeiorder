@@ -80,8 +80,7 @@ class CRPCRM_Admin_Tools {
 			if ( 'int' === $type ) {
 				$filters[ $key ] = absint( $value );
 			} elseif ( 'date' === $type ) {
-				$value = CRPCRM_Helpers::convert_digits_public( sanitize_text_field( $value ) );
-				$filters[ $key ] = preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : '';
+				$filters[ $key ] = CRPCRM_Helpers::normalize_date_input( sanitize_text_field( $value ) );
 			} elseif ( 'bool' === $type ) {
 				$filters[ $key ] = '' === $value ? '' : absint( $value );
 			} elseif ( 'key' === $type ) {
@@ -168,7 +167,7 @@ class CRPCRM_Admin_Tools {
 		$out = array();
 		foreach ( $rows as $r ) {
 			if ( 'daily_reports' === $type ) {
-				$out[] = array( $r['report_date'], $r['employee_name'], $r['completed_work'], $r['unfinished_work'], $r['problems'], $r['tomorrow_plan'], $this->csv->format_boolean( $r['needs_manager_attention'] ), CRPCRM_Labels::get_staff_status_label( $r['status'] ), $r['manager_response'], $r['sales_comment'], $this->csv->flatten_snapshot( $r['sales_crm_snapshot'] ), $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ) );
+				$out[] = array( CRPCRM_Helpers::format_jalali_date( $r['report_date'] ), $r['employee_name'], $r['completed_work'], $r['unfinished_work'], $r['problems'], $r['tomorrow_plan'], $this->csv->format_boolean( $r['needs_manager_attention'] ), CRPCRM_Labels::get_staff_status_label( $r['status'] ), $r['manager_response'], $r['sales_comment'], $this->csv->flatten_snapshot( $r['sales_crm_snapshot'] ), $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ) );
 			} elseif ( 'staff_requests' === $type ) {
 				$out[] = array( $this->csv->format_datetime( $r['created_at'] ), $r['employee_name'], $r['category'], $r['title'], $r['description'], CRPCRM_Labels::get_priority_label( $r['priority'] ), CRPCRM_Labels::get_staff_status_label( $r['status'] ), $r['manager_response'], $this->csv->format_datetime( $r['updated_at'] ) );
 			} else {

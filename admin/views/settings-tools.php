@@ -42,7 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php foreach ( $form['fields'] as $field_key => $field_label ) : ?>
 				<label><?php echo esc_html( $field_label ); ?>
 				<?php if ( in_array( $field_key, array( 'date_from', 'date_to' ), true ) ) : ?>
-					<input type="date" name="<?php echo esc_attr( $field_key ); ?>" />
+					<?php echo CRPCRM_Helpers::jalali_date_input( $field_key ); ?>
 				<?php elseif ( 'user_id' === $field_key || 'owner_id' === $field_key ) : ?>
 					<select name="<?php echo esc_attr( $field_key ); ?>"><option value=""><?php echo esc_html( 'همه' ); ?></option><?php foreach ( $staff_users as $staff_user ) : ?><option value="<?php echo esc_attr( $staff_user->ID ); ?>"><?php echo esc_html( $staff_user->display_name ); ?></option><?php endforeach; ?></select>
 				<?php elseif ( in_array( $field_key, array( 'profile_completed', 'needs_manager_attention', 'needs_manager_decision' ), true ) ) : ?>

@@ -472,3 +472,86 @@
 .crpcrm-status-error {
 	color: #b32d2e;
 }
+
+.crpcrm-jalali-field {
+	display: inline-flex;
+	gap: 8px;
+	position: relative;
+	vertical-align: middle;
+	width: 100%;
+}
+
+.crpcrm-jalali-field .crpcrm-jalali-date {
+	background: #fff;
+	direction: ltr;
+	text-align: center;
+	width: 100%;
+}
+
+.crpcrm-jalali-datetime-field .crpcrm-jalali-datetime-date {
+	flex: 1 1 150px;
+}
+
+.crpcrm-jalali-datetime-field .crpcrm-jalali-time {
+	flex: 0 0 118px;
+}
+
+.crpcrm-jalali-picker {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 10px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+	font-family: Tahoma, Arial, sans-serif;
+	left: 0;
+	min-width: 270px;
+	padding: 10px;
+	position: absolute;
+	top: calc(100% + 6px);
+	z-index: 100000;
+}
+
+.crpcrm-jalali-picker-header,
+.crpcrm-jalali-picker-tools {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
+
+.crpcrm-jalali-picker-header button,
+.crpcrm-jalali-picker-tools button,
+.crpcrm-jalali-picker-grid button {
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	cursor: pointer;
+	min-height: 30px;
+}
+
+.crpcrm-jalali-picker-header button {
+	font-size: 18px;
+	width: 34px;
+}
+
+.crpcrm-jalali-picker-grid {
+	display: grid;
+	gap: 4px;
+	grid-template-columns: repeat(7, 1fr);
+	text-align: center;
+}
+
+.crpcrm-jalali-weekday {
+	color: #646970;
+	font-size: 12px;
+	font-weight: 700;
+	padding: 4px 0;
+}
+
+.crpcrm-jalali-picker-grid button:hover,
+.crpcrm-jalali-picker-tools button:hover,
+.crpcrm-jalali-picker-header button:hover {
+	background: #2271b1;
+	border-color: #2271b1;
+	color: #fff;
+}

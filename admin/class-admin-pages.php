@@ -299,7 +299,8 @@ class CRPCRM_Admin_Pages {
 	private function get_admin_dashboard_cards() {
 		$user_id = get_current_user_id();
 		$today   = wp_date( 'Y-m-d', current_time( 'timestamp' ) );
-		$month_start = wp_date( 'Y-m-01', current_time( 'timestamp' ) );
+		$jalali_month = CRPCRM_Helpers::get_jalali_month_range();
+		$month_start = substr( $jalali_month['start'], 0, 10 );
 		$stale_hours = absint( CRPCRM_Settings::get( 'stale_request_hours', 48 ) );
 		return array(
 			array( 'title' => 'درخواست‌های امروز', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'date_from' => $today, 'date_to' => $today ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&date_from=' . rawurlencode( $today ) . '&date_to=' . rawurlencode( $today ) ) ),
@@ -317,7 +318,7 @@ class CRPCRM_Admin_Pages {
 	private function get_staff_filters( $tab, $can_manage, $user_id ) {
 		$filters = array();
 		if ( 'daily_reports' === $tab ) {
-			$filters['report_date'] = isset( $_GET['report_date'] ) ? sanitize_text_field( wp_unslash( $_GET['report_date'] ) ) : '';
+			$filters['report_date'] = isset( $_GET['report_date'] ) ? CRPCRM_Helpers::normalize_date_input( wp_unslash( $_GET['report_date'] ) ) : '';
 			$filters['status'] = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '';
 			$filters['needs_manager_attention'] = isset( $_GET['needs_manager_attention'] ) && '' !== $_GET['needs_manager_attention'] ? absint( $_GET['needs_manager_attention'] ) : '';
 			if ( $can_manage ) {
@@ -474,7 +475,7 @@ class CRPCRM_Admin_Pages {
 			$tab = 'tasks'; $id = absint( $_POST['task_id'] ?? 0 );
 			$assigned_to = absint( $_POST['assigned_to'] ?? 0 );
 			if ( ! $this->is_staff_user_id( $assigned_to ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
-			$data = array( 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'description' => sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) ), 'assigned_to' => $assigned_to, 'due_date' => sanitize_text_field( wp_unslash( $_POST['due_date'] ?? '' ) ), 'priority' => sanitize_key( wp_unslash( $_POST['priority'] ?? 'normal' ) ), 'status' => sanitize_key( wp_unslash( $_POST['status'] ?? 'new' ) ), 'manager_note' => sanitize_textarea_field( wp_unslash( $_POST['manager_note'] ?? '' ) ), 'created_by' => $user_id );
+			$data = array( 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'description' => sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) ), 'assigned_to' => $assigned_to, 'due_date' => CRPCRM_Helpers::normalize_date_input( wp_unslash( $_POST['due_date'] ?? '' ) ), 'priority' => sanitize_key( wp_unslash( $_POST['priority'] ?? 'normal' ) ), 'status' => sanitize_key( wp_unslash( $_POST['status'] ?? 'new' ) ), 'manager_note' => sanitize_textarea_field( wp_unslash( $_POST['manager_note'] ?? '' ) ), 'created_by' => $user_id );
 			if ( $id ) { unset( $data['created_by'] ); $this->staff_repository->update_task( $id, $data ); CRPCRM_Logger::info( 'staff_task_updated', 'staff_task_updated', array( 'user_id' => $user_id, 'task_id' => $id ) ); }
 			else { $id = $this->staff_repository->create_task( $data ); CRPCRM_Logger::info( 'staff_task_created', 'staff_task_created', array( 'user_id' => $user_id, 'task_id' => $id ) ); }
 		} elseif ( 'update_task_status' === $action ) {
@@ -715,8 +716,8 @@ class CRPCRM_Admin_Pages {
 			'owner_filter' => isset( $_GET['owner_filter'] ) ? sanitize_text_field( wp_unslash( $_GET['owner_filter'] ) ) : 'all',
 			'source'       => isset( $_GET['source'] ) ? sanitize_key( wp_unslash( $_GET['source'] ) ) : '',
 			'campaign'     => isset( $_GET['campaign'] ) ? sanitize_text_field( wp_unslash( $_GET['campaign'] ) ) : '',
-			'date_from'    => isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '',
-			'date_to'      => isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '',
+			'date_from'    => isset( $_GET['date_from'] ) ? CRPCRM_Helpers::normalize_date_input( wp_unslash( $_GET['date_from'] ) ) : '',
+			'date_to'      => isset( $_GET['date_to'] ) ? CRPCRM_Helpers::normalize_date_input( wp_unslash( $_GET['date_to'] ) ) : '',
 			'search'       => isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '',
 			'workflow_filter' => isset( $_GET['workflow_filter'] ) ? sanitize_key( wp_unslash( $_GET['workflow_filter'] ) ) : '',
 			'status_group' => isset( $_GET['status_group'] ) ? sanitize_key( wp_unslash( $_GET['status_group'] ) ) : '',
