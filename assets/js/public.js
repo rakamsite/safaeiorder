@@ -21,16 +21,36 @@
 
 	function setupOtpBoxes(group) {
 		var boxes = Array.prototype.slice.call(group.querySelectorAll('.crpcrm-otp-code-box'));
-		var hidden = document.getElementById('crpcrm_otp_code');
+		var form = group.closest('form');
+		var hidden = form ? form.querySelector('#crpcrm_otp_code') : document.getElementById('crpcrm_otp_code');
+		var otpLength = parseInt(group.getAttribute('data-otp-length'), 10) || boxes.length;
+		var isSubmitting = false;
 
 		function syncHidden() {
 			if (!hidden) {
-				return;
+				return '';
 			}
 
 			hidden.value = boxes.map(function (box) {
 				return onlyDigits(box.value).slice(0, 1);
 			}).join('');
+
+			return hidden.value;
+		}
+
+		function submitWhenComplete() {
+			var code = syncHidden();
+			if (!form || isSubmitting || code.length < otpLength) {
+				return;
+			}
+
+			isSubmitting = true;
+			if ('function' === typeof form.requestSubmit) {
+				form.requestSubmit();
+				return;
+			}
+
+			form.submit();
 		}
 
 		function fillBoxes(value) {
@@ -43,6 +63,8 @@
 			if (digits.length) {
 				boxes[Math.min(digits.length, boxes.length) - 1].focus();
 			}
+
+			submitWhenComplete();
 		}
 
 		boxes.forEach(function (box, index) {
@@ -59,6 +81,8 @@
 				if (digits && boxes[index + 1]) {
 					boxes[index + 1].focus();
 				}
+
+				submitWhenComplete();
 			});
 
 			box.addEventListener('keydown', function (event) {
@@ -78,7 +102,6 @@
 			});
 		});
 
-		var form = group.closest('form');
 		if (form) {
 			form.addEventListener('submit', syncHidden);
 		}
