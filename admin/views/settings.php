@@ -14,8 +14,10 @@ if ( ! $portal_page_id ) {
 		CRPCRM_Logger::warning( 'portal_shortcode_missing', 'portal_shortcode_missing', array( 'page_id' => $portal_page_id, 'user_id' => get_current_user_id() ) );
 	}
 }
-$log_levels    = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسانی', 'warning' => 'هشدار', 'error' => 'خطا' );
-$saveable_tabs = CRPCRM_Settings::saveable_tabs();
+$log_levels      = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌رسانی', 'warning' => 'هشدار', 'error' => 'خطا' );
+$saveable_tabs   = CRPCRM_Settings::saveable_tabs();
+$portal_menu_id  = absint( $settings['portal_menu_id'] ?? 0 );
+$portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( array( 'hide_empty' => false ) ) : array();
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
 	<h1><?php echo esc_html( 'تنظیمات پرتال و CRM' ); ?></h1>
@@ -54,7 +56,18 @@ $saveable_tabs = CRPCRM_Settings::saveable_tabs();
 			<h2><?php echo esc_html( 'تنظیمات پرتال مشتری' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr><th><label for="portal_page_id"><?php echo esc_html( 'صفحه پرتال مشتری' ); ?></label></th><td><?php wp_dropdown_pages( array( 'name' => 'crpcrm_settings[portal_page_id]', 'id' => 'portal_page_id', 'selected' => $portal_page_id, 'show_option_none' => '— انتخاب کنید —', 'option_none_value' => 0 ) ); ?><p class="description"><?php echo esc_html( 'صفحه‌ای که shortcode پرتال در آن قرار دارد.' ); ?></p></td></tr>
-				<tr><th><label for="portal_menu_id"><?php echo esc_html( 'فهرست منوی پرتال' ); ?></label></th><td><?php wp_dropdown_nav_menus( array( 'name' => 'crpcrm_settings[portal_menu_id]', 'id' => 'portal_menu_id', 'selected' => absint( $settings['portal_menu_id'] ), 'show_option_none' => '— بدون فهرست —', 'option_none_value' => 0 ) ); ?><p class="description"><?php echo esc_html( 'لینک‌های این فهرست در کنار آیتم‌های اجباری پرتال نمایش داده می‌شوند.' ); ?></p></td></tr>
+				<tr>
+					<th><label for="portal_menu_id"><?php echo esc_html( 'فهرست منوی پرتال' ); ?></label></th>
+					<td>
+						<select name="crpcrm_settings[portal_menu_id]" id="portal_menu_id">
+							<option value="0" <?php selected( $portal_menu_id, 0 ); ?>><?php echo esc_html( '— بدون فهرست —' ); ?></option>
+							<?php foreach ( $portal_menus as $portal_menu ) : ?>
+								<option value="<?php echo esc_attr( $portal_menu->term_id ); ?>" <?php selected( $portal_menu_id, $portal_menu->term_id ); ?>><?php echo esc_html( $portal_menu->name ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<p class="description"><?php echo esc_html( 'لینک‌های این فهرست در کنار آیتم‌های اجباری پرتال نمایش داده می‌شوند.' ); ?></p>
+					</td>
+				</tr>
 				<tr><th><?php echo esc_html( 'فعال بودن ثبت‌نام مشتریان جدید' ); ?></th><td><label><input name="crpcrm_settings[customer_registration_enabled]" type="checkbox" value="yes" <?php checked( $settings['customer_registration_enabled'], 'yes' ); ?> /> <?php echo esc_html( 'ثبت‌نام شماره‌های جدید فعال باشد.' ); ?></label></td></tr>
 				<tr><th><label for="request_success_message"><?php echo esc_html( 'متن پیام بعد از ثبت موفق درخواست' ); ?></label></th><td><textarea name="crpcrm_settings[request_success_message]" id="request_success_message" class="large-text" rows="4"><?php echo esc_textarea( $settings['request_success_message'] ); ?></textarea></td></tr>
 			</tbody></table>
