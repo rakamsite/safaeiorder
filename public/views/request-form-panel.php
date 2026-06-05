@@ -51,7 +51,6 @@ if ( $is_inline_request_form ) {
 
 			<div class="crpcrm-button-row">
 				<button class="crpcrm-button" type="submit"><?php echo esc_html( $form['submit_label'] ); ?></button>
-				<a class="crpcrm-secondary-link" href="<?php echo esc_url( $portal_urls['dashboard'] ); ?>"><?php echo esc_html( 'بازگشت به داشبورد' ); ?></a>
 			</div>
 		</form>
 	</section>

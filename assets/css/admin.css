@@ -473,6 +473,13 @@
 	color: #b32d2e;
 }
 
+.crpcrm-vehicle-options-table input[type="number"] {
+	max-width: 110px;
+}
+
+.crpcrm-vehicle-options-table td,
+.crpcrm-vehicle-options-table th {
+	vertical-align: middle;
 .crpcrm-jalali-field {
 	display: inline-flex;
 	gap: 8px;

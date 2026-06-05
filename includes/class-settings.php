@@ -50,7 +50,46 @@ class CRPCRM_Settings {
 			'delete_data_on_uninstall'             => 'no',
 			'log_retention_days'                   => 90,
 			'log_level'                            => 'info',
+			'vehicle_options'                      => self::default_vehicle_options(),
 		);
+	}
+
+	public static function default_vehicle_options() {
+		return array(
+			array( 'label' => 'فونیکس FX', 'priority' => 10, 'enabled' => 'yes' ),
+			array( 'label' => 'تیگو ۷', 'priority' => 20, 'enabled' => 'yes' ),
+			array( 'label' => 'تیگو ۸', 'priority' => 30, 'enabled' => 'yes' ),
+			array( 'label' => 'آریزو ۵', 'priority' => 40, 'enabled' => 'yes' ),
+			array( 'label' => 'آریزو ۶', 'priority' => 50, 'enabled' => 'yes' ),
+			array( 'label' => 'X22', 'priority' => 60, 'enabled' => 'yes' ),
+			array( 'label' => 'X55', 'priority' => 70, 'enabled' => 'yes' ),
+		);
+	}
+
+	public static function get_active_vehicle_options() {
+		$vehicles = self::get( 'vehicle_options', self::default_vehicle_options() );
+		if ( ! is_array( $vehicles ) ) {
+			$vehicles = self::default_vehicle_options();
+		}
+
+		$active = array_filter( $vehicles, function ( $vehicle ) {
+			return is_array( $vehicle ) && ! empty( $vehicle['label'] ) && 'yes' === ( $vehicle['enabled'] ?? 'no' );
+		} );
+
+		usort( $active, function ( $a, $b ) {
+			$priority_a = isset( $a['priority'] ) ? absint( $a['priority'] ) : 999;
+			$priority_b = isset( $b['priority'] ) ? absint( $b['priority'] ) : 999;
+			if ( $priority_a === $priority_b ) {
+				return strcmp( (string) $a['label'], (string) $b['label'] );
+			}
+			return $priority_a <=> $priority_b;
+		} );
+
+		$labels = array_values( array_unique( array_map( function ( $vehicle ) {
+			return (string) $vehicle['label'];
+		}, $active ) ) );
+
+		return $labels;
 	}
 
 	public static function add_default_options() {
@@ -166,6 +205,7 @@ class CRPCRM_Settings {
 			$settings['attribution_events_enabled'] = $this->checkbox( $input, 'attribution_events_enabled' );
 			$settings['internal_domains']           = $this->sanitize_domains( isset( $input['internal_domains'] ) ? $input['internal_domains'] : $defaults['internal_domains'] );
 		} elseif ( 'crm' === $active_tab ) {
+			$settings['vehicle_options']                      = $this->sanitize_vehicle_options( isset( $input['vehicle_options'] ) ? $input['vehicle_options'] : array() );
 			$settings['request_rate_limit_count']             = $this->bounded_absint( $input, 'request_rate_limit_count', 1, 100, $defaults['request_rate_limit_count'] );
 			$settings['request_rate_limit_minutes']           = $this->bounded_absint( $input, 'request_rate_limit_minutes', 1, 1440, $defaults['request_rate_limit_minutes'] );
 			$settings['stale_request_hours']                  = $this->bounded_absint( $input, 'stale_request_hours', 1, 720, $defaults['stale_request_hours'] );
@@ -193,6 +233,44 @@ class CRPCRM_Settings {
 		}
 
 		return wp_parse_args( $settings, $defaults );
+	}
+
+	private function sanitize_vehicle_options( $input ) {
+		if ( ! is_array( $input ) ) {
+			return self::default_vehicle_options();
+		}
+
+		$vehicles = array();
+		foreach ( $input as $vehicle ) {
+			if ( ! is_array( $vehicle ) ) {
+				continue;
+			}
+
+			$label = isset( $vehicle['label'] ) ? sanitize_text_field( $vehicle['label'] ) : '';
+			$label = trim( $label );
+			if ( '' === $label ) {
+				continue;
+			}
+
+			$vehicles[] = array(
+				'label'    => $label,
+				'priority' => isset( $vehicle['priority'] ) ? absint( $vehicle['priority'] ) : 999,
+				'enabled'  => isset( $vehicle['enabled'] ) && 'yes' === $vehicle['enabled'] ? 'yes' : 'no',
+			);
+		}
+
+		if ( empty( $vehicles ) ) {
+			return self::default_vehicle_options();
+		}
+
+		usort( $vehicles, function ( $a, $b ) {
+			if ( $a['priority'] === $b['priority'] ) {
+				return strcmp( $a['label'], $b['label'] );
+			}
+			return $a['priority'] <=> $b['priority'];
+		} );
+
+		return $vehicles;
 	}
 
 	private function checkbox( $input, $key ) {

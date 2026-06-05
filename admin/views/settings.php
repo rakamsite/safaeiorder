@@ -18,6 +18,11 @@ $log_levels      = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌�
 $saveable_tabs   = CRPCRM_Settings::saveable_tabs();
 $portal_menu_id  = absint( $settings['portal_menu_id'] ?? 0 );
 $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( array( 'hide_empty' => false ) ) : array();
+$vehicle_options = isset( $settings['vehicle_options'] ) && is_array( $settings['vehicle_options'] ) ? $settings['vehicle_options'] : CRPCRM_Settings::default_vehicle_options();
+$vehicle_rows    = count( $vehicle_options );
+for ( $i = $vehicle_rows; $i < $vehicle_rows + 5; $i++ ) {
+	$vehicle_options[] = array( 'label' => '', 'priority' => ( $i + 1 ) * 10, 'enabled' => 'yes' );
+}
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
 	<h1><?php echo esc_html( 'تنظیمات پرتال و CRM' ); ?></h1>
@@ -95,6 +100,24 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 		<?php elseif ( 'crm' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات درخواست‌ها و CRM' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
+				<tr>
+					<th><?php echo esc_html( 'خودروهای قابل انتخاب در فرم‌ها' ); ?></th>
+					<td>
+						<table class="widefat striped crpcrm-vehicle-options-table">
+							<thead><tr><th><?php echo esc_html( 'نام خودرو' ); ?></th><th><?php echo esc_html( 'اولویت نمایش' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th></tr></thead>
+							<tbody>
+								<?php foreach ( $vehicle_options as $vehicle_index => $vehicle ) : ?>
+									<tr>
+										<td><input class="regular-text" name="crpcrm_settings[vehicle_options][<?php echo esc_attr( $vehicle_index ); ?>][label]" type="text" value="<?php echo esc_attr( $vehicle['label'] ?? '' ); ?>" placeholder="<?php echo esc_attr( 'مثلاً تیگو ۸' ); ?>" /></td>
+										<td><input name="crpcrm_settings[vehicle_options][<?php echo esc_attr( $vehicle_index ); ?>][priority]" type="number" min="0" value="<?php echo esc_attr( absint( $vehicle['priority'] ?? 999 ) ); ?>" /></td>
+										<td><label><input name="crpcrm_settings[vehicle_options][<?php echo esc_attr( $vehicle_index ); ?>][enabled]" type="checkbox" value="yes" <?php checked( $vehicle['enabled'] ?? 'yes', 'yes' ); ?> /> <?php echo esc_html( 'نمایش داده شود' ); ?></label></td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+						<p class="description"><?php echo esc_html( 'ردیف‌های خالی ذخیره نمی‌شوند. عدد کمتر در اولویت نمایش، بالاتر در فهرست فرم‌های ثبت‌نام خودرو، درخواست قطعه و تعمیرات نمایش داده می‌شود.' ); ?></p>
+					</td>
+				</tr>
 				<tr><th><label for="request_rate_limit_count"><?php echo esc_html( 'محدودیت تعداد درخواست' ); ?></label></th><td><input name="crpcrm_settings[request_rate_limit_count]" id="request_rate_limit_count" type="number" min="1" max="100" value="<?php echo esc_attr( $settings['request_rate_limit_count'] ); ?>" /></td></tr>
 				<tr><th><label for="request_rate_limit_minutes"><?php echo esc_html( 'بازه محدودیت درخواست به دقیقه' ); ?></label></th><td><input name="crpcrm_settings[request_rate_limit_minutes]" id="request_rate_limit_minutes" type="number" min="1" max="1440" value="<?php echo esc_attr( $settings['request_rate_limit_minutes'] ); ?>" /></td></tr>
 				<tr><th><label for="stale_request_hours"><?php echo esc_html( 'ساعت تشخیص درخواست رهاشده' ); ?></label></th><td><input name="crpcrm_settings[stale_request_hours]" id="stale_request_hours" type="number" min="1" max="720" value="<?php echo esc_attr( $settings['stale_request_hours'] ); ?>" /></td></tr>
