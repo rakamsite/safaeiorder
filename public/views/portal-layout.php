@@ -10,7 +10,8 @@ $my_requests     = ! empty( $portal_data['my_requests'] ) && is_array( $portal_d
 $form            = ! empty( $portal_data['form'] ) && is_array( $portal_data['form'] ) ? $portal_data['form'] : null;
 $request_detail  = ! empty( $portal_data['request_detail'] ) && is_array( $portal_data['request_detail'] ) ? $portal_data['request_detail'] : null;
 $request_forms   = ! empty( $portal_data['request_forms'] ) && is_array( $portal_data['request_forms'] ) ? $portal_data['request_forms'] : CRPCRM_Request_Forms::get_forms();
-$created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['created'] ) );
+$created_value   = isset( $_GET['created'] ) ? sanitize_text_field( wp_unslash( $_GET['created'] ) ) : ( function_exists( 'get_query_var' ) ? sanitize_text_field( (string) get_query_var( 'created', '' ) ) : '' );
+$created_notice  = '1' === $created_value;
 ?>
 <div class="crpcrm-portal crpcrm-portal-shell" dir="rtl">
 	<aside class="crpcrm-portal-sidebar" aria-label="<?php echo esc_attr( 'منوی پرتال' ); ?>">
@@ -44,7 +45,7 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 	</aside>
 
 	<main class="crpcrm-portal-content">
-		<?php if ( ! empty( $notice ) ) : ?>
+		<?php if ( ! empty( $notice ) && ! ( $created_notice && 'success' === $notice['type'] ) ) : ?>
 			<div class="crpcrm-notice crpcrm-notice-<?php echo esc_attr( $notice['type'] ); ?>"><?php echo esc_html( $notice['message'] ); ?></div>
 		<?php endif; ?>
 

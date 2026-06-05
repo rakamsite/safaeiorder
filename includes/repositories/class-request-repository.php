@@ -72,12 +72,27 @@ class CRPCRM_Request_Repository {
 		global $wpdb;
 
 		$defaults = array(
-			'limit'  => 20,
-			'offset' => 0,
+			'limit'   => 20,
+			'offset'  => 0,
+			'user_id' => 0,
 		);
 		$args     = wp_parse_args( $args, $defaults );
 		$limit    = max( 1, min( 100, absint( $args['limit'] ) ) );
 		$offset   = absint( $args['offset'] );
+		$user_id  = absint( $args['user_id'] );
+
+		if ( $user_id ) {
+			return $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT * FROM {$this->table} WHERE customer_id = %d OR user_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+					absint( $customer_id ),
+					$user_id,
+					$limit,
+					$offset
+				),
+				ARRAY_A
+			);
+		}
 
 		return $wpdb->get_results(
 			$wpdb->prepare(
