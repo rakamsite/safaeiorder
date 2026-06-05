@@ -708,3 +708,20 @@
 	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
 	outline: none;
 }
+
+.crpcrm-inline-request-form-card {
+	border-color: #bfdbfe;
+	box-shadow: 0 16px 34px rgba(37, 99, 235, 0.12);
+}
+
+.crpcrm-inline-request-form-card[hidden] {
+	display: none !important;
+}
+
+.crpcrm-open-request-form.is-active {
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22), 0 14px 28px rgba(37, 99, 235, 0.24);
+}
+
+.crpcrm-action-card.is-active {
+	transform: translateY(-3px);
+}

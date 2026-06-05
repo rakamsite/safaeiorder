@@ -528,6 +528,7 @@ class CRPCRM_Portal_Shortcode {
 			'latest_requests' => $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 3 ) ),
 			'request_detail'  => null,
 			'access_denied'   => false,
+			'request_forms'   => CRPCRM_Request_Forms::get_forms(),
 		);
 
 		if ( in_array( $page, CRPCRM_Request_Forms::get_form_pages(), true ) ) {

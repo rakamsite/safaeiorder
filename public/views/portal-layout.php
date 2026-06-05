@@ -9,6 +9,7 @@ $latest_requests = ! empty( $portal_data['latest_requests'] ) && is_array( $port
 $my_requests     = ! empty( $portal_data['my_requests'] ) && is_array( $portal_data['my_requests'] ) ? $portal_data['my_requests'] : array();
 $form            = ! empty( $portal_data['form'] ) && is_array( $portal_data['form'] ) ? $portal_data['form'] : null;
 $request_detail  = ! empty( $portal_data['request_detail'] ) && is_array( $portal_data['request_detail'] ) ? $portal_data['request_detail'] : null;
+$request_forms   = ! empty( $portal_data['request_forms'] ) && is_array( $portal_data['request_forms'] ) ? $portal_data['request_forms'] : CRPCRM_Request_Forms::get_forms();
 $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['created'] ) );
 ?>
 <div class="crpcrm-portal crpcrm-portal-shell" dir="rtl">
@@ -59,9 +60,9 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 				<div class="crpcrm-card-heading-row">
 					<h2><?php echo esc_html( 'درخواست‌های من' ); ?></h2>
 					<div class="crpcrm-button-row">
-						<a class="crpcrm-button crpcrm-button-inline" href="<?php echo esc_url( $portal_urls['new_car_registration'] ); ?>"><?php echo esc_html( 'ثبت‌نام خودرو' ); ?></a>
-						<a class="crpcrm-button crpcrm-button-inline" href="<?php echo esc_url( $portal_urls['new_parts_request'] ); ?>"><?php echo esc_html( 'درخواست قطعات' ); ?></a>
-						<a class="crpcrm-button crpcrm-button-inline" href="<?php echo esc_url( $portal_urls['new_repair_booking'] ); ?>"><?php echo esc_html( 'درخواست تعمیرات' ); ?></a>
+						<a class="crpcrm-button crpcrm-button-inline crpcrm-open-request-form" href="<?php echo esc_url( $portal_urls['new_car_registration'] ); ?>" data-crpcrm-open-form="new_car_registration"><?php echo esc_html( 'ثبت‌نام خودرو' ); ?></a>
+						<a class="crpcrm-button crpcrm-button-inline crpcrm-open-request-form" href="<?php echo esc_url( $portal_urls['new_parts_request'] ); ?>" data-crpcrm-open-form="new_parts_request"><?php echo esc_html( 'درخواست قطعات' ); ?></a>
+						<a class="crpcrm-button crpcrm-button-inline crpcrm-open-request-form" href="<?php echo esc_url( $portal_urls['new_repair_booking'] ); ?>" data-crpcrm-open-form="new_repair_booking"><?php echo esc_html( 'درخواست تعمیرات' ); ?></a>
 					</div>
 				</div>
 
@@ -98,40 +99,19 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 					</div>
 				<?php endif; ?>
 			</section>
-		<?php elseif ( in_array( $current_page, CRPCRM_Request_Forms::get_form_pages(), true ) && $form ) : ?>
-			<section class="crpcrm-portal-card crpcrm-request-form-card">
-				<h2><?php echo esc_html( $form['title'] ); ?></h2>
-				<form class="crpcrm-request-form" method="post" action="<?php echo esc_url( $admin_post_url ); ?>">
-					<input type="hidden" name="action" value="crpcrm_submit_request" />
-					<input type="hidden" name="crpcrm_request_page" value="<?php echo esc_attr( $form['page'] ); ?>" />
-					<input type="hidden" name="crpcrm_redirect_to" value="<?php echo esc_url( $portal_urls[ $form['page'] ] ); ?>" />
-					<?php wp_nonce_field( 'crpcrm_submit_request_' . $form['page'], 'crpcrm_request_nonce' ); ?>
-
-					<?php foreach ( $form['fields'] as $field ) : ?>
-						<label class="crpcrm-field">
-							<span><?php echo esc_html( $field['label'] ); ?></span>
-							<?php if ( 'textarea' === $field['type'] ) : ?>
-								<textarea name="<?php echo esc_attr( $field['name'] ); ?>" required placeholder="<?php echo esc_attr( isset( $field['placeholder'] ) ? $field['placeholder'] : '' ); ?>"></textarea>
-							<?php elseif ( 'select' === $field['type'] ) : ?>
-								<select name="<?php echo esc_attr( $field['name'] ); ?>" required>
-									<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
-									<?php foreach ( $field['options'] as $option ) : ?>
-										<option value="<?php echo esc_attr( $option ); ?>"><?php echo esc_html( $option ); ?></option>
-									<?php endforeach; ?>
-								</select>
-							<?php else : ?>
-								<input type="<?php echo esc_attr( $field['type'] ); ?>" name="<?php echo esc_attr( $field['name'] ); ?>" required placeholder="<?php echo esc_attr( isset( $field['placeholder'] ) ? $field['placeholder'] : '' ); ?>" />
-							<?php endif; ?>
-						</label>
-					<?php endforeach; ?>
-
-					<div class="crpcrm-button-row">
-						<button class="crpcrm-button" type="submit"><?php echo esc_html( $form['submit_label'] ); ?></button>
-						<a class="crpcrm-secondary-link" href="<?php echo esc_url( $portal_urls['dashboard'] ); ?>"><?php echo esc_html( 'بازگشت به داشبورد' ); ?></a>
-					</div>
-				</form>
-			</section>
-		<?php elseif ( 'request_detail' === $current_page ) : ?>
+		<?php foreach ( $request_forms as $inline_form ) : ?>
+			<?php
+			$form                   = $inline_form;
+			$is_inline_request_form = true;
+			include CRPCRM_PLUGIN_DIR . 'public/views/request-form-panel.php';
+			?>
+		<?php endforeach; ?>
+	<?php elseif ( in_array( $current_page, CRPCRM_Request_Forms::get_form_pages(), true ) && $form ) : ?>
+		<?php
+		$is_inline_request_form = false;
+		include CRPCRM_PLUGIN_DIR . 'public/views/request-form-panel.php';
+		?>
+	<?php elseif ( 'request_detail' === $current_page ) : ?>
 			<section class="crpcrm-portal-card crpcrm-request-detail-card">
 				<?php if ( ! empty( $portal_data['access_denied'] ) ) : ?>
 					<div class="crpcrm-notice crpcrm-notice-error"><?php echo esc_html( 'شما اجازه مشاهده این درخواست را ندارید.' ); ?></div>
@@ -172,18 +152,26 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 						<?php endif; ?>
 					</dl>
 					<div class="crpcrm-button-row">
-						<a class="crpcrm-button crpcrm-button-inline" href="<?php echo esc_url( $portal_urls['new_car_registration'] ); ?>"><?php echo esc_html( 'ثبت درخواست جدید' ); ?></a>
+						<a class="crpcrm-button crpcrm-button-inline crpcrm-open-request-form" href="<?php echo esc_url( $portal_urls['new_car_registration'] ); ?>" data-crpcrm-open-form="new_car_registration"><?php echo esc_html( 'ثبت درخواست جدید' ); ?></a>
 						<a class="crpcrm-secondary-link" href="<?php echo esc_url( $portal_urls['my_requests'] ); ?>"><?php echo esc_html( 'مشاهده همه درخواست‌ها' ); ?></a>
 						<a class="crpcrm-secondary-link" href="<?php echo esc_url( $portal_urls['dashboard'] ); ?>"><?php echo esc_html( 'بازگشت به داشبورد' ); ?></a>
 					</div>
 				<?php endif; ?>
 			</section>
+
+			<?php foreach ( $request_forms as $inline_form ) : ?>
+				<?php
+				$form                   = $inline_form;
+				$is_inline_request_form = true;
+				include CRPCRM_PLUGIN_DIR . 'public/views/request-form-panel.php';
+				?>
+			<?php endforeach; ?>
 		<?php else : ?>
 			<section class="crpcrm-portal-card crpcrm-dashboard-card">
 				<h2><?php echo esc_html( 'سلام ' . $customer_name ); ?></h2>
 				<p><?php echo esc_html( 'از این داشبورد می‌توانید درخواست‌های خود را ثبت و پیگیری کنید.' ); ?></p>
 				<div class="crpcrm-portal-actions">
-					<a class="crpcrm-action-card" href="<?php echo esc_url( $portal_urls['new_car_registration'] ); ?>">
+					<a class="crpcrm-action-card crpcrm-open-request-form" href="<?php echo esc_url( $portal_urls['new_car_registration'] ); ?>" data-crpcrm-open-form="new_car_registration">
 						<span class="crpcrm-action-icon" aria-hidden="true">
 							<svg viewBox="0 0 32 32" focusable="false">
 								<path d="M3.5 12.5h14v12h-14z" />
@@ -197,7 +185,7 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 						</span>
 						<strong><?php echo esc_html( 'ثبت‌نام خودرو' ); ?></strong>
 					</a>
-					<a class="crpcrm-action-card" href="<?php echo esc_url( $portal_urls['new_parts_request'] ); ?>">
+					<a class="crpcrm-action-card crpcrm-open-request-form" href="<?php echo esc_url( $portal_urls['new_parts_request'] ); ?>" data-crpcrm-open-form="new_parts_request">
 						<span class="crpcrm-action-icon" aria-hidden="true">
 							<svg viewBox="0 0 32 32" focusable="false">
 								<circle cx="16" cy="16" r="4" />
@@ -213,7 +201,7 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 						</span>
 						<strong><?php echo esc_html( 'درخواست قطعات' ); ?></strong>
 					</a>
-					<a class="crpcrm-action-card" href="<?php echo esc_url( $portal_urls['new_repair_booking'] ); ?>">
+					<a class="crpcrm-action-card crpcrm-open-request-form" href="<?php echo esc_url( $portal_urls['new_repair_booking'] ); ?>" data-crpcrm-open-form="new_repair_booking">
 						<span class="crpcrm-action-icon" aria-hidden="true">
 							<svg viewBox="0 0 32 32" focusable="false">
 								<path d="M21.5 5.5a6.2 6.2 0 0 0-6.6 8.2L6.2 22.4a2.8 2.8 0 0 0 4 4l8.7-8.7a6.2 6.2 0 0 0 7.6-7.7l-4.1 4.1-3.5-3.5 4.1-4.1a6.1 6.1 0 0 0-1.5-1Z" />
@@ -224,6 +212,14 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 					</a>
 				</div>
 			</section>
+
+			<?php foreach ( $request_forms as $inline_form ) : ?>
+				<?php
+				$form                   = $inline_form;
+				$is_inline_request_form = true;
+				include CRPCRM_PLUGIN_DIR . 'public/views/request-form-panel.php';
+				?>
+			<?php endforeach; ?>
 
 			<section class="crpcrm-portal-card crpcrm-latest-requests-card">
 				<h3><?php echo esc_html( 'آخرین درخواست‌ها' ); ?></h3>
