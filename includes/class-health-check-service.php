@@ -85,7 +85,7 @@ class CRPCRM_Health_Check_Service {
 	}
 
 	public function check_sms_settings() {
-		$required = array( 'melipayamak_username', 'melipayamak_password', 'melipayamak_pattern_code' );
+		$required = array( 'melipayamak_username', 'melipayamak_api_key', 'melipayamak_pattern_code' );
 		$missing  = array();
 		foreach ( $required as $key ) {
 			if ( '' === (string) CRPCRM_Settings::get( $key, '' ) ) {

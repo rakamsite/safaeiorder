@@ -30,6 +30,7 @@ class CRPCRM_Settings {
 			'otp_max_attempts'                     => 5,
 			'otp_debug_mode'                       => 'no',
 			'melipayamak_username'                 => '',
+			'melipayamak_api_key'                  => '',
 			'melipayamak_password'                 => '',
 			'melipayamak_pattern_code'             => '',
 			'melipayamak_sender'                   => '',
@@ -155,6 +156,7 @@ class CRPCRM_Settings {
 			$settings['otp_max_attempts']                = $this->bounded_absint( $input, 'otp_max_attempts', 1, 20, $defaults['otp_max_attempts'] );
 			$settings['otp_debug_mode']                  = $this->checkbox( $input, 'otp_debug_mode' );
 			$settings['melipayamak_username']            = isset( $input['melipayamak_username'] ) ? sanitize_text_field( $input['melipayamak_username'] ) : '';
+			$settings['melipayamak_api_key']             = isset( $input['melipayamak_api_key'] ) && '' !== trim( (string) $input['melipayamak_api_key'] ) ? sanitize_text_field( $input['melipayamak_api_key'] ) : $current['melipayamak_api_key'];
 			$settings['melipayamak_password']            = isset( $input['melipayamak_password'] ) && '' !== trim( (string) $input['melipayamak_password'] ) ? sanitize_text_field( $input['melipayamak_password'] ) : $current['melipayamak_password'];
 			$settings['melipayamak_pattern_code']        = isset( $input['melipayamak_pattern_code'] ) ? sanitize_text_field( $input['melipayamak_pattern_code'] ) : '';
 			$settings['melipayamak_sender']              = isset( $input['melipayamak_sender'] ) ? sanitize_text_field( $input['melipayamak_sender'] ) : '';
