@@ -87,7 +87,7 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 									<tr>
 										<td><strong><?php echo esc_html( $request['request_code'] ); ?></strong></td>
 										<td><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'] ) ); ?></td>
-										<td><?php echo esc_html( wp_trim_words( $request['request_summary'], 18, '…' ) ); ?></td>
+										<td><?php $request_data = CRPCRM_Helpers::maybe_json_decode( isset( $request['request_data'] ) ? $request['request_data'] : '', true ); echo esc_html( wp_trim_words( CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] ), 18, '…' ) ); ?></td>
 										<td><span class="crpcrm-status-badge"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request['status'] ) ); ?></span></td>
 										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td>
 										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request['last_activity_at'] ) ? $request['last_activity_at'] : $request['updated_at'] ) ); ?></td>
@@ -132,17 +132,11 @@ $created_notice  = isset( $_GET['created'] ) && '1' === sanitize_text_field( wp_
 						<div><span><?php echo esc_html( 'آخرین بروزرسانی' ); ?></span><strong><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request_detail['last_activity_at'] ) ? $request_detail['last_activity_at'] : $request_detail['updated_at'] ) ); ?></strong></div>
 					</div>
 					<h3><?php echo esc_html( 'خلاصه درخواست' ); ?></h3>
-					<p class="crpcrm-request-summary"><?php echo esc_html( $request_detail['request_summary'] ); ?></p>
+					<p class="crpcrm-request-summary"><?php echo esc_html( CRPCRM_Request_Forms::build_display_summary( $request_detail['request_type'], $request_data, $request_detail['request_summary'] ) ); ?></p>
 					<h3><?php echo esc_html( 'اطلاعات ثبت‌شده در فرم' ); ?></h3>
 					<dl class="crpcrm-data-list">
 						<?php
-						$detail_form = null;
-						foreach ( CRPCRM_Request_Forms::get_forms() as $candidate_form ) {
-							if ( $candidate_form['request_type'] === $request_detail['request_type'] ) {
-								$detail_form = $candidate_form;
-								break;
-							}
-						}
+						$detail_form = CRPCRM_Request_Forms::get_form_by_request_type( $request_detail['request_type'] );
 						?>
 						<?php if ( $detail_form && is_array( $request_data ) ) : ?>
 							<?php foreach ( $detail_form['fields'] as $field ) : ?>

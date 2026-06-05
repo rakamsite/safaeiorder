@@ -45,8 +45,6 @@ class CRPCRM_Request_Forms {
 					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $repair_vehicle_options ),
 					array( 'name' => 'service_type', 'type' => 'select', 'required' => true, 'label' => 'نوع سرویس یا مشکل', 'required_message' => 'نوع سرویس یا مشکل الزامی است.', 'options' => array( 'سرویس دوره‌ای', 'تعمیر موتور', 'گیربکس', 'برق خودرو', 'جلوبندی', 'صافکاری و بدنه', 'عیب‌یابی', 'تعویض قطعه', 'سایر' ) ),
 					array( 'name' => 'problem_description', 'type' => 'textarea', 'required' => true, 'label' => 'شرح مشکل', 'placeholder' => 'لطفاً مشکل خودرو یا سرویس موردنظر را توضیح دهید.', 'required_message' => 'شرح مشکل الزامی است.' ),
-					array( 'name' => 'preferred_date', 'type' => 'date', 'required' => true, 'label' => 'تاریخ پیشنهادی مراجعه', 'required_message' => 'تاریخ پیشنهادی مراجعه الزامی است.' ),
-					array( 'name' => 'preferred_call_time', 'type' => 'select', 'required' => true, 'label' => 'زمان مناسب تماس', 'required_message' => 'زمان مناسب تماس الزامی است.', 'options' => array( 'صبح', 'ظهر', 'عصر', 'شب', 'فرقی ندارد' ) ),
 				),
 			),
 		);
@@ -56,6 +54,41 @@ class CRPCRM_Request_Forms {
 		$forms = self::get_forms();
 		$page  = sanitize_key( $page );
 		return isset( $forms[ $page ] ) ? $forms[ $page ] : null;
+	}
+
+	public static function get_form_by_request_type( $request_type ) {
+		$request_type = sanitize_key( $request_type );
+		foreach ( self::get_forms() as $form ) {
+			if ( $request_type === $form['request_type'] ) {
+				return $form;
+			}
+		}
+
+		return null;
+	}
+
+	public static function get_field_labels_for_request_type( $request_type ) {
+		$form = self::get_form_by_request_type( $request_type );
+		if ( ! $form ) {
+			return array();
+		}
+
+		$labels = array();
+		foreach ( $form['fields'] as $field ) {
+			$labels[ $field['name'] ] = $field['label'];
+		}
+
+		return $labels;
+	}
+
+	public static function build_display_summary( $request_type, $request_data, $fallback = '' ) {
+		$form = self::get_form_by_request_type( $request_type );
+		if ( ! $form || ! is_array( $request_data ) ) {
+			return $fallback;
+		}
+
+		$summary = self::build_summary( $form, $request_data );
+		return '' !== $summary ? $summary : $fallback;
 	}
 
 	public static function get_form_pages() {
