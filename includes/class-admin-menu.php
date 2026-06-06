@@ -34,7 +34,7 @@ class CRPCRM_Admin_Menu {
 			26
 		);
 
-		add_submenu_page( 'crpcrm-dashboard', 'داشبورد', 'داشبورد', 'crpcrm_manage_plugin', 'crpcrm-dashboard', array( $this->admin_pages, 'dashboard' ) );
+		add_submenu_page( 'crpcrm-dashboard', 'داشبورد', 'داشبورد', 'crpcrm_use_staff_portal', 'crpcrm-dashboard', array( $this->admin_pages, 'dashboard' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'درخواست‌ها', 'درخواست‌ها', 'crpcrm_use_staff_portal', 'crpcrm-requests', array( $this->admin_pages, 'requests' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'مشتریان', 'مشتریان', 'crpcrm_view_all_requests', 'crpcrm-customers', array( $this->admin_pages, 'customers' ) );
 		add_submenu_page( null, 'پروفایل مشتری', 'پروفایل مشتری', 'crpcrm_use_staff_portal', 'crpcrm-customer-profile', array( $this->admin_pages, 'customer_profile' ) );

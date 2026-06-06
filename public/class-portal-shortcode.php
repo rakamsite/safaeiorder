@@ -42,7 +42,7 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function register_query_vars( $vars ) {
-		foreach ( array( 'crpcrm_page', 'request_code', 'created', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $var ) {
+		foreach ( array( 'crpcrm_page', 'request_id', 'request_code', 'created', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $var ) {
 			if ( ! in_array( $var, $vars, true ) ) {
 				$vars[] = $var;
 			}
@@ -364,6 +364,7 @@ class CRPCRM_Portal_Shortcode {
 			$this->get_portal_url(
 				'request_detail',
 				array(
+					'request_id'             => $request_id,
 					'request_code'           => $request_code,
 					'created'                => 1,
 					'crpcrm_portal_notice'   => 'success',
@@ -440,10 +441,7 @@ class CRPCRM_Portal_Shortcode {
 			return false;
 		}
 
-		return (bool) array_intersect(
-			array( 'sales_agent', 'sales_manager', 'internal_employee', 'crm_admin' ),
-			(array) $user->roles
-		);
+		return user_can( $user, 'crpcrm_use_staff_portal' );
 	}
 
 	private function get_staff_dashboard_url() {
@@ -537,7 +535,7 @@ class CRPCRM_Portal_Shortcode {
 			}
 		}
 
-		return remove_query_arg( array( 'crpcrm_page', 'request_code', 'created' ), $this->clean_portal_url() );
+		return remove_query_arg( array( 'crpcrm_page', 'request_id', 'request_code', 'created' ), $this->clean_portal_url() );
 	}
 
 	private function sanitize_query_args( $args ) {
@@ -580,11 +578,15 @@ class CRPCRM_Portal_Shortcode {
 		}
 
 		if ( 'request_detail' === $page ) {
+			$request_id   = absint( $this->get_query_value( 'request_id' ) );
 			$request_code = $this->get_query_value( 'request_code' );
-			$request      = $request_code ? $this->request_repository->get_by_code( $request_code ) : null;
+			$request      = $request_id ? $this->request_repository->get( $request_id ) : null;
+			if ( ! $request && $request_code ) {
+				$request = $this->request_repository->get_by_code( $request_code );
+			}
 
 			if ( ! $request || ( absint( $request['customer_id'] ) !== $customer_id && absint( $request['user_id'] ) !== get_current_user_id() ) ) {
-				CRPCRM_Logger::warning( 'customer_request_access_denied', 'request', array( 'user_id' => get_current_user_id(), 'customer_id' => $customer_id, 'request_code' => $request_code ) );
+				CRPCRM_Logger::warning( 'customer_request_access_denied', 'request', array( 'user_id' => get_current_user_id(), 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code ) );
 				$data['access_denied'] = true;
 				return $data;
 			}
@@ -761,7 +763,7 @@ class CRPCRM_Portal_Shortcode {
 			return true;
 		}
 
-		foreach ( array( 'crpcrm_page', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $key ) {
+		foreach ( array( 'crpcrm_page', 'request_id', 'request_code', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $key ) {
 			if ( '' !== $this->get_query_value( $key ) ) {
 				return true;
 			}

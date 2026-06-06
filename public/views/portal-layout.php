@@ -45,7 +45,7 @@ $created_notice  = '1' === $created_value;
 	</aside>
 
 	<main class="crpcrm-portal-content">
-		<?php if ( ! empty( $notice ) && ! ( $created_notice && 'success' === $notice['type'] ) ) : ?>
+		<?php if ( ! empty( $notice ) && ! ( $created_notice && $request_detail && 'success' === $notice['type'] ) ) : ?>
 			<div class="crpcrm-notice crpcrm-notice-<?php echo esc_attr( $notice['type'] ); ?>"><?php echo esc_html( $notice['message'] ); ?></div>
 		<?php endif; ?>
 
@@ -92,7 +92,7 @@ $created_notice  = '1' === $created_value;
 										<td><span class="crpcrm-status-badge"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request['status'] ) ); ?></span></td>
 										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td>
 										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request['last_activity_at'] ) ? $request['last_activity_at'] : $request['updated_at'] ) ); ?></td>
-										<td><a class="crpcrm-table-action" href="<?php echo esc_url( add_query_arg( array( 'crpcrm_page' => 'request_detail', 'request_code' => $request['request_code'] ), $portal_urls['dashboard'] ) ); ?>"><?php echo esc_html( 'مشاهده جزئیات' ); ?></a></td>
+										<td><a class="crpcrm-table-action" href="<?php echo esc_url( add_query_arg( array( 'crpcrm_page' => 'request_detail', 'request_id' => absint( $request['id'] ), 'request_code' => $request['request_code'] ), $portal_urls['dashboard'] ) ); ?>"><?php echo esc_html( 'مشاهده جزئیات' ); ?></a></td>
 									</tr>
 								<?php endforeach; ?>
 							</tbody>
@@ -223,7 +223,7 @@ $created_notice  = '1' === $created_value;
 				<?php else : ?>
 					<div class="crpcrm-latest-requests-list">
 						<?php foreach ( $latest_requests as $request ) : ?>
-							<a class="crpcrm-latest-request-item" href="<?php echo esc_url( add_query_arg( array( 'crpcrm_page' => 'request_detail', 'request_code' => $request['request_code'] ), $portal_urls['dashboard'] ) ); ?>">
+							<a class="crpcrm-latest-request-item" href="<?php echo esc_url( add_query_arg( array( 'crpcrm_page' => 'request_detail', 'request_id' => absint( $request['id'] ), 'request_code' => $request['request_code'] ), $portal_urls['dashboard'] ) ); ?>">
 								<strong><?php echo esc_html( $request['request_code'] ); ?></strong>
 								<span><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'] ) ); ?></span>
 								<span class="crpcrm-status-badge"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request['status'] ) ); ?></span>
