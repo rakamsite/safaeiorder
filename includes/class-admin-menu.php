@@ -22,7 +22,7 @@ class CRPCRM_Admin_Menu {
 	}
 
 	public function register_menu() {
-		$settings_capability = current_user_can( 'crpcrm_manage_settings' ) ? 'crpcrm_manage_settings' : ( current_user_can( 'crpcrm_manage_plugin' ) ? 'crpcrm_manage_plugin' : ( current_user_can( 'crpcrm_view_reports' ) ? 'crpcrm_view_reports' : 'manage_options' ) );
+		$requests_capability = current_user_can( 'crpcrm_view_all_requests' ) ? 'crpcrm_view_all_requests' : 'crpcrm_view_assigned_requests';
 
 		add_menu_page(
 			'پرتال و CRM',
@@ -35,14 +35,17 @@ class CRPCRM_Admin_Menu {
 		);
 
 		add_submenu_page( 'crpcrm-dashboard', 'داشبورد', 'داشبورد', 'crpcrm_use_staff_portal', 'crpcrm-dashboard', array( $this->admin_pages, 'dashboard' ) );
-		add_submenu_page( 'crpcrm-dashboard', 'درخواست‌ها', 'درخواست‌ها', 'crpcrm_use_staff_portal', 'crpcrm-requests', array( $this->admin_pages, 'requests' ) );
+		add_submenu_page( 'crpcrm-dashboard', 'درخواست‌ها', 'درخواست‌ها', $requests_capability, 'crpcrm-requests', array( $this->admin_pages, 'requests' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'مشتریان', 'مشتریان', 'crpcrm_view_all_requests', 'crpcrm-customers', array( $this->admin_pages, 'customers' ) );
 		add_submenu_page( null, 'پروفایل مشتری', 'پروفایل مشتری', 'crpcrm_use_staff_portal', 'crpcrm-customer-profile', array( $this->admin_pages, 'customer_profile' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'گزارش‌ها', 'گزارش‌ها', 'crpcrm_view_reports', 'crpcrm-reports', array( $this->admin_pages, 'reports' ) );
 		if ( 'yes' === CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) || current_user_can( 'manage_options' ) ) {
 			add_submenu_page( 'crpcrm-dashboard', 'کارکنان', 'کارکنان', 'crpcrm_use_staff_portal', 'crpcrm-staff', array( $this->admin_pages, 'staff' ) );
 		}
-		add_submenu_page( 'crpcrm-dashboard', 'تنظیمات', 'تنظیمات', $settings_capability, 'crpcrm-settings', array( $this->admin_pages, 'settings' ) );
+		if ( CRPCRM_Settings::current_user_can_manage() ) {
+			$settings_capability = current_user_can( 'crpcrm_manage_settings' ) ? 'crpcrm_manage_settings' : ( current_user_can( 'crpcrm_manage_plugin' ) ? 'crpcrm_manage_plugin' : 'manage_options' );
+			add_submenu_page( 'crpcrm-dashboard', 'تنظیمات', 'تنظیمات', $settings_capability, 'crpcrm-settings', array( $this->admin_pages, 'settings' ) );
+		}
 	}
 
 	public function enqueue_assets( $hook_suffix ) {

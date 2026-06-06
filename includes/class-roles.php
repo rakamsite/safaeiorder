@@ -10,6 +10,101 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Roles {
+
+	public static function register_hooks() {
+		add_filter( 'user_has_cap', array( __CLASS__, 'ensure_staff_admin_capabilities' ), 1, 4 );
+		add_action( 'admin_init', array( __CLASS__, 'restrict_staff_admin_pages' ), 1 );
+		add_action( 'admin_menu', array( __CLASS__, 'restrict_staff_admin_menu' ), 999 );
+		add_filter( 'show_admin_bar', array( __CLASS__, 'hide_staff_admin_bar' ) );
+	}
+
+	public static function is_staff_user( $user = null ) {
+		if ( null === $user ) {
+			$user = wp_get_current_user();
+		} elseif ( is_numeric( $user ) ) {
+			$user = get_userdata( absint( $user ) );
+		}
+
+		if ( ! $user instanceof WP_User ) {
+			return false;
+		}
+
+		return (bool) array_intersect( array( 'sales_agent', 'sales_manager', 'internal_employee', 'crm_admin' ), (array) $user->roles );
+	}
+
+	public static function ensure_staff_admin_capabilities( $allcaps, $caps, $args, $user ) {
+		if ( ! self::is_staff_user( $user ) ) {
+			return $allcaps;
+		}
+
+		$role_configs = self::get_roles();
+		foreach ( (array) $user->roles as $role_key ) {
+			if ( empty( $role_configs[ $role_key ]['caps'] ) ) {
+				continue;
+			}
+			foreach ( $role_configs[ $role_key ]['caps'] as $capability ) {
+				$allcaps[ $capability ] = true;
+			}
+		}
+
+		// Some sites redirect every user without this core capability away from wp-admin.
+		// It is granted only during normal admin requests; non-CRM admin screens are blocked below.
+		if ( is_admin() && ! wp_doing_ajax() ) {
+			$allcaps['edit_posts'] = true;
+		}
+
+		return $allcaps;
+	}
+
+	public static function restrict_staff_admin_pages() {
+		if ( ! self::is_staff_user() || wp_doing_ajax() ) {
+			return;
+		}
+
+		global $pagenow;
+		if ( 'admin-post.php' === $pagenow || self::is_crm_admin_page() ) {
+			return;
+		}
+
+		wp_safe_redirect( admin_url( 'admin.php?page=crpcrm-dashboard' ) );
+		exit;
+	}
+
+	public static function restrict_staff_admin_menu() {
+		if ( ! self::is_staff_user() ) {
+			return;
+		}
+
+		global $menu, $submenu;
+		$menu = array_values(
+			array_filter(
+				(array) $menu,
+				function( $item ) {
+					return isset( $item[2] ) && 'crpcrm-dashboard' === $item[2];
+				}
+			)
+		);
+
+		foreach ( array_keys( (array) $submenu ) as $parent_slug ) {
+			if ( 'crpcrm-dashboard' !== $parent_slug ) {
+				unset( $submenu[ $parent_slug ] );
+			}
+		}
+	}
+
+	public static function hide_staff_admin_bar( $show ) {
+		return self::is_staff_user() ? false : $show;
+	}
+
+	private static function is_crm_admin_page() {
+		global $pagenow;
+		if ( 'admin.php' !== $pagenow ) {
+			return false;
+		}
+
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		return 0 === strpos( $page, 'crpcrm-' );
+	}
 	public static function get_capabilities() {
 		return array(
 			'crpcrm_use_customer_portal',
