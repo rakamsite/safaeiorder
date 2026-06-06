@@ -3,7 +3,7 @@
  * Plugin Name: پرتال درخواست و CRM مشتریان
  * Plugin URI: https://example.com/
  * Description: اسکلت پایه پرتال مشتریان، ثبت درخواست، CRM فروش و پنل داخلی کارکنان.
- * Version: 0.1.0
+ * Version: 0.1.2
  * Author: Safaei
  * Text Domain: customer-request-portal-crm
  * Domain Path: /languages
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CRPCRM_VERSION', '0.1.0' );
+define( 'CRPCRM_VERSION', '0.1.2' );
 define( 'CRPCRM_DB_VERSION', '0.3.1' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
