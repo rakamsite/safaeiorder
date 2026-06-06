@@ -231,6 +231,8 @@ class CRPCRM_Admin_Pages {
 			$total = count( $items );
 		}
 
+		$detail_item = $this->get_staff_detail_item( $tab, isset( $_GET['staff_item_id'] ) ? absint( $_GET['staff_item_id'] ) : 0, $user_id, $can_manage );
+
 		$this->render(
 			'staff.php',
 			array(
@@ -251,6 +253,7 @@ class CRPCRM_Admin_Pages {
 				'current_sales_stats' => $this->sales_daily_stats_service->is_sales_user( $user_id ) ? $this->sales_daily_stats_service->get_stats_for_user( $user_id ) : array(),
 				'is_sales_user'    => $this->sales_daily_stats_service->is_sales_user( $user_id ),
 				'dashboard_counts' => $this->get_staff_dashboard_counts( $user_id, $can_manage, $staff_users ),
+				'detail_item'      => $detail_item,
 			)
 		);
 	}
@@ -406,7 +409,7 @@ class CRPCRM_Admin_Pages {
 		$tab = 'dashboard';
 		$notice = 'saved';
 
-		if ( 'save_daily_report' === $action ) {
+		if ( 'save_daily_report' === $action && ! $can_manage ) {
 			$tab = 'daily_reports';
 			$is_sales_user = $this->sales_daily_stats_service->is_sales_user( $user_id );
 			$sales_comment = sanitize_textarea_field( wp_unslash( $_POST['sales_comment'] ?? '' ) );
@@ -449,7 +452,7 @@ class CRPCRM_Admin_Pages {
 			elseif ( 'closed' === $manager_action ) { $this->staff_repository->close_report( $report_id, $user_id ); }
 			elseif ( 'responded' === $manager_action ) { $this->staff_repository->respond_to_report( $report_id, $user_id, wp_unslash( $_POST['manager_response'] ?? '' ) ); }
 			CRPCRM_Logger::info( 'staff_daily_report_responded', 'staff_daily_report_responded', array( 'user_id' => $user_id, 'report_id' => $report_id, 'manager_action' => $manager_action ) );
-		} elseif ( 'save_staff_request' === $action ) {
+		} elseif ( 'save_staff_request' === $action && ! $can_manage ) {
 			$tab = 'requests';
 			$id = absint( $_POST['request_id'] ?? 0 );
 			$row = $id ? $this->staff_repository->get_staff_request( $id ) : null;
@@ -461,7 +464,7 @@ class CRPCRM_Admin_Pages {
 			$tab = 'requests'; $id = absint( $_POST['request_id'] ?? 0 );
 			$this->staff_repository->update_staff_request_status( $id, sanitize_key( wp_unslash( $_POST['status'] ?? 'seen' ) ), wp_unslash( $_POST['manager_response'] ?? '' ) );
 			CRPCRM_Logger::info( 'staff_request_status_changed', 'staff_request_status_changed', array( 'user_id' => $user_id, 'request_id' => $id ) );
-		} elseif ( 'save_issue' === $action ) {
+		} elseif ( 'save_issue' === $action && ! $can_manage ) {
 			$tab = 'issues'; $id = absint( $_POST['issue_id'] ?? 0 ); $row = $id ? $this->staff_repository->get_issue( $id ) : null;
 			if ( $row && ( absint( $row['user_id'] ) !== $user_id || 'new' !== $row['status'] ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			$data = array( 'user_id' => $user_id, 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'related_department' => sanitize_text_field( wp_unslash( $_POST['related_department'] ?? '' ) ), 'severity' => sanitize_key( wp_unslash( $_POST['severity'] ?? 'medium' ) ), 'description' => sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) ), 'suggested_solution' => sanitize_textarea_field( wp_unslash( $_POST['suggested_solution'] ?? '' ) ), 'needs_manager_decision' => isset( $_POST['needs_manager_decision'] ) ? 1 : 0 );
@@ -485,14 +488,33 @@ class CRPCRM_Admin_Pages {
 			if ( ! $can_manage && 'cancelled' === $status ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			$this->staff_repository->update_task_status( $id, $status, $user_id, wp_unslash( $_POST['note'] ?? '' ) );
 			CRPCRM_Logger::info( 'staff_task_status_changed', 'staff_task_status_changed', array( 'user_id' => $user_id, 'task_id' => $id, 'status' => $status ) );
-		} elseif ( 'create_announcement' === $action && $can_manage ) {
+		} elseif ( 'save_announcement' === $action && $can_manage ) {
 			$tab = 'announcements';
 			$audience_type = sanitize_key( wp_unslash( $_POST['audience_type'] ?? 'all' ) );
 			$audience_data = array();
-			if ( 'selected_roles' === $audience_type ) { $audience_data = array_intersect( array_map( 'sanitize_key', (array) ( $_POST['audience_roles'] ?? array() ) ), array( 'sales_agent', 'sales_manager', 'internal_employee', 'crm_admin', 'administrator' ) ); }
-			elseif ( 'selected_users' === $audience_type ) { foreach ( array_map( 'absint', (array) ( $_POST['audience_users'] ?? array() ) ) as $candidate_user_id ) { if ( $this->is_staff_user_id( $candidate_user_id ) ) { $audience_data[] = $candidate_user_id; } } $audience_data = array_values( array_unique( $audience_data ) ); }
-			$id = $this->staff_repository->create_announcement( array( 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'body' => sanitize_textarea_field( wp_unslash( $_POST['body'] ?? '' ) ), 'audience_type' => $audience_type, 'audience_data' => wp_json_encode( $audience_data ), 'created_by' => $user_id ) );
-			CRPCRM_Logger::info( 'staff_announcement_created', 'staff_announcement_created', array( 'user_id' => $user_id, 'announcement_id' => $id ) );
+			if ( 'selected_roles' === $audience_type ) {
+				$audience_data = array_intersect( array_map( 'sanitize_key', (array) ( $_POST['audience_roles'] ?? array() ) ), array( 'sales_agent', 'sales_manager', 'internal_employee', 'crm_admin', 'administrator' ) );
+			} elseif ( 'selected_users' === $audience_type ) {
+				foreach ( array_map( 'absint', (array) ( $_POST['audience_users'] ?? array() ) ) as $candidate_user_id ) {
+					if ( $this->is_staff_user_id( $candidate_user_id ) ) { $audience_data[] = $candidate_user_id; }
+				}
+				$audience_data = array_values( array_unique( $audience_data ) );
+			}
+			$data = array( 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'body' => sanitize_textarea_field( wp_unslash( $_POST['body'] ?? '' ) ), 'audience_type' => $audience_type, 'audience_data' => wp_json_encode( $audience_data ) );
+			$id = absint( $_POST['announcement_id'] ?? 0 );
+			if ( $id ) {
+				$this->staff_repository->update_announcement( $id, $data );
+				CRPCRM_Logger::info( 'staff_announcement_updated', 'staff_announcement_updated', array( 'user_id' => $user_id, 'announcement_id' => $id ) );
+			} else {
+				$data['created_by'] = $user_id;
+				$id = $this->staff_repository->create_announcement( $data );
+				CRPCRM_Logger::info( 'staff_announcement_created', 'staff_announcement_created', array( 'user_id' => $user_id, 'announcement_id' => $id ) );
+			}
+		} elseif ( 'delete_announcement' === $action && $can_manage ) {
+			$tab = 'announcements';
+			$id = absint( $_POST['announcement_id'] ?? 0 );
+			$this->staff_repository->delete_announcement( $id );
+			CRPCRM_Logger::info( 'staff_announcement_deleted', 'staff_announcement_deleted', array( 'user_id' => $user_id, 'announcement_id' => $id ) );
 		} elseif ( 'mark_announcement_read' === $action ) {
 			$tab = 'announcements'; $id = absint( $_POST['announcement_id'] ?? 0 ); $announcement = $this->staff_repository->get_announcement( $id );
 			if ( ! $announcement || ! in_array( $user_id, $this->staff_repository->get_audience_user_ids( $announcement ), true ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
@@ -502,6 +524,18 @@ class CRPCRM_Admin_Pages {
 			$notice = 'access_denied';
 		}
 		$this->staff_redirect( $tab, $notice );
+	}
+
+	private function get_staff_detail_item( $tab, $item_id, $user_id, $can_manage ) {
+		if ( ! $item_id ) { return null; }
+		$getters = array( 'daily_reports' => 'get_daily_report_with_snapshot', 'requests' => 'get_staff_request', 'issues' => 'get_issue', 'tasks' => 'get_task', 'announcements' => 'get_announcement' );
+		if ( ! isset( $getters[ $tab ] ) ) { return null; }
+		$item = $this->staff_repository->{$getters[ $tab ]}( $item_id );
+		if ( ! $item || $can_manage ) { return $item; }
+		if ( in_array( $tab, array( 'daily_reports', 'requests', 'issues' ), true ) && absint( $item['user_id'] ) === $user_id ) { return $item; }
+		if ( 'tasks' === $tab && absint( $item['assigned_to'] ) === $user_id ) { return $item; }
+		if ( 'announcements' === $tab && in_array( $user_id, $this->staff_repository->get_audience_user_ids( $item ), true ) ) { return $item; }
+		return null;
 	}
 
 	private function is_staff_user_id( $user_id ) {
