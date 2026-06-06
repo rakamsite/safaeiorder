@@ -45,16 +45,7 @@ class CRPCRM_Helpers {
 
 		$value    = self::convert_persian_digits( (string) $value );
 		$timezone = wp_timezone();
-		if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
-			$date = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $value . ' 00:00:00', $timezone );
-		} else {
-			$timestamp = strtotime( $value );
-			if ( ! $timestamp ) {
-				return sanitize_text_field( (string) $value );
-			}
-			$date = new DateTimeImmutable( '@' . $timestamp );
-			$date = $date->setTimezone( $timezone );
-		}
+		$date     = self::parse_local_datetime( $value, $timezone );
 		if ( ! $date ) {
 			return sanitize_text_field( (string) $value );
 		}
@@ -70,6 +61,35 @@ class CRPCRM_Helpers {
 
 	public static function format_jalali_datetime( $value ) {
 		return self::format_jalali_date( $value, true );
+	}
+
+
+	/**
+	 * Parse database DATETIME values as site-local time.
+	 *
+	 * CRPCRM stores current_time( 'mysql' ), which WordPress documents as local
+	 * site time. Parsing that value with strtotime() would use PHP's server
+	 * timezone and then incorrectly apply the site offset a second time.
+	 *
+	 * @param string       $value    Date or datetime value.
+	 * @param DateTimeZone $timezone WordPress site timezone.
+	 * @return DateTimeImmutable|false
+	 */
+	private static function parse_local_datetime( $value, DateTimeZone $timezone ) {
+		$formats = array( 'Y-m-d H:i:s', 'Y-m-d' );
+		foreach ( $formats as $format ) {
+			$date   = DateTimeImmutable::createFromFormat( '!' . $format, $value, $timezone );
+			$errors = DateTimeImmutable::getLastErrors();
+			if ( $date && ( false === $errors || ( 0 === $errors['warning_count'] && 0 === $errors['error_count'] ) ) ) {
+				return $date;
+			}
+		}
+
+		try {
+			return ( new DateTimeImmutable( $value, $timezone ) )->setTimezone( $timezone );
+		} catch ( Exception $exception ) {
+			return false;
+		}
 	}
 
 
