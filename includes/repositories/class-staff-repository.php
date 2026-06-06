@@ -213,6 +213,19 @@ class CRPCRM_Staff_Repository {
 		return $this->get_row( 'announcements', $id );
 	}
 
+	public function update_announcement( $id, $data ) {
+		global $wpdb;
+		$data['updated_at'] = CRPCRM_Helpers::current_datetime();
+		return false !== $wpdb->update( $this->tables['announcements'], $data, array( 'id' => absint( $id ) ) );
+	}
+
+	public function delete_announcement( $id ) {
+		global $wpdb;
+		$announcement_id = absint( $id );
+		$wpdb->delete( $this->tables['announcement_reads'], array( 'announcement_id' => $announcement_id ), array( '%d' ) );
+		return false !== $wpdb->delete( $this->tables['announcements'], array( 'id' => $announcement_id ), array( '%d' ) );
+	}
+
 	public function mark_announcement_read( $announcement_id, $user_id ) {
 		global $wpdb;
 		return false !== $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$this->tables['announcement_reads']} (announcement_id,user_id,read_at) VALUES (%d,%d,%s)", absint( $announcement_id ), absint( $user_id ), CRPCRM_Helpers::current_datetime() ) );
