@@ -45,7 +45,7 @@ $created_notice  = '1' === $created_value;
 	</aside>
 
 	<main class="crpcrm-portal-content">
-		<?php if ( ! empty( $notice ) && ! ( $created_notice && 'success' === $notice['type'] ) ) : ?>
+		<?php if ( ! empty( $notice ) && ! ( $created_notice && $request_detail && 'success' === $notice['type'] ) ) : ?>
 			<div class="crpcrm-notice crpcrm-notice-<?php echo esc_attr( $notice['type'] ); ?>"><?php echo esc_html( $notice['message'] ); ?></div>
 		<?php endif; ?>
 
@@ -113,26 +113,17 @@ $created_notice  = '1' === $created_value;
 		include CRPCRM_PLUGIN_DIR . 'public/views/request-form-panel.php';
 		?>
 	<?php elseif ( 'request_detail' === $current_page ) : ?>
-			<section class="crpcrm-portal-card crpcrm-request-detail-card<?php echo $created_notice ? ' crpcrm-request-detail-card-created' : ''; ?>">
-				<?php if ( $created_notice ) : ?>
-					<div class="crpcrm-request-success" role="status">
-						<span class="crpcrm-request-success-icon" aria-hidden="true">
-							<svg viewBox="0 0 24 24" focusable="false">
-								<path d="m6.5 12.5 3.3 3.3 7.7-8" />
-							</svg>
-						</span>
-						<span class="crpcrm-request-success-content">
-							<strong><?php echo esc_html( CRPCRM_Settings::get( 'request_success_message', 'درخواست شما با موفقیت ثبت شد. کارشناسان ما در اولین فرصت آن را بررسی می‌کنند.' ) ); ?></strong>
-							<?php if ( $request_detail ) : ?>
-								<span><?php echo esc_html( 'کد پیگیری شما: ' . $request_detail['request_code'] ); ?></span>
-							<?php endif; ?>
-						</span>
-					</div>
-				<?php endif; ?>
+			<section class="crpcrm-portal-card crpcrm-request-detail-card">
 				<?php if ( ! empty( $portal_data['access_denied'] ) ) : ?>
 					<div class="crpcrm-notice crpcrm-notice-error"><?php echo esc_html( 'شما اجازه مشاهده این درخواست را ندارید.' ); ?></div>
 				<?php elseif ( $request_detail ) : ?>
 					<?php $request_data = CRPCRM_Helpers::maybe_json_decode( $request_detail['request_data'], true ); ?>
+					<?php if ( $created_notice ) : ?>
+						<div class="crpcrm-notice crpcrm-notice-success">
+							<?php echo esc_html( CRPCRM_Settings::get( 'request_success_message', 'درخواست شما با موفقیت ثبت شد. کارشناسان ما در اولین فرصت آن را بررسی می‌کنند.' ) ); ?><br />
+							<?php echo esc_html( 'کد پیگیری شما: ' . $request_detail['request_code'] ); ?>
+						</div>
+					<?php endif; ?>
 					<h2><?php echo esc_html( 'جزئیات درخواست' ); ?></h2>
 					<div class="crpcrm-detail-grid">
 						<div><span><?php echo esc_html( 'کد پیگیری' ); ?></span><strong><?php echo esc_html( $request_detail['request_code'] ); ?></strong></div>
