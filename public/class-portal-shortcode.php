@@ -398,6 +398,7 @@ class CRPCRM_Portal_Shortcode {
 			'portal-layout.php',
 			array(
 				'notice'          => $notice,
+				'portal_data'     => $portal_data,
 				'current_page'    => $page,
 				'customer'        => $customer,
 				'menu_items'      => $this->get_required_menu_items( $page ),
@@ -441,7 +442,9 @@ class CRPCRM_Portal_Shortcode {
 			return false;
 		}
 
-		return user_can( $user, 'crpcrm_use_staff_portal' );
+		$staff_roles = array( 'sales_agent', 'sales_manager', 'internal_employee', 'crm_admin' );
+
+		return (bool) array_intersect( $staff_roles, (array) $user->roles );
 	}
 
 	private function get_staff_dashboard_url() {
