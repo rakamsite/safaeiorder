@@ -110,6 +110,7 @@ class CRPCRM_Roles {
 			'crpcrm_use_customer_portal',
 			'crpcrm_view_assigned_requests',
 			'crpcrm_claim_requests',
+			'crpcrm_create_requests',
 			'crpcrm_update_own_requests',
 			'crpcrm_use_staff_portal',
 			'crpcrm_view_all_requests',
@@ -130,11 +131,11 @@ class CRPCRM_Roles {
 			),
 			'sales_agent'       => array(
 				'label' => 'کارشناس فروش',
-				'caps'  => array( 'read', 'crpcrm_view_assigned_requests', 'crpcrm_claim_requests', 'crpcrm_update_own_requests', 'crpcrm_use_staff_portal' ),
+				'caps'  => array( 'read', 'crpcrm_view_assigned_requests', 'crpcrm_claim_requests', 'crpcrm_create_requests', 'crpcrm_update_own_requests', 'crpcrm_use_staff_portal' ),
 			),
 			'sales_manager'     => array(
 				'label' => 'مدیر فروش',
-				'caps'  => array( 'read', 'crpcrm_view_all_requests', 'crpcrm_claim_requests', 'crpcrm_manage_requests', 'crpcrm_assign_requests', 'crpcrm_view_reports', 'crpcrm_use_staff_portal', 'crpcrm_manage_staff_portal' ),
+				'caps'  => array( 'read', 'crpcrm_view_all_requests', 'crpcrm_claim_requests', 'crpcrm_create_requests', 'crpcrm_manage_requests', 'crpcrm_assign_requests', 'crpcrm_view_reports', 'crpcrm_use_staff_portal', 'crpcrm_manage_staff_portal' ),
 			),
 			'internal_employee' => array(
 				'label' => 'کارمند داخلی',
@@ -142,7 +143,7 @@ class CRPCRM_Roles {
 			),
 			'crm_admin'         => array(
 				'label' => 'مدیر CRM',
-				'caps'  => array( 'read', 'crpcrm_manage_plugin', 'crpcrm_manage_settings', 'crpcrm_view_all_requests', 'crpcrm_claim_requests', 'crpcrm_manage_requests', 'crpcrm_assign_requests', 'crpcrm_view_reports', 'crpcrm_use_staff_portal', 'crpcrm_manage_staff_portal' ),
+				'caps'  => array( 'read', 'crpcrm_manage_plugin', 'crpcrm_manage_settings', 'crpcrm_view_all_requests', 'crpcrm_claim_requests', 'crpcrm_create_requests', 'crpcrm_manage_requests', 'crpcrm_assign_requests', 'crpcrm_view_reports', 'crpcrm_use_staff_portal', 'crpcrm_manage_staff_portal' ),
 			),
 		);
 	}

@@ -268,6 +268,18 @@
 		});
 	}
 
+	function updateManualCustomerFields(form) {
+		var selected = form.querySelector('input[name="customer_mode"]:checked');
+		var isNew = selected && 'new' === selected.value;
+		var existing = form.querySelector('.crpcrm-existing-customer-fields');
+		var create = form.querySelector('.crpcrm-new-customer-fields');
+		if (existing) { existing.style.display = isNew ? 'none' : ''; }
+		if (create) { create.style.display = isNew ? '' : 'none'; }
+		form.querySelectorAll('[name="new_customer_name"], [name="new_customer_phone"], [name="new_customer_province"], [name="new_customer_city"]').forEach(function (field) { field.required = isNew; });
+		var customer = form.querySelector('[name="customer_id"]');
+		if (customer) { customer.required = !isNew; }
+	}
+
 	function updateSalesActionFields(form) {
 		var select = form.querySelector('.crpcrm-action-type-select');
 		var action = select ? select.value : '';
@@ -291,6 +303,12 @@
 
 	document.addEventListener('DOMContentLoaded', function () {
 		initJalaliDatePickers();
+		document.querySelectorAll('.crpcrm-manual-request-form').forEach(function (form) {
+			updateManualCustomerFields(form);
+			form.querySelectorAll('input[name="customer_mode"]').forEach(function (radio) {
+				radio.addEventListener('change', function () { updateManualCustomerFields(form); });
+			});
+		});
 		document.querySelectorAll('.crpcrm-sales-action-form').forEach(function (form) {
 			updateSalesActionFields(form);
 			var select = form.querySelector('.crpcrm-action-type-select');

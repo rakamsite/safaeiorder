@@ -3,7 +3,7 @@
  * Plugin Name: پرتال درخواست و CRM مشتریان
  * Plugin URI: https://example.com/
  * Description: اسکلت پایه پرتال مشتریان، ثبت درخواست، CRM فروش و پنل داخلی کارکنان.
- * Version: 0.1.4
+ * Version: 0.1.5
  * Author: Safaei
  * Text Domain: customer-request-portal-crm
  * Domain Path: /languages
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CRPCRM_VERSION', '0.1.4' );
+define( 'CRPCRM_VERSION', '0.1.5' );
 define( 'CRPCRM_DB_VERSION', '0.3.1' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
@@ -33,6 +33,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-logger.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-activity.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-request-access-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-request-workflow-service.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-lead-follow-up-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-settings.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-csv-exporter.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-health-check-service.php';

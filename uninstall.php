@@ -10,6 +10,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 wp_clear_scheduled_hook( 'crpcrm_daily_log_cleanup' );
+wp_clear_scheduled_hook( 'crpcrm_create_lead_follow_ups' );
 
 $settings = get_option( 'crpcrm_settings', array() );
 

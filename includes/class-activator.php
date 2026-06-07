@@ -16,6 +16,7 @@ class CRPCRM_Activator {
 		CRPCRM_Settings::add_default_options();
 		if ( class_exists( 'CRPCRM_Admin_Tools' ) ) {
 			CRPCRM_Admin_Tools::schedule_cron();
+			CRPCRM_Lead_Follow_Up_Service::schedule_cron();
 		}
 	}
 }

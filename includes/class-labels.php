@@ -23,6 +23,7 @@ class CRPCRM_Labels {
 			'car_registration' => 'ثبت‌نام خودرو',
 			'parts_request'    => 'درخواست قطعات',
 			'repair_booking'   => 'درخواست تعمیرات',
+			'lead_follow_up'   => 'پیگیری سرنخ',
 		) );
 	}
 
@@ -77,6 +78,8 @@ class CRPCRM_Labels {
 	public static function get_activity_label( $activity_type ) {
 		return self::from_map( $activity_type, array(
 			'request_created'          => 'ثبت درخواست',
+			'manual_request_created'   => 'ثبت دستی درخواست',
+			'lead_follow_up_created'   => 'ایجاد پیگیری سرنخ',
 			'request_claimed'          => 'شروع پیگیری',
 			'request_owner_changed'    => 'تغییر مسئول',
 			'request_owner_released'   => 'آزادسازی مسئول',

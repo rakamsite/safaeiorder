@@ -11,6 +11,9 @@ $notice_messages = array(
 	'access_denied'        => array( 'error', 'شما اجازه مشاهده این درخواست را ندارید.' ),
 	'owner_change_failed'  => array( 'error', 'تغییر مسئول درخواست انجام نشد.' ),
 	'owner_release_failed' => array( 'error', 'آزادسازی درخواست انجام نشد.' ),
+	'request_deleted'       => array( 'success', 'درخواست و تمام تاریخچه فعالیت آن برای همیشه حذف شد.' ),
+	'request_delete_denied' => array( 'error', 'فقط مدیرکل سایت اجازه حذف کامل درخواست را دارد.' ),
+	'request_delete_failed' => array( 'error', 'حذف کامل درخواست انجام نشد.' ),
 	'invalid_action_type'           => array( 'error', 'نوع اقدام معتبر نیست.' ),
 	'action_note_required'          => array( 'error', 'توضیحات الزامی است.' ),
 	'follow_up_required'            => array( 'error', 'تاریخ پیگیری بعدی الزامی است.' ),
@@ -21,6 +24,13 @@ $notice_messages = array(
 	'request_closed_action_denied'  => array( 'error', 'این درخواست بسته شده و امکان ثبت اقدام جدید وجود ندارد.' ),
 	'sales_action_update_failed'    => array( 'error', 'ثبت اقدام انجام نشد.' ),
 	'request_not_found'             => array( 'error', 'درخواست موردنظر یافت نشد.' ),
+	'manual_request_created'       => array( 'success', 'درخواست دستی با موفقیت ثبت شد.' ),
+	'manual_customer_required'     => array( 'error', 'یک مشتری ثبت‌شده را انتخاب کنید.' ),
+	'manual_customer_invalid'      => array( 'error', 'نام و شماره موبایل معتبر مشتری جدید الزامی است.' ),
+	'manual_customer_exists'       => array( 'error', 'این شماره موبایل قبلاً ثبت شده است؛ مشتری موجود را جستجو کنید.' ),
+	'manual_customer_failed'       => array( 'error', 'ساخت مشتری جدید انجام نشد.' ),
+	'manual_request_type_invalid'  => array( 'error', 'نوع درخواست معتبر نیست.' ),
+	'manual_request_failed'        => array( 'error', 'ثبت درخواست دستی انجام نشد.' ),
 	'sales_action_call_answered'    => array( 'success', 'تماس پاسخ‌داده‌شده با موفقیت ثبت شد.' ),
 	'sales_action_call_no_answer'   => array( 'success', 'تماس ناموفق با موفقیت ثبت شد.' ),
 	'sales_action_whatsapp_sent'    => array( 'success', 'ارسال پیام واتساپ با موفقیت ثبت شد.' ),
@@ -96,6 +106,19 @@ function crpcrm_admin_release_form( $request_id ) {
 }
 }
 
+if ( ! function_exists( 'crpcrm_admin_delete_form' ) ) {
+function crpcrm_admin_delete_form( $request_id ) {
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-inline-form" onsubmit="return confirm('<?php echo esc_js( 'این درخواست و تمام تاریخچه فعالیت آن برای همیشه حذف می‌شود. آیا مطمئن هستید؟' ); ?>');">
+		<input type="hidden" name="action" value="crpcrm_delete_request">
+		<input type="hidden" name="request_id" value="<?php echo esc_attr( absint( $request_id ) ); ?>">
+		<?php wp_nonce_field( 'crpcrm_delete_request_' . absint( $request_id ) ); ?>
+		<button type="submit" class="button button-small crpcrm-danger-button"><?php echo esc_html( 'حذف کامل درخواست' ); ?></button>
+	</form>
+	<?php
+}
+}
+
 if ( ! function_exists( 'crpcrm_admin_sales_action_form' ) ) {
 function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_only = false ) {
 	$actions = $workflow->get_action_labels();
@@ -151,6 +174,8 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 	<?php endif; ?>
 
 	<?php if ( 'list' === $mode ) : ?>
+		<p><a class="button button-primary" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'action' => 'new' ) ) ); ?>"><?php echo esc_html( 'ایجاد درخواست جدید' ); ?></a></p>
+
 
 		<?php if ( ! empty( $summary ) ) : ?>
 			<div class="crpcrm-summary-cards">
@@ -177,6 +202,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 						<option value="car_registration" <?php selected( $filters['request_type'], 'car_registration' ); ?>><?php echo esc_html( 'ثبت‌نام خودرو' ); ?></option>
 						<option value="parts_request" <?php selected( $filters['request_type'], 'parts_request' ); ?>><?php echo esc_html( 'درخواست قطعات' ); ?></option>
 						<option value="repair_booking" <?php selected( $filters['request_type'], 'repair_booking' ); ?>><?php echo esc_html( 'درخواست تعمیرات' ); ?></option>
+						<option value="lead_follow_up" <?php selected( $filters['request_type'], 'lead_follow_up' ); ?>><?php echo esc_html( 'پیگیری سرنخ' ); ?></option>
 					</select>
 				</label>
 				<label><?php echo esc_html( 'وضعیت' ); ?>
@@ -259,6 +285,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 								<?php crpcrm_admin_owner_form( $item['id'], $item['owner_id'], $assignable_users ); ?>
 								<?php if ( ! empty( $item['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $item['id'] ); ?><?php endif; ?>
 							<?php endif; ?>
+							<?php if ( $can_delete ) : ?><?php crpcrm_admin_delete_form( $item['id'] ); ?><?php endif; ?>
 						</td>
 					</tr>
 				<?php endforeach; ?>
@@ -323,6 +350,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<?php crpcrm_admin_owner_form( $request['id'], $request['owner_id'], $assignable_users ); ?>
 				<?php if ( ! empty( $request['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $request['id'] ); ?><?php endif; ?>
 			<?php endif; ?>
+			<?php if ( $can_delete ) : ?><?php crpcrm_admin_delete_form( $request['id'] ); ?><?php endif; ?>
 		</div>
 
 		<div class="crpcrm-card crpcrm-sales-action-card"><h2><?php echo esc_html( 'ثبت اقدام' ); ?></h2>
