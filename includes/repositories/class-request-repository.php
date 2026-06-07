@@ -64,6 +64,29 @@ class CRPCRM_Request_Repository {
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE request_code = %s LIMIT 1", sanitize_text_field( $request_code ) ), ARRAY_A );
 	}
 
+	public function delete_permanently( $request_id ) {
+		global $wpdb;
+
+		$request_id       = absint( $request_id );
+		$activities_table = CRPCRM_DB::table( 'request_activities' );
+
+		if ( ! $request_id || ! $this->get( $request_id ) ) {
+			return new WP_Error( 'request_not_found', 'درخواست موردنظر یافت نشد.' );
+		}
+
+		$wpdb->query( 'START TRANSACTION' );
+		$activities_deleted = $wpdb->delete( $activities_table, array( 'request_id' => $request_id ), array( '%d' ) );
+		$request_deleted    = $wpdb->delete( $this->table, array( 'id' => $request_id ), array( '%d' ) );
+
+		if ( false === $activities_deleted || 1 !== $request_deleted ) {
+			$wpdb->query( 'ROLLBACK' );
+			return new WP_Error( 'request_delete_failed', 'حذف کامل درخواست انجام نشد.' );
+		}
+
+		$wpdb->query( 'COMMIT' );
+		return true;
+	}
+
 	public function get_by_customer( $customer_id, $args = array() ) {
 		return $this->list_for_customer( $customer_id, $args );
 	}
@@ -84,7 +107,7 @@ class CRPCRM_Request_Repository {
 		if ( $user_id ) {
 			return $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM {$this->table} WHERE customer_id = %d OR user_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+					"SELECT * FROM {$this->table} WHERE (customer_id = %d OR user_id = %d) AND request_type <> 'lead_follow_up' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
 					absint( $customer_id ),
 					$user_id,
 					$limit,
@@ -96,7 +119,7 @@ class CRPCRM_Request_Repository {
 
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table} WHERE customer_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+				"SELECT * FROM {$this->table} WHERE customer_id = %d AND request_type <> 'lead_follow_up' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
 				absint( $customer_id ),
 				$limit,
 				$offset
@@ -110,7 +133,7 @@ class CRPCRM_Request_Repository {
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table} WHERE customer_id = %d AND user_id = %d AND created_at >= %s",
+				"SELECT COUNT(*) FROM {$this->table} WHERE customer_id = %d AND user_id = %d AND request_type <> 'lead_follow_up' AND created_at >= %s",
 				absint( $customer_id ),
 				absint( $user_id ),
 				sanitize_text_field( $since_datetime )

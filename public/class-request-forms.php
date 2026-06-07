@@ -100,6 +100,7 @@ class CRPCRM_Request_Forms {
 			'car_registration' => 'ثبت‌نام خودرو',
 			'parts_request'    => 'درخواست قطعات',
 			'repair_booking'   => 'درخواست تعمیرات',
+			'lead_follow_up'   => 'پیگیری سرنخ',
 		);
 		return isset( $labels[ $request_type ] ) ? $labels[ $request_type ] : $request_type;
 	}

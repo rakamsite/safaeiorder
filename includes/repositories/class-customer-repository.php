@@ -64,6 +64,36 @@ class CRPCRM_Customer_Repository {
 		return $customer_id ? $this->get( $customer_id ) : null;
 	}
 
+	public function find_customers_without_requests( $registered_before, $limit = 100 ) {
+		global $wpdb;
+		$requests = CRPCRM_DB::table( 'requests' );
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT c.* FROM {$this->table} c LEFT JOIN {$requests} r ON r.customer_id = c.id WHERE c.created_at <= %s AND r.id IS NULL ORDER BY c.created_at ASC LIMIT %d",
+				sanitize_text_field( $registered_before ),
+				max( 1, min( 500, absint( $limit ) ) )
+			),
+			ARRAY_A
+		);
+	}
+
+	public function search_for_manual_request( $search, $limit = 20 ) {
+		global $wpdb;
+		$search = trim( sanitize_text_field( $search ) );
+		if ( '' === $search ) {
+			return array();
+		}
+		$like  = '%' . $wpdb->esc_like( $search ) . '%';
+		$users = $wpdb->users;
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT c.*, u.display_name, u.user_email FROM {$this->table} c LEFT JOIN {$users} u ON u.ID = c.user_id WHERE c.full_name LIKE %s OR c.phone LIKE %s OR c.phone_normalized LIKE %s OR u.display_name LIKE %s ORDER BY c.updated_at DESC LIMIT %d",
+				$like, $like, $like, $like, max( 1, min( 50, absint( $limit ) ) )
+			),
+			ARRAY_A
+		);
+	}
+
 	public function get( $id ) {
 		global $wpdb;
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d LIMIT 1", absint( $id ) ), ARRAY_A );

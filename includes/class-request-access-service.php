@@ -45,4 +45,14 @@ class CRPCRM_Request_Access_Service {
 		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
 		return user_can( $user_id, 'crpcrm_assign_requests' ) || user_can( $user_id, 'crpcrm_manage_requests' ) || user_can( $user_id, 'manage_options' );
 	}
+
+	public static function can_create_request( $user_id = 0 ) {
+		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
+		return user_can( $user_id, 'crpcrm_create_requests' ) || user_can( $user_id, 'manage_options' );
+	}
+
+	public static function can_delete_request( $user_id = 0 ) {
+		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
+		return user_can( $user_id, 'manage_options' );
+	}
 }

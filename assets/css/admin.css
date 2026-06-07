@@ -592,3 +592,12 @@
 .crpcrm-detail-stats > div { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; display: flex; flex-direction: column; gap: 8px; padding: 12px; }
 .crpcrm-detail-stats strong { font-size: 18px; }
 @media (max-width: 782px) { .crpcrm-detail-list { grid-template-columns: 1fr; } .crpcrm-detail-list dt { border-bottom: 0; } }
+
+.crpcrm-manual-search { display: flex; gap: 8px; }
+.crpcrm-manual-search input { min-width: min(420px, 100%); }
+.crpcrm-radio-row { display: flex; flex-wrap: wrap; gap: 20px; margin: 12px 0; }
+.crpcrm-form-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.crpcrm-form-grid label, .crpcrm-existing-customer-fields label { display: flex; flex-direction: column; font-weight: 600; gap: 6px; }
+.crpcrm-form-grid input, .crpcrm-form-grid select, .crpcrm-form-grid textarea, .crpcrm-existing-customer-fields select { width: 100%; }
+.crpcrm-form-grid .crpcrm-full-field { grid-column: 1 / -1; }
+.crpcrm-new-customer-fields { display: none; background: #f6f7f7; border-radius: 8px; margin: 14px 0; padding: 14px; }
