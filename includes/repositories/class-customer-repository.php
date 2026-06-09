@@ -117,6 +117,59 @@ class CRPCRM_Customer_Repository {
 		return false === $result ? false : (int) $wpdb->insert_id;
 	}
 
+	/**
+	 * Permanently delete a customer and all CRM records owned by that customer.
+	 *
+	 * The linked WordPress user is intentionally left untouched. This allows the
+	 * method to be used both after WordPress deletes a user and from the manual
+	 * CRM cleanup action.
+	 *
+	 * @param int $customer_id Customer ID.
+	 * @return true|WP_Error
+	 */
+	public function delete_permanently( $customer_id ) {
+		global $wpdb;
+
+		$customer_id = absint( $customer_id );
+		$customer    = $this->get( $customer_id );
+		if ( ! $customer ) {
+			return new WP_Error( 'customer_not_found', 'مشتری موردنظر یافت نشد.' );
+		}
+
+		$requests     = CRPCRM_DB::table( 'requests' );
+		$activities   = CRPCRM_DB::table( 'request_activities' );
+		$attributions = CRPCRM_DB::table( 'customer_attribution_events' );
+		$user_id      = absint( $customer['user_id'] );
+
+		$wpdb->query( 'START TRANSACTION' );
+
+		$activities_deleted = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$activities} WHERE customer_id = %d OR request_id IN (SELECT id FROM {$requests} WHERE customer_id = %d)",
+				$customer_id,
+				$customer_id
+			)
+		);
+		$requests_deleted = $wpdb->delete( $requests, array( 'customer_id' => $customer_id ), array( '%d' ) );
+
+		if ( $user_id ) {
+			$attributions_deleted = $wpdb->query(
+				$wpdb->prepare( "DELETE FROM {$attributions} WHERE customer_id = %d OR user_id = %d", $customer_id, $user_id )
+			);
+		} else {
+			$attributions_deleted = $wpdb->delete( $attributions, array( 'customer_id' => $customer_id ), array( '%d' ) );
+		}
+
+		$customer_deleted = $wpdb->delete( $this->table, array( 'id' => $customer_id ), array( '%d' ) );
+		if ( false === $activities_deleted || false === $requests_deleted || false === $attributions_deleted || 1 !== $customer_deleted ) {
+			$wpdb->query( 'ROLLBACK' );
+			return new WP_Error( 'customer_delete_failed', 'حذف کامل مشتری انجام نشد. لطفاً دوباره تلاش کنید.' );
+		}
+
+		$wpdb->query( 'COMMIT' );
+		return true;
+	}
+
 	public function update( $id, $data ) {
 		global $wpdb;
 

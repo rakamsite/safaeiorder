@@ -40,6 +40,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-health-check-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-maintenance-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-tools.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-customer-deletion-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-otp-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/sms/class-sms-provider-interface.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/sms/class-melipayamak-provider.php';

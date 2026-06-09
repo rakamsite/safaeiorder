@@ -28,6 +28,7 @@ class CRPCRM_Admin_Pages {
 		add_action( 'admin_post_crpcrm_change_owner', array( $this, 'handle_change_owner' ) );
 		add_action( 'admin_post_crpcrm_release_owner', array( $this, 'handle_release_owner' ) );
 		add_action( 'admin_post_crpcrm_delete_request', array( $this, 'handle_delete_request' ) );
+		add_action( 'admin_post_crpcrm_delete_customer', array( $this, 'handle_delete_customer' ) );
 		add_action( 'admin_post_crpcrm_add_sales_action', array( $this, 'handle_add_sales_action' ) );
 		add_action( 'admin_post_crpcrm_create_manual_request', array( $this, 'handle_create_manual_request' ) );
 		add_action( 'admin_post_crpcrm_reports_csv', array( $this, 'handle_reports_csv' ) );
@@ -678,6 +679,26 @@ class CRPCRM_Admin_Pages {
 		$this->redirect_to_request_list( 'request_deleted' );
 	}
 
+	public function handle_delete_customer() {
+		$customer_id = isset( $_POST['customer_id'] ) ? absint( $_POST['customer_id'] ) : 0;
+		check_admin_referer( 'crpcrm_delete_customer_' . $customer_id );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			CRPCRM_Logger::warning( 'customer_delete_denied', 'customer_delete_denied', array( 'customer_id' => $customer_id, 'user_id' => get_current_user_id() ) );
+			$this->redirect_to_customer_list( 'customer_delete_denied' );
+		}
+
+		$customer = $this->customer_repository->get( $customer_id );
+		$result   = $this->customer_repository->delete_permanently( $customer_id );
+		if ( is_wp_error( $result ) ) {
+			CRPCRM_Logger::warning( 'customer_delete_failed', 'customer_delete_failed', array( 'customer_id' => $customer_id, 'user_id' => get_current_user_id(), 'reason' => $result->get_error_code() ) );
+			$this->redirect_to_customer_list( $result->get_error_code() );
+		}
+
+		CRPCRM_Logger::info( 'customer_deleted_permanently', 'customer_deleted_permanently', array( 'customer_id' => $customer_id, 'linked_user_id' => isset( $customer['user_id'] ) ? absint( $customer['user_id'] ) : 0, 'user_id' => get_current_user_id() ) );
+		$this->redirect_to_customer_list( 'customer_deleted' );
+	}
+
 	public function handle_add_sales_action() {
 		$request_id = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
 		check_admin_referer( 'crpcrm_add_sales_action_' . $request_id );
@@ -914,6 +935,11 @@ class CRPCRM_Admin_Pages {
 				'fields'   => array( 'ID', 'display_name', 'user_login' ),
 			)
 		);
+	}
+
+	private function redirect_to_customer_list( $notice ) {
+		wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-customers', 'crpcrm_notice' => sanitize_key( $notice ) ), admin_url( 'admin.php' ) ) );
+		exit;
 	}
 
 	private function redirect_to_request( $request_id, $notice ) {
