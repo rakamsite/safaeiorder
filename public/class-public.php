@@ -22,7 +22,7 @@ class CRPCRM_Public {
 	}
 
 	public function enqueue_assets() {
-		wp_enqueue_style( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/css/public.css', array(), CRPCRM_VERSION );
-		wp_enqueue_script( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/js/public.js', array(), CRPCRM_VERSION, true );
+		wp_register_style( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/css/public.css', array(), CRPCRM_VERSION );
+		wp_register_script( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/js/public.js', array(), CRPCRM_VERSION, true );
 	}
 }

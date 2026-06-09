@@ -740,7 +740,7 @@ class CRPCRM_Admin_Pages {
 			}
 		}
 
-		$allowed_types    = array( 'car_registration', 'parts_request', 'repair_booking', 'lead_follow_up' );
+		$allowed_types    = array_keys( CRPCRM_Request_Type_Registry::get_request_types() );
 		$allowed_statuses = array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' );
 		$request_type     = isset( $_POST['request_type'] ) ? sanitize_key( wp_unslash( $_POST['request_type'] ) ) : '';
 		$status           = isset( $_POST['request_status'] ) ? sanitize_key( wp_unslash( $_POST['request_status'] ) ) : 'new';

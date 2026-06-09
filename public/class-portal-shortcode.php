@@ -42,7 +42,7 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function register_query_vars( $vars ) {
-		foreach ( array( 'crpcrm_page', 'request_id', 'request_code', 'created', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $var ) {
+		foreach ( array( 'crpcrm_page', 'form_id', 'request_id', 'request_code', 'created', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $var ) {
 			if ( ! in_array( $var, $vars, true ) ) {
 				$vars[] = $var;
 			}
@@ -273,10 +273,16 @@ class CRPCRM_Portal_Shortcode {
 		$user_id     = get_current_user_id();
 		$redirect_to = $this->posted_redirect_url();
 		$page        = isset( $_POST['crpcrm_request_page'] ) ? sanitize_key( wp_unslash( $_POST['crpcrm_request_page'] ) ) : '';
-		$form        = CRPCRM_Request_Forms::get_form( $page );
+		$form_id     = isset( $_POST['crpcrm_form_id'] ) ? sanitize_key( wp_unslash( $_POST['crpcrm_form_id'] ) ) : $page;
+		$form        = CRPCRM_Form_Registry::get_enabled_form( $form_id );
+		$nonce_value = isset( $_POST['crpcrm_request_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['crpcrm_request_nonce'] ) ) : '';
+		$nonce_valid = $form && wp_verify_nonce( $nonce_value, 'crpcrm_submit_request_' . sanitize_key( $form['id'] ) );
+		if ( ! $nonce_valid && $form && $page ) {
+			$nonce_valid = wp_verify_nonce( $nonce_value, 'crpcrm_submit_request_' . $page );
+		}
 
-		if ( ! $form || ! isset( $_POST['crpcrm_request_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['crpcrm_request_nonce'] ) ), 'crpcrm_submit_request_' . $page ) ) {
-			CRPCRM_Logger::warning( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'page' => $page, 'reason' => 'nonce_or_form' ) );
+		if ( ! $form || ! $nonce_valid ) {
+			CRPCRM_Logger::warning( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'page' => $page, 'form_id' => $form_id, 'reason' => 'nonce_or_form' ) );
 			$this->redirect_with_notice( $redirect_to, 'error', 'در ثبت درخواست خطایی رخ داد. لطفاً دوباره تلاش کنید.' );
 		}
 
@@ -303,9 +309,14 @@ class CRPCRM_Portal_Shortcode {
 			$this->redirect_with_notice( $redirect_to, 'error', implode( ' ', $validated['errors'] ) );
 		}
 
-		$request_data    = $validated['data'];
-		$request_summary = CRPCRM_Request_Forms::build_summary( $form, $request_data );
-		$attribution     = $this->attribution_service->get_attribution_for_new_request();
+		$submitted_fields = $validated['data'];
+		$request_data     = $submitted_fields;
+		$request_summary  = CRPCRM_Request_Forms::build_summary( $form, $request_data );
+		$request_data['business_profile'] = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$request_data['form_id']          = sanitize_key( $form['id'] );
+		$request_data['form_version']     = sanitize_text_field( $form['version'] );
+		$request_data['submitted_fields'] = $submitted_fields;
+		$attribution      = $this->attribution_service->get_attribution_for_new_request();
 		$now             = CRPCRM_Helpers::current_datetime();
 
 		$request_id = $this->request_repository->create(
@@ -404,14 +415,7 @@ class CRPCRM_Portal_Shortcode {
 				'menu_items'      => $this->get_required_menu_items( $page ),
 				'custom_links'    => $this->get_custom_menu_links(),
 				'logout_url'      => $this->get_logout_url(),
-				'portal_urls'     => array(
-					'dashboard'            => $this->get_portal_url( 'dashboard' ),
-					'profile'              => $this->get_portal_url( 'profile' ),
-					'my_requests'          => $this->get_portal_url( 'my_requests' ),
-					'new_car_registration' => $this->get_portal_url( 'new_car_registration' ),
-					'new_parts_request'    => $this->get_portal_url( 'new_parts_request' ),
-					'new_repair_booking'   => $this->get_portal_url( 'new_repair_booking' ),
-				),
+				'portal_urls'     => $this->get_portal_urls(),
 				'phone_display'   => $this->format_phone_for_display( ! empty( $customer['phone_normalized'] ) ? $customer['phone_normalized'] : $customer['phone'] ),
 				'provinces'       => $this->get_iran_provinces(),
 				'admin_post_url'  => admin_url( 'admin-post.php' ),
@@ -434,7 +438,20 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	private function get_allowed_portal_pages() {
-		return array( 'dashboard', 'profile', 'my_requests', 'new_car_registration', 'new_parts_request', 'new_repair_booking', 'request_detail' );
+		return array_merge( array( 'dashboard', 'new_request', 'profile', 'my_requests', 'request_detail' ), CRPCRM_Form_Registry::get_form_pages() );
+	}
+
+	private function get_portal_urls() {
+		$urls = array(
+			'dashboard'   => $this->get_portal_url( 'dashboard' ),
+			'new_request' => $this->get_portal_url( 'new_request' ),
+			'profile'     => $this->get_portal_url( 'profile' ),
+			'my_requests' => $this->get_portal_url( 'my_requests' ),
+		);
+		foreach ( CRPCRM_Request_Forms::get_form_pages() as $form_page ) {
+			$urls[ $form_page ] = $this->get_portal_url( $form_page );
+		}
+		return $urls;
 	}
 
 	private function should_redirect_to_dashboard_after_otp( $user ) {
@@ -456,6 +473,12 @@ class CRPCRM_Portal_Shortcode {
 				'label'  => 'داشبورد',
 				'url'    => $this->get_portal_url( 'dashboard' ),
 				'active' => 'dashboard' === $current_page,
+			),
+			array(
+				'key'    => 'new_request',
+				'label'  => 'ثبت درخواست',
+				'url'    => $this->get_portal_url( 'new_request' ),
+				'active' => 'new_request' === $current_page || in_array( $current_page, CRPCRM_Form_Registry::get_form_pages(), true ),
 			),
 			array(
 				'key'    => 'my_requests',
@@ -536,7 +559,7 @@ class CRPCRM_Portal_Shortcode {
 			}
 		}
 
-		return remove_query_arg( array( 'crpcrm_page', 'request_id', 'request_code', 'created' ), $this->clean_portal_url() );
+		return remove_query_arg( array( 'crpcrm_page', 'form_id', 'request_id', 'request_code', 'created' ), $this->clean_portal_url() );
 	}
 
 	private function sanitize_query_args( $args ) {
@@ -565,11 +588,26 @@ class CRPCRM_Portal_Shortcode {
 			'latest_requests' => $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 3, 'user_id' => get_current_user_id() ) ),
 			'request_detail'  => null,
 			'access_denied'   => false,
+			'form_error'      => '',
 			'request_forms'   => CRPCRM_Request_Forms::get_forms(),
 		);
 
-		if ( in_array( $page, CRPCRM_Request_Forms::get_form_pages(), true ) ) {
-			$data['form'] = CRPCRM_Request_Forms::get_form( $page );
+		if ( 'new_request' === $page ) {
+			$form_id = sanitize_key( $this->get_query_value( 'form_id' ) );
+			if ( $form_id ) {
+				$data['form'] = CRPCRM_Form_Registry::get_enabled_form( $form_id );
+				if ( ! $data['form'] ) {
+					$data['form_error'] = 'فرم درخواست انتخاب‌شده معتبر یا فعال نیست.';
+				}
+			}
+			return $data;
+		}
+
+		if ( in_array( $page, CRPCRM_Form_Registry::get_form_pages(), true ) ) {
+			$data['form'] = CRPCRM_Form_Registry::get_enabled_form( $page );
+			if ( ! $data['form'] ) {
+				$data['form_error'] = 'فرم درخواست انتخاب‌شده معتبر یا فعال نیست.';
+			}
 			return $data;
 		}
 
@@ -693,6 +731,13 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	private function render_view( $view, $args = array() ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'portal_profile_class' => CRPCRM_Public_Theme::get_profile_class(),
+				'portal_theme_style'   => CRPCRM_Public_Theme::get_inline_style(),
+			)
+		);
 		extract( $args, EXTR_SKIP );
 		ob_start();
 		include CRPCRM_PLUGIN_DIR . 'public/views/' . $view;
@@ -701,6 +746,7 @@ class CRPCRM_Portal_Shortcode {
 
 	private function enqueue_assets() {
 		wp_enqueue_style( 'crpcrm-public' );
+		wp_enqueue_script( 'crpcrm-public' );
 	}
 
 	private function get_notice() {
@@ -764,7 +810,7 @@ class CRPCRM_Portal_Shortcode {
 			return true;
 		}
 
-		foreach ( array( 'crpcrm_page', 'request_id', 'request_code', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $key ) {
+		foreach ( array( 'crpcrm_page', 'form_id', 'request_id', 'request_code', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) as $key ) {
 			if ( '' !== $this->get_query_value( $key ) ) {
 				return true;
 			}

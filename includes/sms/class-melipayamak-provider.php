@@ -25,7 +25,50 @@ class CRPCRM_Melipayamak_Provider implements CRPCRM_SMS_Provider_Interface {
 		$this->sender       = (string) CRPCRM_Settings::get( 'melipayamak_sender', '' );
 	}
 
+	public function get_id() {
+		return 'melipayamak';
+	}
+
+	public function get_label() {
+		return 'ملی پیامک';
+	}
+
+	public function get_settings_schema() {
+		return array(
+			'melipayamak_username'     => array( 'label' => 'نام کاربری', 'required' => true ),
+			'melipayamak_api_key'      => array( 'label' => 'API Key', 'required' => true ),
+			'melipayamak_pattern_code' => array( 'label' => 'کد قالب OTP', 'required' => true ),
+			'melipayamak_sender'       => array( 'label' => 'شماره خط ارسال‌کننده', 'required' => false ),
+		);
+	}
+
+	public function validate_settings( array $settings ) {
+		$api_key = ! empty( $settings['melipayamak_api_key'] ) ? $settings['melipayamak_api_key'] : ( $settings['melipayamak_password'] ?? '' );
+		$missing = array();
+		if ( empty( $settings['melipayamak_username'] ) ) {
+			$missing[] = 'melipayamak_username';
+		}
+		if ( empty( $api_key ) ) {
+			$missing[] = 'melipayamak_api_key';
+		}
+		if ( empty( $settings['melipayamak_pattern_code'] ) ) {
+			$missing[] = 'melipayamak_pattern_code';
+		}
+		return $missing ? new WP_Error( 'crpcrm_melipayamak_settings_incomplete', 'تنظیمات ملی پیامک کامل نیست.', array( 'missing' => $missing ) ) : true;
+	}
+
+	public function send( $phone_normalized, $template_key, array $variables = array() ) {
+		if ( 'otp' !== sanitize_key( $template_key ) || empty( $variables['code'] ) ) {
+			return new WP_Error( 'crpcrm_sms_template_unsupported', 'قالب پیامک موردنظر توسط ملی پیامک پشتیبانی نمی‌شود.' );
+		}
+		return $this->send_otp_message( $phone_normalized, sanitize_text_field( $variables['code'] ) );
+	}
+
 	public function send_otp( $phone_normalized, $code ) {
+		return $this->send( $phone_normalized, 'otp', array( 'code' => $code ) );
+	}
+
+	private function send_otp_message( $phone_normalized, $code ) {
 		if ( ! $this->has_required_credentials() ) {
 			CRPCRM_Logger::warning( 'otp_send_failed', 'otp', array( 'reason' => 'melipayamak_missing_credentials' ) );
 			return new WP_Error( 'crpcrm_sms_missing_credentials', 'Melipayamak credentials are incomplete.' );
@@ -76,7 +119,7 @@ class CRPCRM_Melipayamak_Provider implements CRPCRM_SMS_Provider_Interface {
 	}
 
 	private function has_required_credentials() {
-		return '' !== $this->username && '' !== $this->api_key && '' !== $this->pattern_code;
+		return true === $this->validate_settings( CRPCRM_Settings::get() );
 	}
 
 	private function to_national_phone( $phone_normalized ) {

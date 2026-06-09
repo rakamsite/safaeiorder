@@ -17,13 +17,14 @@ class CRPCRM_Reports_Repository {
 	private $open_statuses   = array( 'new', 'in_progress', 'no_answer', 'follow_up' );
 	private $closed_statuses = array( 'won', 'lost', 'invalid' );
 	private $statuses        = array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' );
-	private $request_types   = array( 'car_registration', 'parts_request', 'repair_booking' );
+	private $request_types   = array();
 	private $known_sources   = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegram', 'bing' );
 
 	public function __construct() {
 		$this->requests_table   = CRPCRM_DB::table( 'requests' );
 		$this->customers_table  = CRPCRM_DB::table( 'customers' );
 		$this->activities_table = CRPCRM_DB::table( 'request_activities' );
+		$this->request_types     = CRPCRM_Request_Type_Registry::get_request_type_ids();
 	}
 
 	public function normalize_filters( $input ) {
@@ -139,21 +140,20 @@ class CRPCRM_Reports_Repository {
 	}
 
 	public function get_campaign_report( $filters ) {
-		$where = $this->build_request_filters_where( $filters );
+		$where        = $this->build_request_filters_where( $filters );
+		$type_columns = $this->build_request_type_count_columns();
 		return $this->get_results(
 			"SELECT COALESCE(NULLIF(r.request_campaign, ''), '') AS request_campaign,
-				COUNT(*) AS total,
-				SUM(CASE WHEN r.request_type = 'car_registration' THEN 1 ELSE 0 END) AS car_registration,
-				SUM(CASE WHEN r.request_type = 'parts_request' THEN 1 ELSE 0 END) AS parts_request,
-				SUM(CASE WHEN r.request_type = 'repair_booking' THEN 1 ELSE 0 END) AS repair_booking,
+				COUNT(*) AS total{$type_columns['sql']},
 				SUM(CASE WHEN r.status = 'won' THEN 1 ELSE 0 END) AS won,
 				SUM(CASE WHEN r.status = 'lost' THEN 1 ELSE 0 END) AS lost,
+				SUM(CASE WHEN r.status = 'invalid' THEN 1 ELSE 0 END) AS invalid,
 				SUM(CASE WHEN r.status IN ('new','in_progress','no_answer','follow_up') THEN 1 ELSE 0 END) AS open_total
 			FROM {$this->requests_table} r {$where['sql']}
 			GROUP BY COALESCE(NULLIF(r.request_campaign, ''), '')
 			ORDER BY total DESC
 			LIMIT 50",
-			$where['values']
+			array_merge( $type_columns['values'], $where['values'] )
 		);
 	}
 
@@ -203,17 +203,15 @@ class CRPCRM_Reports_Repository {
 	}
 
 	public function get_source_type_matrix( $filters ) {
-		$where = $this->build_request_filters_where( $filters );
+		$where        = $this->build_request_filters_where( $filters );
+		$type_columns = $this->build_request_type_count_columns();
 		return $this->get_results(
-			"SELECT COALESCE(NULLIF(r.request_source, ''), 'direct') AS request_source,
-				SUM(CASE WHEN r.request_type = 'car_registration' THEN 1 ELSE 0 END) AS car_registration,
-				SUM(CASE WHEN r.request_type = 'parts_request' THEN 1 ELSE 0 END) AS parts_request,
-				SUM(CASE WHEN r.request_type = 'repair_booking' THEN 1 ELSE 0 END) AS repair_booking,
+			"SELECT COALESCE(NULLIF(r.request_source, ''), 'direct') AS request_source{$type_columns['sql']},
 				COUNT(*) AS total
 			FROM {$this->requests_table} r {$where['sql']}
 			GROUP BY COALESCE(NULLIF(r.request_source, ''), 'direct')
 			ORDER BY total DESC",
-			$where['values']
+			array_merge( $type_columns['values'], $where['values'] )
 		);
 	}
 
@@ -449,6 +447,25 @@ class CRPCRM_Reports_Repository {
 		}
 
 		return array( 'sql' => 'WHERE ' . implode( ' AND ', $where ), 'values' => $values );
+	}
+
+	private function build_request_type_count_columns() {
+		$columns = array();
+		$values  = array();
+		foreach ( $this->request_types as $request_type ) {
+			$alias = sanitize_key( $request_type );
+			if ( '' === $alias ) {
+				continue;
+			}
+			$columns[] = "SUM(CASE WHEN r.request_type = %s THEN 1 ELSE 0 END) AS `{$alias}`";
+			$values[]  = $alias;
+		}
+		return array(
+			'sql'    => $columns ? ",
+				" . implode( ",
+				", $columns ) : '',
+			'values' => $values,
+		);
 	}
 
 	private function get_top_group_value( $field, $filters, $match_field, $match_value ) {

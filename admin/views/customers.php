@@ -121,8 +121,12 @@ $notice = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crp
 		</div>
 
 		<div class="crpcrm-summary-cards crpcrm-profile-stats">
-			<?php $cards = array( 'total_requests' => 'تعداد کل درخواست‌ها', 'open_requests' => 'درخواست‌های باز', 'closed_requests' => 'درخواست‌های بسته‌شده', 'car_registration' => 'ثبت‌نام خودرو', 'parts_request' => 'درخواست قطعات', 'repair_booking' => 'درخواست تعمیرات', 'won' => 'موفق', 'lost' => 'ناموفق', 'invalid' => 'نامعتبر', 'open_followups' => 'پیگیری‌های باز' ); ?>
+			<?php
+			$cards               = array( 'total_requests' => 'تعداد کل درخواست‌ها', 'open_requests' => 'درخواست‌های باز', 'closed_requests' => 'درخواست‌های بسته‌شده', 'won' => 'موفق', 'lost' => 'ناموفق', 'invalid' => 'نامعتبر', 'open_followups' => 'پیگیری‌های باز' );
+			$request_type_counts = isset( $stats['request_type_counts'] ) && is_array( $stats['request_type_counts'] ) ? $stats['request_type_counts'] : array();
+			?>
 			<?php foreach ( $cards as $key => $label ) : ?><div><strong><?php echo esc_html( number_format_i18n( isset( $stats[ $key ] ) ? absint( $stats[ $key ] ) : 0 ) ); ?></strong><span><?php echo esc_html( $label ); ?></span></div><?php endforeach; ?>
+			<?php foreach ( $request_type_counts as $request_type => $request_type_count ) : ?><div><strong><?php echo esc_html( number_format_i18n( $request_type_count ) ); ?></strong><span><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request_type ) ); ?></span></div><?php endforeach; ?>
 			<div><strong><?php echo esc_html( crpcrm_display_value( $stats['last_request_at'] ?? '' ) ); ?></strong><span><?php echo esc_html( 'آخرین تاریخ ثبت درخواست' ); ?></span></div>
 			<div><strong><?php echo esc_html( crpcrm_display_value( $stats['last_activity_at'] ?? '' ) ); ?></strong><span><?php echo esc_html( 'آخرین تاریخ فعالیت' ); ?></span></div>
 		</div>

@@ -106,7 +106,8 @@ $date_ranges = array(
 	'last_month'    => 'ماه قبل',
 	'custom'        => 'بازه دلخواه',
 );
-$request_types = array( '' => 'همه', 'car_registration' => 'ثبت‌نام خودرو', 'parts_request' => 'درخواست قطعات', 'repair_booking' => 'درخواست تعمیرات' );
+$request_types        = array( '' => 'همه' ) + CRPCRM_Request_Type_Registry::get_request_types();
+$active_request_types = CRPCRM_Request_Type_Registry::get_request_types();
 $sources       = array( '' => 'همه', 'direct' => 'مستقیم', 'instagram' => 'اینستاگرام', 'whatsapp' => 'واتساپ', 'google' => 'گوگل', 'telegram' => 'تلگرام', 'other' => 'سایر' );
 $statuses      = array( '' => 'همه', 'new' => 'جدید', 'in_progress' => 'در حال پیگیری', 'no_answer' => 'پاسخ نداد', 'follow_up' => 'پیگیری بعدی', 'won' => 'موفق', 'lost' => 'ناموفق', 'invalid' => 'نامعتبر' );
 $total_for_percent = max( 1, absint( $kpis['total'] ) );
@@ -168,10 +169,10 @@ $known_source_keys = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegr
 
 	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'کمپین‌ها و محتوا' ); ?></h2>
 		<h3><?php echo esc_html( 'گزارش کمپین‌ها' ); ?></h3>
-		<table class="widefat striped"><thead><tr><th>کمپین</th><th>تعداد درخواست</th><th>ثبت‌نام خودرو</th><th>درخواست قطعات</th><th>درخواست تعمیرات</th><th>موفق</th><th>ناموفق</th><th>باز</th><th>نرخ موفقیت</th></tr></thead><tbody>
-		<?php if ( empty( $campaign_report ) ) : ?><tr><td colspan="9"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
-		<?php foreach ( $campaign_report as $row ) : $campaign = $row['request_campaign']; $closed = absint( $row['won'] ) + absint( $row['lost'] ); ?>
-			<tr><td><a href="<?php echo esc_url( crpcrm_reports_url( array( 'campaign' => $campaign, 'paged' => 1 ) ) ); ?>"><?php echo esc_html( $campaign ? $campaign : 'بدون کمپین' ); ?></a></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['car_registration'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['parts_request'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['repair_booking'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['won'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['lost'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['open_total'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_rate( $row['won'], $closed ) ); ?></td></tr>
+		<table class="widefat striped"><thead><tr><th>کمپین</th><th>تعداد درخواست</th><?php foreach ( $active_request_types as $request_type_label ) : ?><th><?php echo esc_html( $request_type_label ); ?></th><?php endforeach; ?><th>موفق</th><th>ناموفق</th><th>نامعتبر</th><th>باز</th><th>نرخ موفقیت</th></tr></thead><tbody>
+		<?php if ( empty( $campaign_report ) ) : ?><tr><td colspan="<?php echo esc_attr( count( $active_request_types ) + 7 ); ?>"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
+		<?php foreach ( $campaign_report as $row ) : $campaign = $row['request_campaign']; $closed = absint( $row['won'] ) + absint( $row['lost'] ) + absint( $row['invalid'] ); ?>
+			<tr><td><a href="<?php echo esc_url( crpcrm_reports_url( array( 'campaign' => $campaign, 'paged' => 1 ) ) ); ?>"><?php echo esc_html( $campaign ? $campaign : 'بدون کمپین' ); ?></a></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td><?php foreach ( $active_request_types as $request_type => $request_type_label ) : ?><td><?php echo esc_html( number_format_i18n( isset( $row[ $request_type ] ) ? $row[ $request_type ] : 0 ) ); ?></td><?php endforeach; ?><td><?php echo esc_html( number_format_i18n( $row['won'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['lost'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['invalid'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['open_total'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_rate( $row['won'], $closed ) ); ?></td></tr>
 		<?php endforeach; ?>
 		</tbody></table>
 
@@ -192,9 +193,9 @@ $known_source_keys = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegr
 		<?php endforeach; ?>
 		</tbody></table>
 		<h3><?php echo esc_html( 'Source × Request Type' ); ?></h3>
-		<table class="widefat striped"><thead><tr><th>منبع</th><th>ثبت‌نام خودرو</th><th>درخواست قطعات</th><th>درخواست تعمیرات</th><th>جمع کل</th></tr></thead><tbody>
-		<?php foreach ( $source_type_matrix as $row ) : ?><tr><td><?php echo esc_html( CRPCRM_Helpers::get_source_label( $row['request_source'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['car_registration'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['parts_request'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['repair_booking'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td></tr><?php endforeach; ?>
-		<?php if ( empty( $source_type_matrix ) ) : ?><tr><td colspan="5"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
+		<table class="widefat striped"><thead><tr><th>منبع</th><?php foreach ( $active_request_types as $request_type_label ) : ?><th><?php echo esc_html( $request_type_label ); ?></th><?php endforeach; ?><th>جمع کل</th></tr></thead><tbody>
+		<?php foreach ( $source_type_matrix as $row ) : ?><tr><td><?php echo esc_html( CRPCRM_Helpers::get_source_label( $row['request_source'] ) ); ?></td><?php foreach ( $active_request_types as $request_type => $request_type_label ) : ?><td><?php echo esc_html( number_format_i18n( isset( $row[ $request_type ] ) ? $row[ $request_type ] : 0 ) ); ?></td><?php endforeach; ?><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td></tr><?php endforeach; ?>
+		<?php if ( empty( $source_type_matrix ) ) : ?><tr><td colspan="<?php echo esc_attr( count( $active_request_types ) + 2 ); ?>"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
 		</tbody></table>
 	</div>
 

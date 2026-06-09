@@ -10,12 +10,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 interface CRPCRM_SMS_Provider_Interface {
-	/**
-	 * Send an OTP code.
-	 *
-	 * @param string $phone_normalized Phone in 989123456789 format.
-	 * @param string $code Six-digit OTP code.
-	 * @return true|WP_Error
-	 */
+	public function get_id();
+
+	public function get_label();
+
+	public function get_settings_schema();
+
+	public function validate_settings( array $settings );
+
+	public function send( $phone_normalized, $template_key, array $variables = array() );
+
 	public function send_otp( $phone_normalized, $code );
 }

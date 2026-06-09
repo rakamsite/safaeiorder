@@ -85,19 +85,28 @@ class CRPCRM_Health_Check_Service {
 	}
 
 	public function check_sms_settings() {
-		$required = array( 'melipayamak_username', 'melipayamak_api_key', 'melipayamak_pattern_code' );
-		$missing  = array();
-		foreach ( $required as $key ) {
-			if ( '' === (string) CRPCRM_Settings::get( $key, '' ) ) {
-				$missing[] = $key;
-			}
+		$registry            = CRPCRM_SMS_Provider_Registry::get_instance();
+		$configured_provider = $registry->get_configured_provider_id();
+		$provider            = $registry->get_provider( $configured_provider );
+
+		if ( ! $provider ) {
+			return array(
+				array(
+					'key'     => 'sms_settings',
+					'label'   => 'وضعیت تنظیمات پیامک',
+					'status'  => 'warning',
+					'message' => 'نیازمند بررسی: ارائه‌دهنده پیامک انتخاب‌شده شناخته‌شده نیست.',
+				),
+			);
 		}
+
+		$validation = $provider->validate_settings( CRPCRM_Settings::get() );
 		return array(
 			array(
 				'key'     => 'sms_settings',
-				'label'   => 'وضعیت تنظیمات ملی پیامک',
-				'status'  => empty( $missing ) ? 'ok' : 'warning',
-				'message' => empty( $missing ) ? 'سالم' : 'نیازمند بررسی: تنظیمات ملی پیامک کامل نیست.',
+				'label'   => 'وضعیت تنظیمات پیامک (' . $provider->get_label() . ')',
+				'status'  => is_wp_error( $validation ) ? 'warning' : 'ok',
+				'message' => is_wp_error( $validation ) ? 'نیازمند بررسی: تنظیمات ارائه‌دهنده فعال کامل نیست.' : 'سالم',
 			),
 		);
 	}

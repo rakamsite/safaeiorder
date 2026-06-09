@@ -3,8 +3,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$portal_page_id = absint( $settings['portal_page_id'] );
-$portal_warning = '';
+$profile_manager            = CRPCRM_Business_Profile_Manager::get_instance();
+$business_profiles           = $profile_manager->get_profiles();
+$sms_providers               = CRPCRM_SMS_Provider_Registry::get_instance()->get_providers();
+$active_business_profile_id  = $profile_manager->get_active_profile_id();
+$portal_page_id              = absint( $settings['portal_page_id'] );
+$portal_warning              = '';
 if ( ! $portal_page_id ) {
 	$portal_warning = 'صفحه پرتال مشتری انتخاب نشده است.';
 } else {
@@ -70,6 +74,10 @@ foreach ( $vehicle_form_labels as $vehicle_form_key => $vehicle_form_label ) {
 		<?php if ( 'portal' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات پرتال مشتری' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
+				<tr>
+					<th><label for="business_profile"><?php echo esc_html( 'پروفایل کسب‌وکار فعال' ); ?></label></th>
+					<td><select name="crpcrm_settings[business_profile]" id="business_profile"><?php foreach ( $business_profiles as $profile_id => $profile ) : ?><option value="<?php echo esc_attr( $profile_id ); ?>" <?php selected( $active_business_profile_id, $profile_id ); ?>><?php echo esc_html( $profile->get_label() ); ?></option><?php endforeach; ?></select></td>
+				</tr>
 				<tr><th><label for="portal_page_id"><?php echo esc_html( 'صفحه پرتال مشتری' ); ?></label></th><td><?php wp_dropdown_pages( array( 'name' => 'crpcrm_settings[portal_page_id]', 'id' => 'portal_page_id', 'selected' => $portal_page_id, 'show_option_none' => '— انتخاب کنید —', 'option_none_value' => 0 ) ); ?><p class="description"><?php echo esc_html( 'صفحه‌ای که shortcode پرتال در آن قرار دارد.' ); ?></p></td></tr>
 				<tr>
 					<th><label for="portal_menu_id"><?php echo esc_html( 'فهرست منوی پرتال' ); ?></label></th>
@@ -87,13 +95,19 @@ foreach ( $vehicle_form_labels as $vehicle_form_key => $vehicle_form_label ) {
 				<tr><th><label for="request_success_message"><?php echo esc_html( 'متن پیام بعد از ثبت موفق درخواست' ); ?></label></th><td><textarea name="crpcrm_settings[request_success_message]" id="request_success_message" class="large-text" rows="4"><?php echo esc_textarea( $settings['request_success_message'] ); ?></textarea></td></tr>
 			</tbody></table>
 		<?php elseif ( 'otp' === $active_tab ) : ?>
-			<h2><?php echo esc_html( 'تنظیمات ورود OTP و ملی پیامک' ); ?></h2>
+			<h2><?php echo esc_html( 'تنظیمات ورود OTP و پیامک' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
-				<tr><th><label for="otp_provider"><?php echo esc_html( 'ارائه‌دهنده پیامک' ); ?></label></th><td><select name="crpcrm_settings[otp_provider]" id="otp_provider"><option value="melipayamak" selected><?php echo esc_html( 'ملی پیامک' ); ?></option></select></td></tr>
+				<tr><th><label for="otp_provider"><?php echo esc_html( 'ارائه‌دهنده پیامک' ); ?></label></th><td><select name="crpcrm_settings[otp_provider]" id="otp_provider"><?php foreach ( $sms_providers as $provider_id => $provider ) : ?><option value="<?php echo esc_attr( $provider_id ); ?>" <?php selected( $settings['otp_provider'], $provider_id ); ?>><?php echo esc_html( $provider->get_label() ); ?></option><?php endforeach; ?></select></td></tr>
+				<tr><th colspan="2"><h3><?php echo esc_html( 'تنظیمات ملی پیامک' ); ?></h3></th></tr>
 				<tr><th><label for="melipayamak_username"><?php echo esc_html( 'نام کاربری ملی پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_username]" id="melipayamak_username" type="text" value="<?php echo esc_attr( $settings['melipayamak_username'] ); ?>" class="regular-text" /></td></tr>
 				<tr><th><label for="melipayamak_api_key"><?php echo esc_html( 'ApiKey ملی پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_api_key]" id="melipayamak_api_key" type="password" value="" class="regular-text" autocomplete="new-password" placeholder="<?php echo esc_attr( empty( $settings['melipayamak_api_key'] ) ? 'ذخیره نشده' : 'ذخیره شده' ); ?>" /><p class="description"><?php echo esc_html( 'ملی پیامک برای API به جای رمز عبور، ApiKey می‌خواهد؛ این مقدار را از پنل ملی پیامک دریافت و اینجا وارد کنید. اگر این فیلد خالی بماند، مقدار قبلی حفظ می‌شود.' ); ?></p></td></tr>
 				<tr><th><label for="melipayamak_pattern_code"><?php echo esc_html( 'کد قالب پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_pattern_code]" id="melipayamak_pattern_code" type="text" value="<?php echo esc_attr( $settings['melipayamak_pattern_code'] ); ?>" class="regular-text" /></td></tr>
 				<tr><th><label for="melipayamak_sender"><?php echo esc_html( 'شماره/خط ارسال‌کننده' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_sender]" id="melipayamak_sender" type="text" value="<?php echo esc_attr( $settings['melipayamak_sender'] ); ?>" class="regular-text" /></td></tr>
+				<tr><th colspan="2"><h3><?php echo esc_html( 'تنظیمات SMS.ir' ); ?></h3></th></tr>
+				<tr><th><label for="sms_ir_api_key"><?php echo esc_html( 'API Key سرویس SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_api_key]" id="sms_ir_api_key" type="password" value="" class="regular-text" autocomplete="new-password" placeholder="<?php echo esc_attr( empty( $settings['sms_ir_api_key'] ) ? 'ذخیره نشده' : 'ذخیره شده' ); ?>" /></td></tr>
+				<tr><th><label for="sms_ir_line_number"><?php echo esc_html( 'شماره خط SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_line_number]" id="sms_ir_line_number" type="text" value="<?php echo esc_attr( $settings['sms_ir_line_number'] ); ?>" class="regular-text" /></td></tr>
+				<tr><th><label for="sms_ir_template_id_otp"><?php echo esc_html( 'شناسه قالب OTP در SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_template_id_otp]" id="sms_ir_template_id_otp" type="text" value="<?php echo esc_attr( $settings['sms_ir_template_id_otp'] ); ?>" class="regular-text" /></td></tr>
+				<tr><th><label for="sms_ir_template_id_request_created"><?php echo esc_html( 'شناسه قالب ثبت درخواست در SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_template_id_request_created]" id="sms_ir_template_id_request_created" type="text" value="<?php echo esc_attr( $settings['sms_ir_template_id_request_created'] ); ?>" class="regular-text" /></td></tr>
 				<tr><th><label for="otp_expiration_minutes"><?php echo esc_html( 'مدت اعتبار کد OTP به دقیقه' ); ?></label></th><td><input name="crpcrm_settings[otp_expiration_minutes]" id="otp_expiration_minutes" type="number" min="1" max="60" value="<?php echo esc_attr( $settings['otp_expiration_minutes'] ); ?>" /></td></tr>
 				<tr><th><label for="otp_resend_seconds"><?php echo esc_html( 'فاصله مجاز ارسال مجدد به ثانیه' ); ?></label></th><td><input name="crpcrm_settings[otp_resend_seconds]" id="otp_resend_seconds" type="number" min="10" max="600" value="<?php echo esc_attr( $settings['otp_resend_seconds'] ); ?>" /></td></tr>
 				<tr><th><label for="otp_max_attempts"><?php echo esc_html( 'حداکثر تلاش برای وارد کردن کد' ); ?></label></th><td><input name="crpcrm_settings[otp_max_attempts]" id="otp_max_attempts" type="number" min="1" max="20" value="<?php echo esc_attr( $settings['otp_max_attempts'] ); ?>" /></td></tr>
