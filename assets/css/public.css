@@ -814,3 +814,290 @@
 		width: 26px;
 	}
 }
+
+/* Shared portal UI system. Existing selectors remain for backward compatibility. */
+:root,
+.crpcrm-portal {
+	--crpcrm-primary: #2563eb;
+	--crpcrm-primary-hover: #1d4ed8;
+	--crpcrm-secondary: #64748b;
+	--crpcrm-bg: #f8fafc;
+	--crpcrm-card-bg: #ffffff;
+	--crpcrm-text: #111827;
+	--crpcrm-muted-text: #4b5563;
+	--crpcrm-border: #e5e7eb;
+	--crpcrm-field-bg: #ffffff;
+	--crpcrm-field-border: #d1d5db;
+	--crpcrm-error: #dc2626;
+	--crpcrm-success: #059669;
+	--crpcrm-warning: #d97706;
+	--crpcrm-radius: 14px;
+	--crpcrm-radius-sm: 10px;
+	--crpcrm-space-xs: 4px;
+	--crpcrm-space-sm: 8px;
+	--crpcrm-space-md: 16px;
+	--crpcrm-space-lg: 24px;
+	--crpcrm-space-xl: 32px;
+	--crpcrm-font-size-sm: 13px;
+	--crpcrm-font-size-md: 15px;
+	--crpcrm-font-size-lg: 18px;
+}
+
+.crpcrm-portal {
+	color: var(--crpcrm-text);
+}
+
+.crpcrm-card,
+.crpcrm-portal-card {
+	background: var(--crpcrm-card-bg);
+	border-color: var(--crpcrm-border);
+	border-radius: var(--crpcrm-radius);
+}
+
+.crpcrm-card-header {
+	margin-bottom: var(--crpcrm-space-md);
+}
+
+.crpcrm-card-header > :first-child,
+.crpcrm-card-body > :first-child,
+.crpcrm-card-footer > :first-child {
+	margin-top: 0;
+}
+
+.crpcrm-card-footer {
+	margin-top: var(--crpcrm-space-lg);
+}
+
+.crpcrm-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--crpcrm-space-md);
+}
+
+.crpcrm-form-row,
+.crpcrm-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--crpcrm-space-sm);
+}
+
+.crpcrm-field-label {
+	color: var(--crpcrm-text);
+	font-size: var(--crpcrm-font-size-md);
+	font-weight: 700;
+}
+
+.crpcrm-field-control {
+	display: flex;
+	flex-direction: column;
+	gap: var(--crpcrm-space-sm);
+}
+
+.crpcrm-input,
+.crpcrm-textarea,
+.crpcrm-select,
+.crpcrm-form input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),
+.crpcrm-form textarea,
+.crpcrm-form select {
+	background: var(--crpcrm-field-bg);
+	border-color: var(--crpcrm-field-border);
+	border-radius: var(--crpcrm-radius-sm);
+	color: var(--crpcrm-text);
+}
+
+.crpcrm-input:focus,
+.crpcrm-textarea:focus,
+.crpcrm-select:focus,
+.crpcrm-form input:focus,
+.crpcrm-form textarea:focus,
+.crpcrm-form select:focus {
+	border-color: var(--crpcrm-primary);
+	box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+	outline: none;
+}
+
+.crpcrm-radio,
+.crpcrm-checkbox {
+	align-items: center;
+	display: flex;
+	gap: var(--crpcrm-space-sm);
+}
+
+.crpcrm-help-text {
+	color: var(--crpcrm-muted-text);
+	font-size: var(--crpcrm-font-size-sm);
+}
+
+.crpcrm-error {
+	color: var(--crpcrm-error);
+	font-size: var(--crpcrm-font-size-sm);
+}
+
+.crpcrm-success {
+	color: var(--crpcrm-success);
+}
+
+.crpcrm-alert,
+.crpcrm-notice {
+	border-radius: var(--crpcrm-radius-sm);
+}
+
+.crpcrm-alert-error,
+.crpcrm-notice-error {
+	border-color: var(--crpcrm-error);
+}
+
+.crpcrm-alert-success,
+.crpcrm-notice-success {
+	border-color: var(--crpcrm-success);
+}
+
+.crpcrm-alert-warning {
+	border-color: var(--crpcrm-warning);
+}
+
+.crpcrm-alert-info {
+	border-color: var(--crpcrm-primary);
+}
+
+.crpcrm-button {
+	border-radius: var(--crpcrm-radius-sm);
+}
+
+.crpcrm-button-primary,
+.crpcrm-request-form .crpcrm-button-primary,
+.crpcrm-otp-form .crpcrm-button-primary {
+	background: var(--crpcrm-primary);
+	color: #ffffff !important;
+}
+
+.crpcrm-button-primary:hover,
+.crpcrm-button-primary:focus,
+.crpcrm-request-form .crpcrm-button-primary:hover,
+.crpcrm-request-form .crpcrm-button-primary:focus,
+.crpcrm-otp-form .crpcrm-button-primary:hover,
+.crpcrm-otp-form .crpcrm-button-primary:focus {
+	background: var(--crpcrm-primary-hover);
+	color: #ffffff !important;
+}
+
+.crpcrm-button-secondary {
+	background: transparent;
+	border: 1px solid var(--crpcrm-border);
+	color: var(--crpcrm-secondary) !important;
+}
+
+.crpcrm-grid {
+	display: grid;
+	gap: var(--crpcrm-space-md);
+}
+
+.crpcrm-grid-2 {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.crpcrm-grid-3 {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.crpcrm-form-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--crpcrm-space-sm);
+}
+
+.crpcrm-form-card {
+	border-color: var(--crpcrm-border);
+	border-radius: var(--crpcrm-radius-sm);
+}
+
+.crpcrm-form-card-title {
+	color: var(--crpcrm-text);
+}
+
+.crpcrm-form-card-description {
+	color: var(--crpcrm-muted-text);
+}
+
+.crpcrm-form-card-action {
+	color: var(--crpcrm-primary);
+}
+
+@media (max-width: 768px) {
+	.crpcrm-grid,
+	.crpcrm-grid-2,
+	.crpcrm-grid-3 {
+		grid-template-columns: 1fr;
+	}
+
+	.crpcrm-card,
+	.crpcrm-portal-card {
+		padding: var(--crpcrm-space-md);
+	}
+}
+
+/* Token-backed compatibility overrides for the existing Safaei portal appearance. */
+.crpcrm-portal-sidebar,
+.crpcrm-action-card.crpcrm-form-card {
+	background: var(--crpcrm-primary);
+}
+
+.crpcrm-portal-menu a:hover,
+.crpcrm-portal-menu a:focus,
+.crpcrm-portal-menu a.is-active {
+	background: var(--crpcrm-primary-hover);
+}
+
+.crpcrm-action-card.crpcrm-form-card:hover,
+.crpcrm-action-card.crpcrm-form-card:focus {
+	background: var(--crpcrm-primary-hover);
+}
+
+.crpcrm-portal-card h2,
+.crpcrm-portal-card h3,
+.crpcrm-card h2,
+.crpcrm-card h3 {
+	color: var(--crpcrm-text);
+}
+
+.crpcrm-portal-card p,
+.crpcrm-card p {
+	color: var(--crpcrm-muted-text);
+}
+
+.crpcrm-request-form input,
+.crpcrm-request-form select,
+.crpcrm-request-form textarea,
+.crpcrm-profile-form input,
+.crpcrm-profile-form select,
+.crpcrm-otp-form input {
+	background: var(--crpcrm-field-bg);
+	border-color: var(--crpcrm-field-border);
+	border-radius: var(--crpcrm-radius-sm);
+	color: var(--crpcrm-text);
+}
+
+.crpcrm-action-card.crpcrm-form-card .crpcrm-form-card-title,
+.crpcrm-action-card.crpcrm-form-card .crpcrm-form-card-description,
+.crpcrm-action-card.crpcrm-form-card .crpcrm-form-card-action {
+	color: #ffffff;
+}
+
+.crpcrm-action-card.crpcrm-form-card .crpcrm-form-card-description,
+.crpcrm-action-card.crpcrm-form-card .crpcrm-form-card-action {
+	font-size: var(--crpcrm-font-size-sm);
+	opacity: 0.9;
+}
+
+.crpcrm-portal-header {
+	color: inherit;
+}
+
+.crpcrm-portal-nav {
+	border-radius: var(--crpcrm-radius);
+}
+
+.crpcrm-portal-content {
+	min-width: 0;
+}

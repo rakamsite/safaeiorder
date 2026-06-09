@@ -20,6 +20,7 @@ class CRPCRM_Settings {
 	public static function defaults() {
 		$site_host = wp_parse_url( home_url(), PHP_URL_HOST );
 		return array(
+			'business_profile'                      => 'safaei',
 			'portal_page_id'                       => 0,
 			'portal_menu_id'                       => 0,
 			'customer_registration_enabled'        => 'yes',
@@ -34,6 +35,10 @@ class CRPCRM_Settings {
 			'melipayamak_password'                 => '',
 			'melipayamak_pattern_code'             => '',
 			'melipayamak_sender'                   => '',
+			'sms_ir_api_key'                       => '',
+			'sms_ir_line_number'                   => '',
+			'sms_ir_template_id_otp'               => '',
+			'sms_ir_template_id_request_created'   => '',
 			'attribution_window_hours'             => 24,
 			'attribution_enabled'                  => 'yes',
 			'attribution_events_enabled'           => 'yes',
@@ -155,7 +160,7 @@ class CRPCRM_Settings {
 	public static function tabs() {
 		return array(
 			'portal'      => 'تنظیمات پرتال مشتری',
-			'otp'         => 'تنظیمات ورود OTP و ملی پیامک',
+			'otp'         => 'تنظیمات ورود OTP و پیامک',
 			'attribution' => 'تنظیمات رهگیری ورودی',
 			'crm'         => 'تنظیمات درخواست‌ها و CRM',
 			'staff'       => 'تنظیمات پنل کارکنان',
@@ -221,12 +226,16 @@ class CRPCRM_Settings {
 		$settings = $current;
 
 		if ( 'portal' === $active_tab ) {
+			$profile_id = isset( $input['business_profile'] ) ? sanitize_key( $input['business_profile'] ) : $defaults['business_profile'];
+			$profiles                          = CRPCRM_Business_Profile_Manager::get_instance()->get_profiles();
+			$settings['business_profile']      = isset( $profiles[ $profile_id ] ) ? $profile_id : $defaults['business_profile'];
 			$settings['portal_page_id']                = isset( $input['portal_page_id'] ) ? absint( $input['portal_page_id'] ) : $defaults['portal_page_id'];
 			$settings['portal_menu_id']                = isset( $input['portal_menu_id'] ) ? absint( $input['portal_menu_id'] ) : $defaults['portal_menu_id'];
 			$settings['customer_registration_enabled'] = $this->checkbox( $input, 'customer_registration_enabled' );
 			$settings['request_success_message']       = isset( $input['request_success_message'] ) && '' !== trim( (string) $input['request_success_message'] ) ? sanitize_textarea_field( $input['request_success_message'] ) : $defaults['request_success_message'];
 		} elseif ( 'otp' === $active_tab ) {
-			$settings['otp_provider']                    = 'melipayamak';
+			$provider_id = isset( $input['otp_provider'] ) ? sanitize_key( $input['otp_provider'] ) : $defaults['otp_provider'];
+			$settings['otp_provider']                    = CRPCRM_SMS_Provider_Registry::get_instance()->get_provider( $provider_id ) ? $provider_id : $defaults['otp_provider'];
 			$settings['otp_expiration_minutes']          = $this->bounded_absint( $input, 'otp_expiration_minutes', 1, 60, $defaults['otp_expiration_minutes'] );
 			$settings['otp_resend_seconds']              = $this->bounded_absint( $input, 'otp_resend_seconds', 10, 600, $defaults['otp_resend_seconds'] );
 			$settings['otp_max_attempts']                = $this->bounded_absint( $input, 'otp_max_attempts', 1, 20, $defaults['otp_max_attempts'] );
@@ -236,6 +245,10 @@ class CRPCRM_Settings {
 			$settings['melipayamak_password']            = isset( $input['melipayamak_password'] ) && '' !== trim( (string) $input['melipayamak_password'] ) ? sanitize_text_field( $input['melipayamak_password'] ) : $current['melipayamak_password'];
 			$settings['melipayamak_pattern_code']        = isset( $input['melipayamak_pattern_code'] ) ? sanitize_text_field( $input['melipayamak_pattern_code'] ) : '';
 			$settings['melipayamak_sender']              = isset( $input['melipayamak_sender'] ) ? sanitize_text_field( $input['melipayamak_sender'] ) : '';
+			$settings['sms_ir_api_key']                   = isset( $input['sms_ir_api_key'] ) && '' !== trim( (string) $input['sms_ir_api_key'] ) ? sanitize_text_field( $input['sms_ir_api_key'] ) : $current['sms_ir_api_key'];
+			$settings['sms_ir_line_number']               = isset( $input['sms_ir_line_number'] ) ? sanitize_text_field( $input['sms_ir_line_number'] ) : '';
+			$settings['sms_ir_template_id_otp']           = isset( $input['sms_ir_template_id_otp'] ) ? sanitize_text_field( $input['sms_ir_template_id_otp'] ) : '';
+			$settings['sms_ir_template_id_request_created'] = isset( $input['sms_ir_template_id_request_created'] ) ? sanitize_text_field( $input['sms_ir_template_id_request_created'] ) : '';
 		} elseif ( 'attribution' === $active_tab ) {
 			$settings['attribution_window_hours']   = $this->bounded_absint( $input, 'attribution_window_hours', 1, 720, $defaults['attribution_window_hours'] );
 			$settings['attribution_enabled']        = $this->checkbox( $input, 'attribution_enabled' );

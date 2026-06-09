@@ -1,6 +1,6 @@
 <?php
 /**
- * Customer portal request form definitions and helpers.
+ * Backward-compatible request form adapter and helpers.
  *
  * @package CRPCRM
  */
@@ -11,55 +11,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Request_Forms {
 	public static function get_forms() {
-		$registration_vehicle_options = CRPCRM_Settings::get_active_vehicle_options( 'new_car_registration' );
-		$parts_vehicle_options        = CRPCRM_Settings::get_active_vehicle_options( 'new_parts_request' );
-		$repair_vehicle_options       = CRPCRM_Settings::get_active_vehicle_options( 'new_repair_booking' );
-
-		return array(
-			'new_car_registration' => array(
-				'page'         => 'new_car_registration',
-				'request_type' => 'car_registration',
-				'title'        => 'ثبت‌نام خودرو',
-				'submit_label' => 'ثبت درخواست خودرو',
-				'fields'       => array(
-					array( 'name' => 'desired_vehicle', 'type' => 'select', 'required' => true, 'label' => 'خودروی موردنظر', 'required_message' => 'خودروی موردنظر الزامی است.', 'options' => $registration_vehicle_options ),
-				),
-			),
-			'new_parts_request' => array(
-				'page'         => 'new_parts_request',
-				'request_type' => 'parts_request',
-				'title'        => 'درخواست قطعات',
-				'submit_label' => 'ثبت درخواست قطعه',
-				'fields'       => array(
-					array( 'name' => 'part_name', 'type' => 'text', 'required' => true, 'label' => 'نام قطعه موردنیاز', 'placeholder' => 'مثلاً چراغ جلو، سپر، لنت، فیلتر روغن', 'required_message' => 'نام قطعه موردنیاز الزامی است.' ),
-					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $parts_vehicle_options ),
-					array( 'name' => 'description', 'type' => 'textarea', 'required' => true, 'label' => 'توضیحات', 'placeholder' => 'توضیحات بیشتر درباره قطعه موردنیاز را وارد کنید.', 'required_message' => 'توضیحات الزامی است.' ),
-				),
-			),
-			'new_repair_booking' => array(
-				'page'         => 'new_repair_booking',
-				'request_type' => 'repair_booking',
-				'title'        => 'درخواست تعمیرات',
-				'submit_label' => 'ثبت درخواست تعمیرات',
-				'fields'       => array(
-					array( 'name' => 'vehicle_model', 'type' => 'select', 'required' => true, 'label' => 'مدل خودرو', 'required_message' => 'مدل خودرو الزامی است.', 'options' => $repair_vehicle_options ),
-					array( 'name' => 'service_type', 'type' => 'select', 'required' => true, 'label' => 'نوع سرویس یا مشکل', 'required_message' => 'نوع سرویس یا مشکل الزامی است.', 'options' => array( 'سرویس دوره‌ای', 'تعمیر موتور', 'گیربکس', 'برق خودرو', 'جلوبندی', 'صافکاری و بدنه', 'عیب‌یابی', 'تعویض قطعه', 'سایر' ) ),
-					array( 'name' => 'problem_description', 'type' => 'textarea', 'required' => true, 'label' => 'شرح مشکل', 'placeholder' => 'لطفاً مشکل خودرو یا سرویس موردنظر را توضیح دهید.', 'required_message' => 'شرح مشکل الزامی است.' ),
-				),
-			),
-		);
+		return CRPCRM_Form_Registry::get_enabled_forms();
 	}
 
 	public static function get_form( $page ) {
-		$forms = self::get_forms();
-		$page  = sanitize_key( $page );
-		return isset( $forms[ $page ] ) ? $forms[ $page ] : null;
+		$page = sanitize_key( $page );
+		return CRPCRM_Form_Registry::get_enabled_form( $page );
 	}
 
 	public static function get_form_by_request_type( $request_type ) {
 		$request_type = sanitize_key( $request_type );
 		foreach ( self::get_forms() as $form ) {
-			if ( $request_type === $form['request_type'] ) {
+			if ( isset( $form['request_type'] ) && $request_type === $form['request_type'] ) {
 				return $form;
 			}
 		}
@@ -92,17 +55,16 @@ class CRPCRM_Request_Forms {
 	}
 
 	public static function get_form_pages() {
-		return array_keys( self::get_forms() );
+		$pages = array();
+		foreach ( self::get_forms() as $form_id => $form ) {
+			$page    = ! empty( $form['page'] ) ? sanitize_key( $form['page'] ) : sanitize_key( $form_id );
+			$pages[] = $page;
+		}
+		return array_values( array_unique( array_filter( $pages ) ) );
 	}
 
 	public static function get_type_label( $request_type ) {
-		$labels = array(
-			'car_registration' => 'ثبت‌نام خودرو',
-			'parts_request'    => 'درخواست قطعات',
-			'repair_booking'   => 'درخواست تعمیرات',
-			'lead_follow_up'   => 'پیگیری سرنخ',
-		);
-		return isset( $labels[ $request_type ] ) ? $labels[ $request_type ] : $request_type;
+		return CRPCRM_Request_Type_Registry::get_label( $request_type );
 	}
 
 	public static function get_customer_status_label( $status ) {
@@ -118,23 +80,35 @@ class CRPCRM_Request_Forms {
 		return isset( $labels[ $status ] ) ? $labels[ $status ] : $status;
 	}
 
+	public static function get_field_options( $field ) {
+		$options    = isset( $field['options'] ) && is_array( $field['options'] ) ? $field['options'] : array();
+		$normalized = array();
+		foreach ( $options as $value => $label ) {
+			if ( is_int( $value ) ) {
+				$value = $label;
+			}
+			$normalized[ (string) $value ] = (string) $label;
+		}
+		return $normalized;
+	}
+
 	public static function sanitize_and_validate( $form, $posted ) {
 		$data   = array();
 		$errors = array();
 
 		foreach ( $form['fields'] as $field ) {
-			$name  = $field['name'];
+			$name  = sanitize_key( $field['name'] );
+			$type  = isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text';
 			$value = isset( $posted[ $name ] ) ? wp_unslash( $posted[ $name ] ) : '';
-			$value = 'textarea' === $field['type'] ? sanitize_textarea_field( $value ) : sanitize_text_field( $value );
-			$value = trim( $value );
+			$value = self::sanitize_field_value( $type, $value );
 
-			if ( ! empty( $field['required'] ) && '' === $value ) {
-				$errors[] = $field['required_message'];
+			if ( ! empty( $field['required'] ) && self::is_empty_value( $value ) ) {
+				$errors[] = self::get_field_error( $field, 'این فیلد الزامی است.' );
 				continue;
 			}
 
-			if ( 'select' === $field['type'] && '' !== $value && ! in_array( $value, $field['options'], true ) ) {
-				$errors[] = $field['required_message'];
+			if ( ! self::is_empty_value( $value ) && ! self::is_valid_field_value( $field, $value ) ) {
+				$errors[] = self::get_field_error( $field, 'مقدار واردشده معتبر نیست.' );
 				continue;
 			}
 
@@ -149,14 +123,76 @@ class CRPCRM_Request_Forms {
 	}
 
 	public static function build_summary( $form, $data ) {
+		if ( ! empty( $form['summary_template'] ) ) {
+			$replacements = array();
+			foreach ( $data as $key => $value ) {
+				if ( is_scalar( $value ) ) {
+					$replacements[ '{' . sanitize_key( $key ) . '}' ] = (string) $value;
+				}
+			}
+			$summary = trim( strtr( (string) $form['summary_template'], $replacements ) );
+			if ( '' !== $summary ) {
+				return $summary;
+			}
+		}
+
 		$parts = array();
 		foreach ( $form['fields'] as $field ) {
 			$name = $field['name'];
-			if ( isset( $data[ $name ] ) && '' !== $data[ $name ] ) {
-				$parts[] = $field['label'] . ': ' . $data[ $name ];
+			if ( isset( $data[ $name ] ) && ! self::is_empty_value( $data[ $name ] ) ) {
+				$parts[] = $field['label'] . ': ' . ( is_array( $data[ $name ] ) ? implode( '، ', $data[ $name ] ) : $data[ $name ] );
 			}
 		}
 
 		return implode( ' | ', $parts );
+	}
+
+	private static function sanitize_field_value( $type, $value ) {
+		if ( 'checkbox' === $type && is_array( $value ) ) {
+			return array_values( array_filter( array_map( 'sanitize_text_field', $value ), 'strlen' ) );
+		}
+		if ( is_array( $value ) ) {
+			return '';
+		}
+		if ( 'textarea' === $type ) {
+			return trim( sanitize_textarea_field( $value ) );
+		}
+		if ( 'email' === $type ) {
+			return sanitize_email( $value );
+		}
+		return trim( sanitize_text_field( $value ) );
+	}
+
+	private static function is_valid_field_value( $field, $value ) {
+		$type = isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text';
+		if ( in_array( $type, array( 'select', 'radio', 'checkbox' ), true ) && ! empty( $field['options'] ) ) {
+			$allowed = array_keys( self::get_field_options( $field ) );
+			$values  = is_array( $value ) ? $value : array( $value );
+			if ( array_diff( $values, $allowed ) ) {
+				return false;
+			}
+		}
+		if ( 'email' === $type ) {
+			return (bool) is_email( $value );
+		}
+		if ( 'number' === $type ) {
+			return is_numeric( $value );
+		}
+		if ( 'mobile' === $type ) {
+			return (bool) preg_match( '/^\+?[0-9]{10,15}$/', $value );
+		}
+		if ( 'date' === $type ) {
+			$date = date_parse_from_format( 'Y-m-d', $value );
+			return 0 === $date['warning_count'] && 0 === $date['error_count'];
+		}
+		return true;
+	}
+
+	private static function is_empty_value( $value ) {
+		return '' === $value || array() === $value;
+	}
+
+	private static function get_field_error( $field, $fallback ) {
+		return ! empty( $field['required_message'] ) ? sanitize_text_field( $field['required_message'] ) : $fallback;
 	}
 }

@@ -18,11 +18,13 @@ class CRPCRM_OTP_Service {
 	private $repository;
 	private $customer_repository;
 	private $provider;
+	private $provider_registry;
 
 	public function __construct( CRPCRM_OTP_Repository $repository = null, CRPCRM_Customer_Repository $customer_repository = null, CRPCRM_SMS_Provider_Interface $provider = null ) {
 		$this->repository          = $repository ? $repository : new CRPCRM_OTP_Repository();
 		$this->customer_repository = $customer_repository ? $customer_repository : new CRPCRM_Customer_Repository();
-		$this->provider            = $provider ? $provider : $this->make_provider();
+		$this->provider_registry   = CRPCRM_SMS_Provider_Registry::get_instance();
+		$this->provider            = $provider;
 	}
 
 	public function request_code( $phone ) {
@@ -56,7 +58,7 @@ class CRPCRM_OTP_Service {
 				'otp_hash'                => wp_hash_password( $code ),
 				'verification_token_hash' => wp_hash_password( $token ),
 				'status'                  => 'created',
-				'provider'                => CRPCRM_Settings::get( 'otp_provider', 'melipayamak' ),
+				'provider'                => $this->provider ? sanitize_key( $this->provider->get_id() ) : $this->provider_registry->get_active_provider_id(),
 				'ip_hash'                 => $ip_hash,
 				'user_agent_hash'         => $ua_hash,
 				'expires_at'              => date( 'Y-m-d H:i:s', $expires_stamp ),
@@ -71,7 +73,7 @@ class CRPCRM_OTP_Service {
 			CRPCRM_Logger::debug( 'otp_debug_code', 'otp_debug_code', array( 'otp_id' => $otp_id, 'phone_hash' => $this->hash_value( $phone_normalized ), 'code' => $code ) );
 		}
 
-		$send_result = $this->provider->send_otp( $phone_normalized, $code );
+		$send_result = $this->provider ? $this->provider->send_otp( $phone_normalized, $code ) : $this->provider_registry->send( $phone_normalized, 'otp', array( 'code' => $code ) );
 		if ( is_wp_error( $send_result ) ) {
 			$this->repository->update(
 				$otp_id,
@@ -329,15 +331,6 @@ class CRPCRM_OTP_Service {
 		}
 
 		return true;
-	}
-
-	private function make_provider() {
-		$provider = CRPCRM_Settings::get( 'otp_provider', 'melipayamak' );
-		if ( 'melipayamak' === $provider ) {
-			return new CRPCRM_Melipayamak_Provider();
-		}
-
-		return new CRPCRM_Melipayamak_Provider();
 	}
 
 	private function current_ip_hash() {

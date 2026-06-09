@@ -255,9 +255,6 @@ class CRPCRM_Customer_Repository {
 				COUNT(*) AS total_requests,
 				SUM(CASE WHEN status IN ('new','in_progress','no_answer','follow_up') THEN 1 ELSE 0 END) AS open_requests,
 				SUM(CASE WHEN status IN ('won','lost','invalid') THEN 1 ELSE 0 END) AS closed_requests,
-				SUM(CASE WHEN request_type = 'car_registration' THEN 1 ELSE 0 END) AS car_registration,
-				SUM(CASE WHEN request_type = 'parts_request' THEN 1 ELSE 0 END) AS parts_request,
-				SUM(CASE WHEN request_type = 'repair_booking' THEN 1 ELSE 0 END) AS repair_booking,
 				SUM(CASE WHEN status = 'won' THEN 1 ELSE 0 END) AS won,
 				SUM(CASE WHEN status = 'lost' THEN 1 ELSE 0 END) AS lost,
 				SUM(CASE WHEN status = 'invalid' THEN 1 ELSE 0 END) AS invalid,
@@ -273,7 +270,16 @@ class CRPCRM_Customer_Repository {
 		if ( $activity_last && ( empty( $row['last_activity_at'] ) || strtotime( $activity_last ) > strtotime( $row['last_activity_at'] ) ) ) {
 			$row['last_activity_at'] = $activity_last;
 		}
-		return array_map( function( $value ) { return null === $value ? 0 : $value; }, $row ? $row : array() );
+		$row                        = array_map( function( $value ) { return null === $value ? 0 : $value; }, $row ? $row : array() );
+		$row['request_type_counts'] = array();
+		$type_rows                  = $wpdb->get_results( $wpdb->prepare( "SELECT request_type, COUNT(*) AS total FROM {$requests} WHERE customer_id = %d GROUP BY request_type ORDER BY total DESC", $customer_id ), ARRAY_A );
+		foreach ( $type_rows as $type_row ) {
+			$request_type = sanitize_key( $type_row['request_type'] );
+			if ( $request_type ) {
+				$row['request_type_counts'][ $request_type ] = absint( $type_row['total'] );
+			}
+		}
+		return $row;
 	}
 
 	public function get_customer_requests( $customer_id, $args = array() ) {

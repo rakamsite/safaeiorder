@@ -199,10 +199,9 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<label><?php echo esc_html( 'نوع درخواست' ); ?>
 					<select name="request_type">
 						<option value=""><?php echo esc_html( 'همه' ); ?></option>
-						<option value="car_registration" <?php selected( $filters['request_type'], 'car_registration' ); ?>><?php echo esc_html( 'ثبت‌نام خودرو' ); ?></option>
-						<option value="parts_request" <?php selected( $filters['request_type'], 'parts_request' ); ?>><?php echo esc_html( 'درخواست قطعات' ); ?></option>
-						<option value="repair_booking" <?php selected( $filters['request_type'], 'repair_booking' ); ?>><?php echo esc_html( 'درخواست تعمیرات' ); ?></option>
-						<option value="lead_follow_up" <?php selected( $filters['request_type'], 'lead_follow_up' ); ?>><?php echo esc_html( 'پیگیری سرنخ' ); ?></option>
+						<?php foreach ( CRPCRM_Request_Type_Registry::get_request_types() as $request_type => $request_type_label ) : ?>
+							<option value="<?php echo esc_attr( $request_type ); ?>" <?php selected( $filters['request_type'], $request_type ); ?>><?php echo esc_html( $request_type_label ); ?></option>
+						<?php endforeach; ?>
 					</select>
 				</label>
 				<label><?php echo esc_html( 'وضعیت' ); ?>

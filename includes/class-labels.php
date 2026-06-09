@@ -19,6 +19,10 @@ class CRPCRM_Labels {
 	}
 
 	public static function get_request_type_label( $type ) {
+		if ( class_exists( 'CRPCRM_Request_Type_Registry' ) ) {
+			return CRPCRM_Request_Type_Registry::get_label( $type );
+		}
+
 		return self::from_map( $type, array(
 			'car_registration' => 'ثبت‌نام خودرو',
 			'parts_request'    => 'درخواست قطعات',

@@ -11,7 +11,7 @@ $messages = array(
 	'manual_request_failed'       => 'ثبت درخواست دستی انجام نشد.',
 );
 $notice = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_notice'] ) ) : '';
-$request_types = array( 'car_registration', 'parts_request', 'repair_booking', 'lead_follow_up' );
+$request_types = array_keys( CRPCRM_Request_Type_Registry::get_request_types() );
 $sources = array( 'direct', 'instagram', 'whatsapp', 'telegram', 'google', 'bing', 'referral', 'other' );
 ?>
 <div class="wrap crpcrm-admin-wrap crpcrm-requests-admin" dir="rtl">
