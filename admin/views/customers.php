@@ -35,10 +35,18 @@ function crpcrm_customer_agent_name( $user_id ) {
 }
 
 $sources = array( 'direct', 'instagram', 'whatsapp', 'telegram', 'google', 'bing' );
+$notice_messages = array(
+	'customer_deleted'       => array( 'success', 'مشتری و تمام درخواست‌ها و اطلاعات CRM مرتبط با او حذف شد. حساب وردپرس مشتری، در صورت وجود، حذف نشده است.' ),
+	'customer_delete_denied' => array( 'error', 'شما اجازه حذف مشتری را ندارید.' ),
+	'customer_not_found'     => array( 'error', 'مشتری موردنظر یافت نشد.' ),
+	'customer_delete_failed' => array( 'error', 'حذف کامل مشتری انجام نشد. لطفاً دوباره تلاش کنید.' ),
+);
+$notice = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_notice'] ) ) : '';
 ?>
 <div class="wrap crpcrm-admin-wrap crpcrm-customers-admin" dir="rtl">
 	<?php if ( 'list' === $mode ) : ?>
 		<h1><?php echo esc_html( 'مشتریان' ); ?></h1>
+		<?php if ( isset( $notice_messages[ $notice ] ) ) : ?><div class="notice notice-<?php echo esc_attr( $notice_messages[ $notice ][0] ); ?> is-dismissible"><p><?php echo esc_html( $notice_messages[ $notice ][1] ); ?></p></div><?php endif; ?>
 		<p><?php echo esc_html( 'لیست ساده مشتریان CRM با خلاصه منابع ورود و وضعیت درخواست‌ها.' ); ?></p>
 		<form method="get" class="crpcrm-request-filters">
 			<input type="hidden" name="page" value="crpcrm-customers">
@@ -77,7 +85,17 @@ $sources = array( 'direct', 'instagram', 'whatsapp', 'telegram', 'google', 'bing
 						<td><?php echo esc_html( number_format_i18n( absint( $item['open_requests_count'] ) ) ); ?></td>
 						<td><?php echo esc_html( $item['last_request_code'] ? $item['last_request_code'] . ' - ' . CRPCRM_Helpers::format_jalali_datetime( $item['last_request_at'] ) : '—' ); ?></td>
 						<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['created_at'] ) ); ?></td>
-						<td><a class="button button-small" href="<?php echo esc_url( crpcrm_admin_customer_profile_url( $item['id'] ) ); ?>"><?php echo esc_html( 'مشاهده پروفایل' ); ?></a></td>
+						<td>
+							<a class="button button-small" href="<?php echo esc_url( crpcrm_admin_customer_profile_url( $item['id'] ) ); ?>"><?php echo esc_html( 'مشاهده پروفایل' ); ?></a>
+							<?php if ( current_user_can( 'manage_options' ) ) : ?>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_js( 'این مشتری و تمام درخواست‌ها و اطلاعات CRM مرتبط با او برای همیشه حذف می‌شود. حساب وردپرس او حذف نخواهد شد. ادامه می‌دهید؟' ); ?>');">
+									<input type="hidden" name="action" value="crpcrm_delete_customer">
+									<input type="hidden" name="customer_id" value="<?php echo esc_attr( absint( $item['id'] ) ); ?>">
+									<?php wp_nonce_field( 'crpcrm_delete_customer_' . absint( $item['id'] ) ); ?>
+									<button type="submit" class="button button-small button-link-delete"><?php echo esc_html( 'حذف مشتری' ); ?></button>
+								</form>
+							<?php endif; ?>
+						</td>
 					</tr>
 				<?php endforeach; ?>
 			<?php endif; ?>
