@@ -21,6 +21,7 @@ class CRPCRM_Settings {
 		$site_host = wp_parse_url( home_url(), PHP_URL_HOST );
 		return array(
 			'business_profile'                      => 'safaei',
+			'enabled_forms'                         => array(),
 			'portal_page_id'                       => 0,
 			'portal_menu_id'                       => 0,
 			'customer_registration_enabled'        => 'yes',
@@ -60,25 +61,18 @@ class CRPCRM_Settings {
 		);
 	}
 
+	/** Backward-compatible wrapper; vehicle definitions belong to the Safaei profile. */
 	public static function vehicle_form_labels() {
-		return array(
-			'new_car_registration' => 'فرم ثبت‌نام خودرو',
-			'new_parts_request'    => 'فرم درخواست قطعات',
-			'new_repair_booking'   => 'فرم درخواست تعمیرات',
-		);
+		$profile = class_exists( 'CRPCRM_Safaei_Business_Profile' ) ? new CRPCRM_Safaei_Business_Profile() : null;
+		return $profile && method_exists( $profile, 'get_vehicle_form_labels' ) ? $profile->get_vehicle_form_labels() : array();
 	}
 
+	/** Backward-compatible wrapper; vehicle definitions belong to the Safaei profile. */
 	public static function default_vehicle_options() {
-		return array(
-			array( 'label' => 'فونیکس FX', 'priority' => 10, 'enabled' => 'yes' ),
-			array( 'label' => 'تیگو ۷', 'priority' => 20, 'enabled' => 'yes' ),
-			array( 'label' => 'تیگو ۸', 'priority' => 30, 'enabled' => 'yes' ),
-			array( 'label' => 'آریزو ۵', 'priority' => 40, 'enabled' => 'yes' ),
-			array( 'label' => 'آریزو ۶', 'priority' => 50, 'enabled' => 'yes' ),
-			array( 'label' => 'X22', 'priority' => 60, 'enabled' => 'yes' ),
-			array( 'label' => 'X55', 'priority' => 70, 'enabled' => 'yes' ),
-		);
+		$profile = class_exists( 'CRPCRM_Safaei_Business_Profile' ) ? new CRPCRM_Safaei_Business_Profile() : null;
+		return $profile && method_exists( $profile, 'get_default_vehicle_options' ) ? $profile->get_default_vehicle_options() : array();
 	}
+
 
 	public static function default_vehicle_options_by_form() {
 		$options = array();
@@ -119,6 +113,10 @@ class CRPCRM_Settings {
 		$stored_options = is_array( $stored_options ) ? $stored_options : array();
 		$options_by_form = isset( $stored_options['vehicle_options_by_form'] ) && is_array( $stored_options['vehicle_options_by_form'] ) ? $stored_options['vehicle_options_by_form'] : array();
 		$legacy_options  = isset( $stored_options['vehicle_options'] ) && is_array( $stored_options['vehicle_options'] ) ? $stored_options['vehicle_options'] : self::default_vehicle_options();
+
+		$form_key = class_exists( 'CRPCRM_Form_Registry' ) ? CRPCRM_Form_Registry::resolve_form_id( $form_key ) : $form_key;
+		$legacy_keys = array_flip( class_exists( 'CRPCRM_Form_Registry' ) ? CRPCRM_Form_Registry::get_aliases() : array() );
+		if ( $form_key && ! isset( $options_by_form[ $form_key ] ) && isset( $legacy_keys[ $form_key ], $options_by_form[ $legacy_keys[ $form_key ] ] ) ) { $options_by_form[ $form_key ] = $options_by_form[ $legacy_keys[ $form_key ] ]; }
 
 		if ( $form_key && isset( $options_by_form[ $form_key ] ) && is_array( $options_by_form[ $form_key ] ) ) {
 			return $options_by_form[ $form_key ];
@@ -229,6 +227,10 @@ class CRPCRM_Settings {
 			$profile_id = isset( $input['business_profile'] ) ? sanitize_key( $input['business_profile'] ) : $defaults['business_profile'];
 			$profiles                          = CRPCRM_Business_Profile_Manager::get_instance()->get_profiles();
 			$settings['business_profile']      = isset( $profiles[ $profile_id ] ) ? $profile_id : $defaults['business_profile'];
+			$active_profile_id                    = $settings['business_profile'];
+			$profile_forms                        = isset( $profiles[ $active_profile_id ] ) ? $profiles[ $active_profile_id ]->get_forms() : array();
+			$submitted_forms                      = isset( $input['enabled_forms'][ $active_profile_id ] ) && is_array( $input['enabled_forms'][ $active_profile_id ] ) ? array_map( 'sanitize_key', $input['enabled_forms'][ $active_profile_id ] ) : array();
+			$settings['enabled_forms'][ $active_profile_id ] = array_values( array_intersect( array_map( 'sanitize_key', array_keys( $profile_forms ) ), $submitted_forms ) );
 			$settings['portal_page_id']                = isset( $input['portal_page_id'] ) ? absint( $input['portal_page_id'] ) : $defaults['portal_page_id'];
 			$settings['portal_menu_id']                = isset( $input['portal_menu_id'] ) ? absint( $input['portal_menu_id'] ) : $defaults['portal_menu_id'];
 			$settings['customer_registration_enabled'] = $this->checkbox( $input, 'customer_registration_enabled' );
@@ -256,7 +258,7 @@ class CRPCRM_Settings {
 			$settings['internal_domains']           = $this->sanitize_domains( isset( $input['internal_domains'] ) ? $input['internal_domains'] : $defaults['internal_domains'] );
 		} elseif ( 'crm' === $active_tab ) {
 			$settings['vehicle_options_by_form']              = $this->sanitize_vehicle_options_by_form( isset( $input['vehicle_options_by_form'] ) ? $input['vehicle_options_by_form'] : array(), $current );
-			$settings['vehicle_options']                      = isset( $settings['vehicle_options_by_form']['new_car_registration'] ) ? $settings['vehicle_options_by_form']['new_car_registration'] : $this->sanitize_vehicle_options( isset( $input['vehicle_options'] ) ? $input['vehicle_options'] : array() );
+			$settings['vehicle_options']                      = isset( $settings['vehicle_options_by_form']['safaei_car_registration'] ) ? $settings['vehicle_options_by_form']['safaei_car_registration'] : $this->sanitize_vehicle_options( isset( $input['vehicle_options'] ) ? $input['vehicle_options'] : array() );
 			$settings['request_rate_limit_count']             = $this->bounded_absint( $input, 'request_rate_limit_count', 1, 100, $defaults['request_rate_limit_count'] );
 			$settings['request_rate_limit_minutes']           = $this->bounded_absint( $input, 'request_rate_limit_minutes', 1, 1440, $defaults['request_rate_limit_minutes'] );
 			$settings['stale_request_hours']                  = $this->bounded_absint( $input, 'stale_request_hours', 1, 720, $defaults['stale_request_hours'] );

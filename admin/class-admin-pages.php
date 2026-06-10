@@ -740,12 +740,24 @@ class CRPCRM_Admin_Pages {
 			}
 		}
 
-		$allowed_types    = array_keys( CRPCRM_Request_Type_Registry::get_request_types() );
+		$form_id          = isset( $_POST['form_id'] ) ? sanitize_key( wp_unslash( $_POST['form_id'] ) ) : '';
+		$form             = CRPCRM_Form_Registry::get_enabled_form( $form_id );
+		if ( ! $form && empty( $form_id ) && ! empty( $_POST['request_type'] ) ) {
+			$legacy_form = CRPCRM_Form_Registry::get_form_by_request_type( sanitize_key( wp_unslash( $_POST['request_type'] ) ) );
+			$form        = $legacy_form ? CRPCRM_Form_Registry::get_enabled_form( $legacy_form['id'] ?? '' ) : null;
+		}
 		$allowed_statuses = array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' );
-		$request_type     = isset( $_POST['request_type'] ) ? sanitize_key( wp_unslash( $_POST['request_type'] ) ) : '';
 		$status           = isset( $_POST['request_status'] ) ? sanitize_key( wp_unslash( $_POST['request_status'] ) ) : 'new';
-		if ( ! in_array( $request_type, $allowed_types, true ) ) {
+		if ( ! $form ) {
+			$this->redirect_to_manual_request_form( 'manual_form_invalid' );
+		}
+		$request_type = sanitize_key( $form['request_type'] ?? '' );
+		if ( ! CRPCRM_Request_Type_Registry::is_registered( $request_type ) ) {
 			$this->redirect_to_manual_request_form( 'manual_request_type_invalid' );
+		}
+		$validated = CRPCRM_Request_Forms::sanitize_and_validate( $form, $_POST );
+		if ( ! empty( $validated['errors'] ) ) {
+			$this->redirect_to_manual_request_form( 'manual_form_invalid' );
 		}
 		if ( ! in_array( $status, $allowed_statuses, true ) ) {
 			$status = 'new';
@@ -757,14 +769,18 @@ class CRPCRM_Admin_Pages {
 			$assignable_ids     = wp_list_pluck( $this->get_assignable_users(), 'ID' );
 			$owner_id           = $requested_owner_id && in_array( $requested_owner_id, array_map( 'absint', $assignable_ids ), true ) ? $requested_owner_id : 0;
 		}
-		$request_data = array();
-		foreach ( array( 'desired_vehicle', 'part_name', 'vehicle_model', 'description', 'service_type', 'problem_description', 'manual_details' ) as $field ) {
-			if ( ! empty( $_POST[ $field ] ) ) {
-				$request_data[ $field ] = sanitize_textarea_field( wp_unslash( $_POST[ $field ] ) );
-			}
+		$submitted_fields = $validated['data'];
+		$request_data     = $submitted_fields;
+		$request_data['business_profile'] = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$request_data['form_id']          = sanitize_key( $form['id'] );
+		$request_data['form_version']     = sanitize_text_field( $form['version'] ?? '' );
+		$request_data['fields']           = $submitted_fields;
+		$request_data['submitted_fields'] = $submitted_fields;
+		if ( ! empty( $_POST['manual_details'] ) ) {
+			$request_data['manual_details'] = sanitize_textarea_field( wp_unslash( $_POST['manual_details'] ) );
 		}
+
 		$now          = CRPCRM_Helpers::current_datetime();
-		$request_data = array_filter( $request_data, 'strlen' );
 		$request_args = array(
 				'customer_id'      => absint( $customer['id'] ),
 				'user_id'          => absint( $customer['user_id'] ),
@@ -773,7 +789,7 @@ class CRPCRM_Admin_Pages {
 				'owner_id'         => $owner_id ? $owner_id : null,
 				'first_assigned_at' => $owner_id ? $now : null,
 				'request_title'    => ! empty( $_POST['request_title'] ) ? sanitize_text_field( wp_unslash( $_POST['request_title'] ) ) : CRPCRM_Helpers::get_request_type_label( $request_type ),
-				'request_summary'  => isset( $_POST['request_summary'] ) ? sanitize_textarea_field( wp_unslash( $_POST['request_summary'] ) ) : '',
+				'request_summary'  => ! empty( $_POST['request_summary'] ) ? sanitize_textarea_field( wp_unslash( $_POST['request_summary'] ) ) : CRPCRM_Request_Forms::build_summary( $form, $submitted_fields ),
 				'request_data'     => $request_data,
 				'request_source'   => isset( $_POST['request_source'] ) ? sanitize_key( wp_unslash( $_POST['request_source'] ) ) : 'direct',
 				'request_medium'   => isset( $_POST['request_medium'] ) ? sanitize_key( wp_unslash( $_POST['request_medium'] ) ) : '',
@@ -828,8 +844,11 @@ class CRPCRM_Admin_Pages {
 			$this->render_message( 'شما اجازه ایجاد درخواست را ندارید.' );
 			return;
 		}
-		$search = isset( $_GET['customer_search'] ) ? sanitize_text_field( wp_unslash( $_GET['customer_search'] ) ) : '';
-		$this->render( 'request-create.php', array( 'customer_search' => $search, 'customer_results' => $this->customer_repository->search_for_manual_request( $search ), 'assignable_users' => CRPCRM_Request_Access_Service::can_manage_request() ? $this->get_assignable_users() : array( wp_get_current_user() ), 'can_manage' => CRPCRM_Request_Access_Service::can_manage_request() ) );
+		$search        = isset( $_GET['customer_search'] ) ? sanitize_text_field( wp_unslash( $_GET['customer_search'] ) ) : '';
+		$forms         = CRPCRM_Form_Registry::get_enabled_forms();
+		$selected_id   = isset( $_GET['form_id'] ) ? sanitize_key( wp_unslash( $_GET['form_id'] ) ) : ( $forms ? sanitize_key( array_key_first( $forms ) ) : '' );
+		$selected_form = CRPCRM_Form_Registry::get_enabled_form( $selected_id );
+		$this->render( 'request-create.php', array( 'customer_search' => $search, 'customer_results' => $this->customer_repository->search_for_manual_request( $search ), 'assignable_users' => CRPCRM_Request_Access_Service::can_manage_request() ? $this->get_assignable_users() : array( wp_get_current_user() ), 'can_manage' => CRPCRM_Request_Access_Service::can_manage_request(), 'forms' => $forms, 'selected_form' => $selected_form ) );
 	}
 
 	private function redirect_to_manual_request_form( $notice ) {

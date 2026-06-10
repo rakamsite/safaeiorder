@@ -20,18 +20,15 @@ class CRPCRM_Request_Forms {
 	}
 
 	public static function get_form_by_request_type( $request_type ) {
-		$request_type = sanitize_key( $request_type );
-		foreach ( self::get_forms() as $form ) {
-			if ( isset( $form['request_type'] ) && $request_type === $form['request_type'] ) {
-				return $form;
-			}
-		}
-
-		return null;
+		return CRPCRM_Form_Registry::get_form_by_request_type( $request_type );
 	}
 
-	public static function get_field_labels_for_request_type( $request_type ) {
-		$form = self::get_form_by_request_type( $request_type );
+	public static function get_form_for_request( $request_type, $request_data ) {
+		return CRPCRM_Form_Registry::get_form_for_request( $request_type, $request_data );
+	}
+
+	public static function get_field_labels_for_request_type( $request_type, $request_data = array() ) {
+		$form = self::get_form_for_request( $request_type, $request_data );
 		if ( ! $form ) {
 			return array();
 		}
@@ -45,7 +42,7 @@ class CRPCRM_Request_Forms {
 	}
 
 	public static function build_display_summary( $request_type, $request_data, $fallback = '' ) {
-		$form = self::get_form_by_request_type( $request_type );
+		$form = self::get_form_for_request( $request_type, $request_data );
 		if ( ! $form || ! is_array( $request_data ) ) {
 			return $fallback;
 		}

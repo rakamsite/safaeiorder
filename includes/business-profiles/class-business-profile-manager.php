@@ -17,6 +17,7 @@ class CRPCRM_Business_Profile_Manager {
 
 	private function __construct() {
 		$this->register_profile( new CRPCRM_Safaei_Business_Profile() );
+		do_action( 'crpcrm_register_business_profiles', $this );
 	}
 
 	public static function get_instance() {
@@ -27,7 +28,14 @@ class CRPCRM_Business_Profile_Manager {
 		return self::$instance;
 	}
 
-	public function register_profile( CRPCRM_Business_Profile_Interface $profile ) {
+	public function register_profile( $profile ) {
+		if ( ! $profile instanceof CRPCRM_Business_Profile_Interface ) {
+			if ( class_exists( 'CRPCRM_Logger' ) ) {
+				CRPCRM_Logger::warning( 'business_profile_registration_invalid', 'business_profile', array( 'value_type' => is_object( $profile ) ? get_class( $profile ) : gettype( $profile ) ) );
+			}
+			return false;
+		}
+
 		$profile_id = sanitize_key( $profile->get_id() );
 		if ( '' === $profile_id ) {
 			return false;

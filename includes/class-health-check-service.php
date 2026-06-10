@@ -95,18 +95,26 @@ class CRPCRM_Health_Check_Service {
 					'key'     => 'sms_settings',
 					'label'   => 'وضعیت تنظیمات پیامک',
 					'status'  => 'warning',
-					'message' => 'نیازمند بررسی: ارائه‌دهنده پیامک انتخاب‌شده شناخته‌شده نیست.',
+					'message' => 'نیازمند بررسی: ارائه‌دهنده پیامک انتخاب‌شده (' . $configured_provider . ') شناخته‌شده نیست.',
 				),
 			);
 		}
 
 		$validation = $provider->validate_settings( CRPCRM_Settings::get() );
+		$message    = 'ارائه‌دهنده فعال: ' . $provider->get_label() . ' — تنظیمات کامل است.';
+		if ( is_wp_error( $validation ) ) {
+			$error_data = $validation->get_error_data();
+			$missing    = is_array( $error_data ) && isset( $error_data['missing'] ) ? (array) $error_data['missing'] : array();
+			$schema  = $provider->get_settings_schema();
+			$labels  = array_map( function ( $key ) use ( $schema ) { return isset( $schema[ $key ]['label'] ) ? $schema[ $key ]['label'] : $key; }, $missing );
+			$message = 'نیازمند بررسی: تنظیمات ارائه‌دهنده فعال کامل نیست.' . ( $labels ? ' فیلدهای ناقص: ' . implode( '، ', $labels ) : '' );
+		}
 		return array(
 			array(
 				'key'     => 'sms_settings',
 				'label'   => 'وضعیت تنظیمات پیامک (' . $provider->get_label() . ')',
 				'status'  => is_wp_error( $validation ) ? 'warning' : 'ok',
-				'message' => is_wp_error( $validation ) ? 'نیازمند بررسی: تنظیمات ارائه‌دهنده فعال کامل نیست.' : 'سالم',
+				'message' => $message,
 			),
 		);
 	}
