@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Lead_Follow_Up_Service {
-	const CRON_HOOK = 'crpcrm_create_lead_follow_ups';
+	const CRON_HOOK = CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CRON;
 
 	private $customer_repository;
 	private $request_repository;
@@ -68,7 +68,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 					'request_source'   => ! empty( $customer['first_source'] ) ? $customer['first_source'] : 'direct',
 					'request_medium'   => ! empty( $customer['first_medium'] ) ? $customer['first_medium'] : 'none',
 					'request_campaign' => isset( $customer['first_campaign'] ) ? $customer['first_campaign'] : '',
-					'last_action'      => 'lead_follow_up_created',
+					'last_action'      => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED,
 				)
 			);
 
@@ -76,11 +76,11 @@ class CRPCRM_Lead_Follow_Up_Service {
 				continue;
 			}
 
-			CRPCRM_Activity::add( $request_id, 'lead_follow_up_created', array( 'customer_id' => absint( $customer['id'] ), 'actor_type' => 'system', 'new_status' => 'new', 'note' => $reason, 'is_internal' => 1 ) );
+			CRPCRM_Activity::add( $request_id, CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED, array( 'customer_id' => absint( $customer['id'] ), 'actor_type' => 'system', 'new_status' => 'new', 'note' => $reason, 'is_internal' => 1 ) );
 			$created++;
 		}
 
-		CRPCRM_Logger::info( 'lead_follow_up_cron_completed', 'request', array( 'eligible' => count( $customers ), 'created' => $created ) );
+		CRPCRM_Logger::info( 'system_request_cron_completed', 'request', array( 'request_type' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP, 'eligible' => count( $customers ), 'created' => $created ) );
 		return $created;
 	}
 }

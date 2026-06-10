@@ -33,7 +33,8 @@ class CRPCRM_Business_Profile_Manager {
 
 	public function register_hooks() {
 		add_action( 'plugins_loaded', array( $this, 'initialize_profiles' ), 20 );
-		add_action( 'plugins_loaded', array( $this, 'maybe_migrate_legacy_profile' ), 30 );
+		add_action( 'plugins_loaded', array( $this, 'maybe_auto_lock_profile' ), 30 );
+		add_action( 'admin_notices', array( $this, 'render_invalid_profile_notice' ) );
 	}
 
 	public function initialize_profiles() {
@@ -71,7 +72,20 @@ class CRPCRM_Business_Profile_Manager {
 	}
 
 	public static function is_setup_completed() {
-		return 'yes' === get_option( self::SETUP_COMPLETED_OPTION, 'no' ) && '' !== sanitize_key( get_option( self::PROFILE_OPTION, '' ) );
+		return 'yes' === get_option( self::SETUP_COMPLETED_OPTION, 'no' ) && '' !== self::get_locked_profile_id();
+	}
+
+	public static function get_locked_profile_id() {
+		return sanitize_key( get_option( self::PROFILE_OPTION, '' ) );
+	}
+
+	public function can_change_profile() {
+		return ! self::is_setup_completed();
+	}
+
+	public function is_locked_profile_valid() {
+		$profile_id = self::get_locked_profile_id();
+		return self::is_setup_completed() && isset( $this->get_profiles()[ $profile_id ] );
 	}
 
 	public function get_active_profile_id() {
@@ -79,7 +93,7 @@ class CRPCRM_Business_Profile_Manager {
 			return '';
 		}
 
-		$profile_id = sanitize_key( get_option( self::PROFILE_OPTION, '' ) );
+		$profile_id = self::get_locked_profile_id();
 		return isset( $this->get_profiles()[ $profile_id ] ) ? $profile_id : '';
 	}
 
@@ -116,28 +130,22 @@ class CRPCRM_Business_Profile_Manager {
 		return true;
 	}
 
-	public function maybe_migrate_legacy_profile() {
-		if ( false !== get_option( self::SETUP_COMPLETED_OPTION, false ) ) {
+	public function maybe_auto_lock_profile() {
+		if ( self::is_setup_completed() ) {
 			return;
 		}
 
-		$settings   = get_option( 'crpcrm_settings', array() );
-		$candidates = array(
-			get_option( 'active_business_profile', '' ),
-			is_array( $settings ) && isset( $settings['active_business_profile'] ) ? $settings['active_business_profile'] : '',
-			is_array( $settings ) && isset( $settings['business_profile'] ) ? $settings['business_profile'] : '',
-		);
+		$profiles = $this->get_profiles();
+		if ( 1 === count( $profiles ) ) {
+			$this->complete_setup( sanitize_key( array_key_first( $profiles ) ) );
+		}
+	}
 
-		foreach ( $candidates as $candidate ) {
-			$candidate = sanitize_key( $candidate );
-			if ( $candidate && isset( $this->get_profiles()[ $candidate ] ) ) {
-				$this->complete_setup( $candidate );
-				return;
-			}
+	public function render_invalid_profile_notice() {
+		if ( ! current_user_can( 'manage_options' ) || ! self::is_setup_completed() || $this->is_locked_profile_valid() ) {
+			return;
 		}
 
-		add_option( self::PROFILE_OPTION, '' );
-		add_option( self::SETUP_COMPLETED_OPTION, 'no' );
-		add_option( self::SETUP_COMPLETED_AT_OPTION, '' );
+		echo '<div class="notice notice-error"><p>' . esc_html( 'پروفایل کسب‌وکار قفل‌شده ثبت نشده یا نامعتبر است. تا رفع مشکل، بخش‌های افزونه غیرفعال هستند.' ) . '</p></div>';
 	}
 }

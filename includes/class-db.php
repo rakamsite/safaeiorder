@@ -44,6 +44,7 @@ class CRPCRM_DB {
 			dbDelta( $sql );
 		}
 
+		self::remove_obsolete_request_indexes();
 		self::backfill_request_profile_columns();
 		update_option( 'crpcrm_db_version', CRPCRM_DB_VERSION );
 	}
@@ -162,15 +163,14 @@ class CRPCRM_DB {
 				UNIQUE KEY request_code (request_code),
 				KEY customer_id (customer_id),
 				KEY user_id (user_id),
-				KEY request_type (request_type),
-				KEY business_profile (business_profile),
 				KEY form_id (form_id),
-				KEY status (status),
-				KEY owner_id (owner_id),
+				KEY profile_created (business_profile,created_at),
+				KEY profile_status (business_profile,status),
+				KEY profile_type_created (business_profile,request_type,created_at),
+				KEY profile_owner_status (business_profile,owner_id,status),
 				KEY request_source (request_source),
 				KEY request_campaign (request_campaign),
 				KEY request_content (request_content),
-				KEY created_at (created_at),
 				KEY next_follow_up_at (next_follow_up_at),
 				KEY closed_at (closed_at)
 			) $charset_collate;",
@@ -381,5 +381,17 @@ class CRPCRM_DB {
 				}
 			}
 		} while ( count( $rows ) === 200 );
+	}
+
+	private static function remove_obsolete_request_indexes() {
+		global $wpdb;
+
+		$table = self::table( 'requests' );
+		foreach ( array( 'business_profile', 'request_type', 'status', 'owner_id', 'created_at' ) as $index_name ) {
+			$exists = $wpdb->get_var( $wpdb->prepare( "SHOW INDEX FROM {$table} WHERE Key_name = %s", $index_name ) );
+			if ( $exists ) {
+				$wpdb->query( "ALTER TABLE {$table} DROP INDEX `{$index_name}`" );
+			}
+		}
 	}
 }

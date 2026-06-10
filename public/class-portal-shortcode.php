@@ -70,7 +70,7 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function render() {
-		if ( ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
+		if ( ! CRPCRM_Business_Profile_Manager::get_instance()->is_locked_profile_valid() ) {
 			return '<div class="crpcrm-setup-required" dir="rtl">' . esc_html( 'افزونه هنوز راه‌اندازی اولیه نشده است' ) . '</div>';
 		}
 
@@ -632,7 +632,7 @@ class CRPCRM_Portal_Shortcode {
 				$request = $this->request_repository->get_by_code( $request_code );
 			}
 
-			if ( ! $request || ( absint( $request['customer_id'] ) !== $customer_id && absint( $request['user_id'] ) !== get_current_user_id() ) ) {
+			if ( ! $request || CRPCRM_System_Request_Types::is_system_type( $request['request_type'] ) || ( absint( $request['customer_id'] ) !== $customer_id && absint( $request['user_id'] ) !== get_current_user_id() ) ) {
 				CRPCRM_Logger::warning( 'customer_request_access_denied', 'request', array( 'user_id' => get_current_user_id(), 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code ) );
 				$data['access_denied'] = true;
 				return $data;

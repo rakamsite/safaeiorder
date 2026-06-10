@@ -30,7 +30,7 @@ class CRPCRM_Maintenance_Service {
 	public function fix_missing_request_codes() {
 		global $wpdb;
 		$table = CRPCRM_DB::table( 'requests' );
-		$ids   = $wpdb->get_col( "SELECT id FROM {$table} WHERE request_code = '' OR request_code IS NULL ORDER BY id ASC" );
+		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE business_profile = %s AND (request_code = '' OR request_code IS NULL) ORDER BY id ASC", CRPCRM_Business_Profile_Manager::get_locked_profile_id() ) );
 		$count = 0;
 		$repo  = new CRPCRM_Request_Repository();
 		foreach ( $ids as $id ) {

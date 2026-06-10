@@ -19,6 +19,30 @@ class CRPCRM_Admin_Menu {
 	public function register_hooks() {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		add_action( 'admin_init', array( $this, 'guard_internal_pages' ) );
+	}
+
+	public function guard_internal_pages() {
+		if ( ! is_admin() || wp_doing_ajax() || ! isset( $_GET['page'] ) ) {
+			return;
+		}
+
+		$page = sanitize_key( wp_unslash( $_GET['page'] ) );
+		if ( 0 !== strpos( $page, 'crpcrm-' ) || 'crpcrm-setup' === $page ) {
+			return;
+		}
+
+		$manager = CRPCRM_Business_Profile_Manager::get_instance();
+		if ( ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
+			if ( current_user_can( 'manage_options' ) ) {
+				wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-setup' ), admin_url( 'admin.php' ) ) );
+				exit;
+			}
+			wp_die( esc_html( 'افزونه هنوز راه‌اندازی اولیه نشده است.' ) );
+		}
+		if ( ! $manager->is_locked_profile_valid() ) {
+			wp_die( esc_html( 'پروفایل کسب‌وکار قفل‌شده معتبر نیست. لطفاً با مدیر سایت تماس بگیرید.' ) );
+		}
 	}
 
 	public function register_menu() {
@@ -34,6 +58,9 @@ class CRPCRM_Admin_Menu {
 					26
 				);
 			}
+			return;
+		}
+		if ( ! CRPCRM_Business_Profile_Manager::get_instance()->is_locked_profile_valid() ) {
 			return;
 		}
 

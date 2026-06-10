@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'CRPCRM_VERSION', '0.1.5' );
-define( 'CRPCRM_DB_VERSION', '0.4.0' );
+define( 'CRPCRM_DB_VERSION', '0.5.1' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

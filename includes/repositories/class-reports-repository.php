@@ -17,14 +17,16 @@ class CRPCRM_Reports_Repository {
 	private $open_statuses   = array( 'new', 'in_progress', 'no_answer', 'follow_up' );
 	private $closed_statuses = array( 'won', 'lost', 'invalid' );
 	private $statuses        = array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' );
-	private $request_types   = array();
 	private $known_sources   = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegram', 'bing' );
 
 	public function __construct() {
 		$this->requests_table   = CRPCRM_DB::table( 'requests' );
 		$this->customers_table  = CRPCRM_DB::table( 'customers' );
 		$this->activities_table = CRPCRM_DB::table( 'request_activities' );
-		$this->request_types     = CRPCRM_Request_Type_Registry::get_request_type_ids();
+	}
+
+	private function get_request_types() {
+		return CRPCRM_Request_Type_Registry::get_request_type_ids();
 	}
 
 	public function normalize_filters( $input ) {
@@ -46,7 +48,7 @@ class CRPCRM_Reports_Repository {
 		if ( ! in_array( $filters['date_range'], $allowed_ranges, true ) ) {
 			$filters['date_range'] = 'today';
 		}
-		if ( $filters['request_type'] && ! in_array( $filters['request_type'], $this->request_types, true ) ) {
+		if ( $filters['request_type'] && ! in_array( $filters['request_type'], $this->get_request_types(), true ) ) {
 			$filters['request_type'] = '';
 		}
 		if ( $filters['status'] && ! in_array( $filters['status'], $this->statuses, true ) ) {
@@ -387,9 +389,10 @@ class CRPCRM_Reports_Repository {
 		$values = array();
 		$p      = preg_replace( '/[^a-zA-Z0-9_]/', '', $alias );
 
-		if ( ! empty( $filters['business_profile'] ) ) {
+		$profile_id = ! empty( $filters['business_profile'] ) ? sanitize_key( $filters['business_profile'] ) : CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		if ( $profile_id ) {
 			$where[]  = "$p.business_profile = %s";
-			$values[] = sanitize_key( $filters['business_profile'] );
+			$values[] = $profile_id;
 		}
 		if ( ! empty( $filters['start_date'] ) ) {
 			$where[]  = "$p.$date_column >= %s";
@@ -399,7 +402,7 @@ class CRPCRM_Reports_Repository {
 			$where[]  = "$p.$date_column <= %s";
 			$values[] = sanitize_text_field( $filters['end_date'] );
 		}
-		if ( ! empty( $filters['request_type'] ) && in_array( $filters['request_type'], $this->request_types, true ) ) {
+		if ( ! empty( $filters['request_type'] ) && in_array( $filters['request_type'], $this->get_request_types(), true ) ) {
 			$where[]  = "$p.request_type = %s";
 			$values[] = $filters['request_type'];
 		}
@@ -457,7 +460,7 @@ class CRPCRM_Reports_Repository {
 	private function build_request_type_count_columns() {
 		$columns = array();
 		$values  = array();
-		foreach ( $this->request_types as $request_type ) {
+		foreach ( $this->get_request_types() as $request_type ) {
 			$alias = sanitize_key( $request_type );
 			if ( '' === $alias ) {
 				continue;
