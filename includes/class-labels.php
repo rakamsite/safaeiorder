@@ -23,11 +23,7 @@ class CRPCRM_Labels {
 			return CRPCRM_Request_Type_Registry::get_label( $type );
 		}
 
-		return self::from_map( $type, array(
-			'car_registration' => 'ثبت‌نام خودرو',
-			'parts_request'    => 'درخواست قطعات',
-			'repair_booking'   => 'درخواست تعمیرات',
-		) );
+		return self::from_map( $type, array() );
 	}
 
 	public static function get_status_label( $status ) {

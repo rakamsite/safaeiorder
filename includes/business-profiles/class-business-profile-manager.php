@@ -10,7 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Business_Profile_Manager {
-	const DEFAULT_PROFILE_ID = 'safaei';
 	const PROFILE_OPTION = 'crpcrm_business_profile_id';
 	const SETUP_COMPLETED_OPTION = 'crpcrm_setup_completed';
 	const SETUP_COMPLETED_AT_OPTION = 'crpcrm_setup_completed_at';
@@ -33,7 +32,6 @@ class CRPCRM_Business_Profile_Manager {
 
 	public function register_hooks() {
 		add_action( 'plugins_loaded', array( $this, 'initialize_profiles' ), 20 );
-		add_action( 'plugins_loaded', array( $this, 'maybe_auto_lock_profile' ), 30 );
 		add_action( 'admin_notices', array( $this, 'render_invalid_profile_notice' ) );
 	}
 
@@ -114,6 +112,43 @@ class CRPCRM_Business_Profile_Manager {
 		return is_array( $request_types ) ? $request_types : array();
 	}
 
+	public function get_profile_settings_option_name( $profile_id ) {
+		return 'crpcrm_profile_settings_' . sanitize_key( $profile_id );
+	}
+
+	public function get_active_profile_settings() {
+		$profile = $this->get_active_profile();
+		if ( ! $profile || ! $profile->has_profile_settings() ) {
+			return array();
+		}
+
+		$stored   = get_option( $this->get_profile_settings_option_name( $profile->get_id() ), array() );
+		$stored   = is_array( $stored ) ? $stored : array();
+		$defaults = $profile->get_profile_default_settings();
+		return wp_parse_args( $stored, is_array( $defaults ) ? $defaults : array() );
+	}
+
+	public function save_active_profile_settings( $input ) {
+		$profile = $this->get_active_profile();
+		if ( ! $profile || ! $profile->has_profile_settings() ) {
+			return false;
+		}
+
+		$current = $this->get_active_profile_settings();
+		$clean   = $profile->sanitize_profile_settings( is_array( $input ) ? $input : array(), $current );
+		return update_option( $this->get_profile_settings_option_name( $profile->get_id() ), is_array( $clean ) ? $clean : array() );
+	}
+
+	public function render_active_profile_settings() {
+		$profile = $this->get_active_profile();
+		if ( ! $profile || ! $profile->has_profile_settings() ) {
+			echo '<p>' . esc_html( 'این پروفایل تنظیمات اختصاصی ندارد.' ) . '</p>';
+			return;
+		}
+
+		$profile->render_profile_settings( $this->get_active_profile_settings() );
+	}
+
 	public function complete_setup( $profile_id ) {
 		if ( 'yes' === get_option( self::SETUP_COMPLETED_OPTION, 'no' ) ) {
 			return false;
@@ -128,17 +163,6 @@ class CRPCRM_Business_Profile_Manager {
 		update_option( self::SETUP_COMPLETED_AT_OPTION, current_time( 'mysql', true ) );
 		update_option( self::SETUP_COMPLETED_OPTION, 'yes' );
 		return true;
-	}
-
-	public function maybe_auto_lock_profile() {
-		if ( self::is_setup_completed() ) {
-			return;
-		}
-
-		$profiles = $this->get_profiles();
-		if ( 1 === count( $profiles ) ) {
-			$this->complete_setup( sanitize_key( array_key_first( $profiles ) ) );
-		}
 	}
 
 	public function render_invalid_profile_notice() {

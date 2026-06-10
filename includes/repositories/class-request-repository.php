@@ -105,28 +105,25 @@ class CRPCRM_Request_Repository {
 		$offset   = absint( $args['offset'] );
 		$user_id  = absint( $args['user_id'] );
 		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$system_types = CRPCRM_System_Request_Types::get_type_ids();
+		$system_sql   = $system_types ? ' AND request_type NOT IN (' . implode( ', ', array_fill( 0, count( $system_types ), '%s' ) ) . ')' : '';
 
 		if ( $user_id ) {
+			$values = array_merge( array( absint( $customer_id ), $user_id, $profile_id ), $system_types, array( $limit, $offset ) );
 			return $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM {$this->table} WHERE (customer_id = %d OR user_id = %d) AND business_profile = %s AND request_type <> '" . CRPCRM_System_Request_Types::LEAD_FOLLOW_UP . "' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
-					absint( $customer_id ),
-					$user_id,
-					$profile_id,
-					$limit,
-					$offset
+					"SELECT * FROM {$this->table} WHERE (customer_id = %d OR user_id = %d) AND business_profile = %s{$system_sql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+					$values
 				),
 				ARRAY_A
 			);
 		}
 
+		$values = array_merge( array( absint( $customer_id ), $profile_id ), $system_types, array( $limit, $offset ) );
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table} WHERE customer_id = %d AND business_profile = %s AND request_type <> '" . CRPCRM_System_Request_Types::LEAD_FOLLOW_UP . "' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
-				absint( $customer_id ),
-				$profile_id,
-				$limit,
-				$offset
+				"SELECT * FROM {$this->table} WHERE customer_id = %d AND business_profile = %s{$system_sql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+				$values
 			),
 			ARRAY_A
 		);
@@ -135,14 +132,14 @@ class CRPCRM_Request_Repository {
 	public function count_recent_for_customer_user( $customer_id, $user_id, $since_datetime ) {
 		global $wpdb;
 		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$system_types = CRPCRM_System_Request_Types::get_type_ids();
+		$system_sql   = $system_types ? ' AND request_type NOT IN (' . implode( ', ', array_fill( 0, count( $system_types ), '%s' ) ) . ')' : '';
+		$values       = array_merge( array( absint( $customer_id ), absint( $user_id ), $profile_id ), $system_types, array( sanitize_text_field( $since_datetime ) ) );
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table} WHERE customer_id = %d AND user_id = %d AND business_profile = %s AND request_type <> '" . CRPCRM_System_Request_Types::LEAD_FOLLOW_UP . "' AND created_at >= %s",
-				absint( $customer_id ),
-				absint( $user_id ),
-				$profile_id,
-				sanitize_text_field( $since_datetime )
+				"SELECT COUNT(*) FROM {$this->table} WHERE customer_id = %d AND user_id = %d AND business_profile = %s{$system_sql} AND created_at >= %s",
+				$values
 			)
 		);
 	}
@@ -634,6 +631,18 @@ class CRPCRM_Request_Repository {
 			$data['form_version'] = $request_data['form_version'];
 		}
 
+		return $data;
+	}
+
+	public static function get_merged_request_data( $request ) {
+		$request = is_array( $request ) ? $request : array();
+		$data    = CRPCRM_Helpers::maybe_json_decode( $request['request_data'] ?? '', true );
+		$data    = is_array( $data ) ? $data : array();
+		foreach ( array( 'business_profile', 'form_id', 'form_version' ) as $field ) {
+			if ( isset( $request[ $field ] ) && '' !== (string) $request[ $field ] ) {
+				$data[ $field ] = $request[ $field ];
+			}
+		}
 		return $data;
 	}
 }

@@ -44,5 +44,7 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 	delete_option( 'crpcrm_business_profile_id' );
 	delete_option( 'crpcrm_setup_completed' );
 	delete_option( 'crpcrm_setup_completed_at' );
+	// Cleanup for the pre-profile-settings test builds.
 	delete_option( 'crpcrm_safaei_catalog' );
+	delete_option( 'crpcrm_profile_settings_safaei' );
 }
