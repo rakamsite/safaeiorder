@@ -15,6 +15,7 @@ class CRPCRM_Settings {
 	public function register_hooks() {
 		add_action( 'admin_post_crpcrm_save_settings', array( $this, 'handle_save' ) );
 		add_action( 'admin_post_crpcrm_complete_setup', array( $this, 'handle_complete_setup' ) );
+		add_action( 'admin_post_crpcrm_reset_setup', array( $this, 'handle_reset_setup' ) );
 		add_action( 'admin_post_crpcrm_rebuild_roles', array( $this, 'handle_rebuild_roles' ) );
 	}
 
@@ -91,6 +92,7 @@ class CRPCRM_Settings {
 			'otp'         => 'تنظیمات ورود OTP و پیامک',
 			'attribution' => 'تنظیمات رهگیری ورودی',
 			'crm'         => 'تنظیمات درخواست‌ها و CRM',
+			'profile'     => 'تنظیمات اختصاصی پروفایل فعال',
 			'staff'       => 'تنظیمات پنل کارکنان',
 			'roles'       => 'تنظیمات نقش‌ها و دسترسی‌ها',
 			'maintenance' => 'تنظیمات نگهداری داده‌ها',
@@ -117,10 +119,14 @@ class CRPCRM_Settings {
 			wp_die( esc_html__( 'این تب تنظیمات قابل ذخیره‌سازی نیست.', 'customer-request-portal-crm' ) );
 		}
 
-		$input    = isset( $_POST['crpcrm_settings'] ) && is_array( $_POST['crpcrm_settings'] ) ? wp_unslash( $_POST['crpcrm_settings'] ) : array();
-		$settings = $this->sanitize_settings( $input, $active_tab );
-
-		update_option( self::OPTION_NAME, $settings );
+		if ( 'profile' === $active_tab ) {
+			$input = isset( $_POST['crpcrm_profile_settings'] ) && is_array( $_POST['crpcrm_profile_settings'] ) ? wp_unslash( $_POST['crpcrm_profile_settings'] ) : array();
+			CRPCRM_Business_Profile_Manager::get_instance()->save_active_profile_settings( $input );
+		} else {
+			$input    = isset( $_POST['crpcrm_settings'] ) && is_array( $_POST['crpcrm_settings'] ) ? wp_unslash( $_POST['crpcrm_settings'] ) : array();
+			$settings = $this->sanitize_settings( $input, $active_tab );
+			update_option( self::OPTION_NAME, $settings );
+		}
 		CRPCRM_Logger::info( 'settings_updated', 'settings_updated', array( 'user_id' => get_current_user_id(), 'tab' => $active_tab ) );
 
 		$redirect_url = add_query_arg(
@@ -166,6 +172,25 @@ class CRPCRM_Settings {
 		exit;
 	}
 
+	public static function can_reset_setup() {
+		$debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
+		$reset_enabled = defined( 'CRPCRM_ALLOW_SETUP_RESET' ) && CRPCRM_ALLOW_SETUP_RESET;
+		return current_user_can( 'manage_options' ) && ( $debug_enabled || $reset_enabled );
+	}
+
+	public function handle_reset_setup() {
+		if ( ! self::can_reset_setup() ) {
+			wp_die( esc_html__( 'بازنشانی راه‌اندازی اولیه در این محیط مجاز نیست.', 'customer-request-portal-crm' ) );
+		}
+
+		check_admin_referer( 'crpcrm_reset_setup', 'crpcrm_reset_setup_nonce' );
+		update_option( CRPCRM_Business_Profile_Manager::PROFILE_OPTION, '' );
+		update_option( CRPCRM_Business_Profile_Manager::SETUP_COMPLETED_OPTION, 'no' );
+		update_option( CRPCRM_Business_Profile_Manager::SETUP_COMPLETED_AT_OPTION, '' );
+		wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-setup', 'setup-reset' => 'true' ), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
 	private function sanitize_settings( $input, $active_tab ) {
 		$defaults = self::defaults();
 		$current  = self::get();
@@ -203,10 +228,6 @@ class CRPCRM_Settings {
 			$settings['attribution_events_enabled'] = $this->checkbox( $input, 'attribution_events_enabled' );
 			$settings['internal_domains']           = $this->sanitize_domains( isset( $input['internal_domains'] ) ? $input['internal_domains'] : $defaults['internal_domains'] );
 		} elseif ( 'crm' === $active_tab ) {
-			$profile = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile();
-			if ( $profile && method_exists( $profile, 'save_catalog_settings' ) ) {
-				$profile->save_catalog_settings( isset( $input['profile_catalog'] ) && is_array( $input['profile_catalog'] ) ? $input['profile_catalog'] : array() );
-			}
 			$settings['request_rate_limit_count']             = $this->bounded_absint( $input, 'request_rate_limit_count', 1, 100, $defaults['request_rate_limit_count'] );
 			$settings['request_rate_limit_minutes']           = $this->bounded_absint( $input, 'request_rate_limit_minutes', 1, 1440, $defaults['request_rate_limit_minutes'] );
 			$settings['stale_request_hours']                  = $this->bounded_absint( $input, 'stale_request_hours', 1, 720, $defaults['stale_request_hours'] );

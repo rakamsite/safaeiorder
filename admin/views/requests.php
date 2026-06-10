@@ -56,7 +56,7 @@ function crpcrm_admin_customer_profile_url( $customer_id, $args = array() ) {
 
 if ( ! function_exists( 'crpcrm_admin_request_display_summary' ) ) {
 function crpcrm_admin_request_display_summary( $request ) {
-	$request_data = CRPCRM_Helpers::maybe_json_decode( isset( $request['request_data'] ) ? $request['request_data'] : '', true );
+	$request_data = CRPCRM_Request_Repository::get_merged_request_data( $request );
 	return CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] );
 }
 }
@@ -308,8 +308,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		<?php endif; ?>
 	<?php else : ?>
 		<?php
-		$request_data = CRPCRM_Helpers::maybe_json_decode( $request['request_data'], true );
-		$request_data = is_array( $request_data ) ? $request_data : array();
+		$request_data = CRPCRM_Request_Repository::get_merged_request_data( $request );
 		$type_labels  = CRPCRM_Request_Forms::get_field_labels_for_request_type( $request['request_type'], $request_data );
 		?>
 		<p><a class="button" href="<?php echo esc_url( crpcrm_admin_requests_url() ); ?>"><?php echo esc_html( 'بازگشت به لیست درخواست‌ها' ); ?></a></p>

@@ -10,7 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interface {
-	const CATALOG_OPTION = 'crpcrm_safaei_catalog';
 
 	public function get_id() {
 		return 'safaei';
@@ -72,25 +71,14 @@ class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interfac
 	}
 
 	public function get_vehicle_catalog() {
-		$catalog = get_option( self::CATALOG_OPTION, false );
-		if ( is_array( $catalog ) ) {
-			return $catalog;
-		}
-
-		$legacy  = get_option( CRPCRM_Settings::OPTION_NAME, array() );
-		$catalog = is_array( $legacy ) && isset( $legacy['vehicle_options_by_form'] ) && is_array( $legacy['vehicle_options_by_form'] ) ? $legacy['vehicle_options_by_form'] : array();
-		$fallback = is_array( $legacy ) && isset( $legacy['vehicle_options'] ) && is_array( $legacy['vehicle_options'] ) ? $legacy['vehicle_options'] : $this->get_default_vehicle_options();
-		foreach ( array_keys( $this->get_vehicle_form_labels() ) as $form_id ) {
-			if ( empty( $catalog[ $form_id ] ) || ! is_array( $catalog[ $form_id ] ) ) {
-				$catalog[ $form_id ] = $fallback;
-			}
-		}
-		add_option( self::CATALOG_OPTION, $catalog );
-		return $catalog;
+		$settings = get_option( 'crpcrm_profile_settings_' . $this->get_id(), array() );
+		$settings = is_array( $settings ) ? $settings : array();
+		return isset( $settings['vehicle_catalog'] ) && is_array( $settings['vehicle_catalog'] )
+			? $settings['vehicle_catalog']
+			: $this->get_profile_default_settings()['vehicle_catalog'];
 	}
 
-	public function save_vehicle_catalog( $input ) {
-		$current = $this->get_vehicle_catalog();
+	private function sanitize_vehicle_catalog( $input, $current ) {
 		$clean   = array();
 		foreach ( array_keys( $this->get_vehicle_form_labels() ) as $form_id ) {
 			$items = isset( $input[ $form_id ] ) && is_array( $input[ $form_id ] ) ? $input[ $form_id ] : ( $current[ $form_id ] ?? array() );
@@ -109,21 +97,56 @@ class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interfac
 				$clean[ $form_id ] = $this->get_default_vehicle_options();
 			}
 		}
-		update_option( self::CATALOG_OPTION, $clean );
+		return $clean;
 	}
 
-	public function get_catalog_settings() {
-		return array(
-			'title'        => 'خودروهای قابل انتخاب هر فرم',
-			'item_label'   => 'نام خودرو',
-			'placeholder'  => 'مثلاً تیگو ۸',
-			'groups'       => $this->get_vehicle_form_labels(),
-			'catalog'      => $this->get_vehicle_catalog(),
-		);
+	public function has_profile_settings() {
+		return true;
 	}
 
-	public function save_catalog_settings( $input ) {
-		$this->save_vehicle_catalog( $input );
+	public function get_profile_default_settings() {
+		$catalog = array();
+		foreach ( array_keys( $this->get_vehicle_form_labels() ) as $form_id ) {
+			$catalog[ $form_id ] = $this->get_default_vehicle_options();
+		}
+
+		return array( 'vehicle_catalog' => $catalog );
+	}
+
+	public function sanitize_profile_settings( $input, $current ) {
+		$current_catalog = isset( $current['vehicle_catalog'] ) && is_array( $current['vehicle_catalog'] ) ? $current['vehicle_catalog'] : array();
+		$input_catalog   = isset( $input['vehicle_catalog'] ) && is_array( $input['vehicle_catalog'] ) ? $input['vehicle_catalog'] : array();
+		return array( 'vehicle_catalog' => $this->sanitize_vehicle_catalog( $input_catalog, $current_catalog ) );
+	}
+
+	public function render_profile_settings( $settings ) {
+		$catalog = isset( $settings['vehicle_catalog'] ) && is_array( $settings['vehicle_catalog'] ) ? $settings['vehicle_catalog'] : array();
+		$groups  = $this->get_vehicle_form_labels();
+		foreach ( $groups as $form_id => $form_label ) {
+			$items = isset( $catalog[ $form_id ] ) && is_array( $catalog[ $form_id ] ) ? $catalog[ $form_id ] : array();
+			$count = count( $items );
+			for ( $i = $count; $i < $count + 5; $i++ ) {
+				$items[] = array( 'label' => '', 'priority' => ( $i + 1 ) * 10, 'enabled' => 'yes' );
+			}
+			?>
+			<div class="crpcrm-profile-catalog-group">
+				<h3><?php echo esc_html( $form_label ); ?></h3>
+				<table class="widefat striped">
+					<thead><tr><th><?php echo esc_html( 'نام خودرو' ); ?></th><th><?php echo esc_html( 'اولویت نمایش' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th></tr></thead>
+					<tbody>
+						<?php foreach ( $items as $index => $item ) : ?>
+							<tr>
+								<td><input class="regular-text" name="crpcrm_profile_settings[vehicle_catalog][<?php echo esc_attr( $form_id ); ?>][<?php echo esc_attr( $index ); ?>][label]" type="text" value="<?php echo esc_attr( $item['label'] ?? '' ); ?>" placeholder="<?php echo esc_attr( 'مثلاً تیگو ۸' ); ?>" /></td>
+								<td><input name="crpcrm_profile_settings[vehicle_catalog][<?php echo esc_attr( $form_id ); ?>][<?php echo esc_attr( $index ); ?>][priority]" type="number" min="0" value="<?php echo esc_attr( absint( $item['priority'] ?? 999 ) ); ?>" /></td>
+								<td><label><input name="crpcrm_profile_settings[vehicle_catalog][<?php echo esc_attr( $form_id ); ?>][<?php echo esc_attr( $index ); ?>][enabled]" type="checkbox" value="yes" <?php checked( $item['enabled'] ?? 'yes', 'yes' ); ?> /> <?php echo esc_html( 'نمایش داده شود' ); ?></label></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+			<?php
+		}
+		echo '<p class="description">' . esc_html( 'ردیف‌های خالی ذخیره نمی‌شوند. تنظیمات هر فرم مستقل ذخیره می‌شود.' ) . '</p>';
 	}
 
 	public function get_forms() {

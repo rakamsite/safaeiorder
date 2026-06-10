@@ -21,4 +21,12 @@ interface CRPCRM_Business_Profile_Interface {
 	public function get_default_sms_templates();
 
 	public function get_theme_tokens();
+
+	public function has_profile_settings();
+
+	public function get_profile_default_settings();
+
+	public function sanitize_profile_settings( $input, $current );
+
+	public function render_profile_settings( $settings );
 }

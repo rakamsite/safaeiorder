@@ -128,9 +128,9 @@ class CRPCRM_Admin_Tools {
 		$this->where_equal( $where, $vals, 'c.last_source', $f['last_source'] );
 		if ( '' !== $f['profile_completed'] ) { $where[] = 'c.profile_completed = %d'; $vals[] = $f['profile_completed']; }
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile  = esc_sql( CRPCRM_Business_Profile_Manager::get_locked_profile_id() );
-		$sql = "SELECT c.*, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = '{$profile}') AS total_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = '{$profile}' AND r.status IN ('new','in_progress','no_answer','follow_up')) AS open_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = '{$profile}' AND r.status IN ('won','lost','invalid','closed')) AS closed_requests FROM " . CRPCRM_DB::table( 'customers' ) . ' c WHERE ' . implode( ' AND ', $where ) . ' ORDER BY c.created_at DESC, c.id DESC';
-		$rows = $vals ? $wpdb->get_results( $wpdb->prepare( $sql, $vals ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
+		$profile  = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$sql = "SELECT c.*, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s) AS total_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s AND r.status IN ('new','in_progress','no_answer','follow_up')) AS open_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s AND r.status IN ('won','lost','invalid','closed')) AS closed_requests FROM " . CRPCRM_DB::table( 'customers' ) . ' c WHERE ' . implode( ' AND ', $where ) . ' ORDER BY c.created_at DESC, c.id DESC';
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( $profile, $profile, $profile ), $vals ) ), ARRAY_A );
 		$out = array();
 		foreach ( $rows as $r ) {
 			$out[] = array( $r['full_name'], $r['phone'], $r['province'], $r['city'], $this->csv->format_boolean( $r['profile_completed'] ), CRPCRM_Labels::get_source_label( $r['first_source'] ), $r['first_campaign'], $this->csv->format_datetime( $r['first_seen_at'] ), CRPCRM_Labels::get_source_label( $r['last_source'] ), $r['last_campaign'], $this->csv->format_datetime( $r['last_seen_at'] ), $r['total_requests'], $r['open_requests'], $r['closed_requests'], $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ) );

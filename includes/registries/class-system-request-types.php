@@ -20,6 +20,10 @@ class CRPCRM_System_Request_Types {
 		);
 	}
 
+	public static function get_type_ids() {
+		return array_values( array_filter( array_map( 'sanitize_key', array_keys( self::get_types() ) ) ) );
+	}
+
 	public static function get_metadata( $request_type ) {
 		$request_type = sanitize_key( $request_type );
 		if ( self::LEAD_FOLLOW_UP === $request_type ) {

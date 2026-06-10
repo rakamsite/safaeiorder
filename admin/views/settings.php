@@ -24,20 +24,6 @@ $log_levels      = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌�
 $saveable_tabs   = CRPCRM_Settings::saveable_tabs();
 $portal_menu_id  = absint( $settings['portal_menu_id'] ?? 0 );
 $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( array( 'hide_empty' => false ) ) : array();
-$active_profile           = $profile_manager->get_active_profile();
-$catalog_settings         = $active_profile && method_exists( $active_profile, 'get_catalog_settings' ) ? $active_profile->get_catalog_settings() : array();
-$catalog_groups           = isset( $catalog_settings['groups'] ) && is_array( $catalog_settings['groups'] ) ? $catalog_settings['groups'] : array();
-$profile_catalog          = isset( $catalog_settings['catalog'] ) && is_array( $catalog_settings['catalog'] ) ? $catalog_settings['catalog'] : array();
-foreach ( $catalog_groups as $catalog_group_key => $catalog_group_label ) {
-	if ( ! isset( $profile_catalog[ $catalog_group_key ] ) || ! is_array( $profile_catalog[ $catalog_group_key ] ) ) {
-		$profile_catalog[ $catalog_group_key ] = array();
-	}
-
-	$catalog_rows = count( $profile_catalog[ $catalog_group_key ] );
-	for ( $i = $catalog_rows; $i < $catalog_rows + 5; $i++ ) {
-		$profile_catalog[ $catalog_group_key ][] = array( 'label' => '', 'priority' => ( $i + 1 ) * 10, 'enabled' => 'yes' );
-	}
-}
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
 	<h1><?php echo esc_html( 'تنظیمات پرتال و CRM' ); ?></h1>
@@ -132,39 +118,15 @@ foreach ( $catalog_groups as $catalog_group_key => $catalog_group_label ) {
 		<?php elseif ( 'crm' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات درخواست‌ها و CRM' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
-				<?php if ( $catalog_groups ) : ?>
-				<tr>
-					<th><?php echo esc_html( $catalog_settings['title'] ?? '' ); ?></th>
-					<td>
-						<div class="crpcrm-profile-catalog-groups">
-							<?php foreach ( $catalog_groups as $catalog_group_key => $catalog_group_label ) : ?>
-								<div class="crpcrm-profile-catalog-group">
-									<h3><?php echo esc_html( $catalog_group_label ); ?></h3>
-									<table class="widefat striped crpcrm-profile-catalog-table">
-										<thead><tr><th><?php echo esc_html( $catalog_settings['item_label'] ?? '' ); ?></th><th><?php echo esc_html( 'اولویت نمایش' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th></tr></thead>
-										<tbody>
-											<?php foreach ( $profile_catalog[ $catalog_group_key ] as $catalog_item_index => $catalog_item ) : ?>
-												<tr>
-													<td><input class="regular-text" name="crpcrm_settings[profile_catalog][<?php echo esc_attr( $catalog_group_key ); ?>][<?php echo esc_attr( $catalog_item_index ); ?>][label]" type="text" value="<?php echo esc_attr( $catalog_item['label'] ?? '' ); ?>" placeholder="<?php echo esc_attr( $catalog_settings['placeholder'] ?? '' ); ?>" /></td>
-													<td><input name="crpcrm_settings[profile_catalog][<?php echo esc_attr( $catalog_group_key ); ?>][<?php echo esc_attr( $catalog_item_index ); ?>][priority]" type="number" min="0" value="<?php echo esc_attr( absint( $catalog_item['priority'] ?? 999 ) ); ?>" /></td>
-													<td><label><input name="crpcrm_settings[profile_catalog][<?php echo esc_attr( $catalog_group_key ); ?>][<?php echo esc_attr( $catalog_item_index ); ?>][enabled]" type="checkbox" value="yes" <?php checked( $catalog_item['enabled'] ?? 'yes', 'yes' ); ?> /> <?php echo esc_html( 'نمایش داده شود' ); ?></label></td>
-												</tr>
-											<?php endforeach; ?>
-										</tbody>
-									</table>
-								</div>
-							<?php endforeach; ?>
-						</div>
-						<p class="description"><?php echo esc_html( 'ردیف‌های خالی ذخیره نمی‌شوند. عدد کمتر در اولویت نمایش، بالاتر در همان فرم نمایش داده می‌شود. تنظیمات هر فرم مستقل از فرم‌های دیگر ذخیره می‌شود.' ); ?></p>
-					</td>
-				</tr>
-				<?php endif; ?>
 				<tr><th><label for="request_rate_limit_count"><?php echo esc_html( 'محدودیت تعداد درخواست' ); ?></label></th><td><input name="crpcrm_settings[request_rate_limit_count]" id="request_rate_limit_count" type="number" min="1" max="100" value="<?php echo esc_attr( $settings['request_rate_limit_count'] ); ?>" /></td></tr>
 				<tr><th><label for="request_rate_limit_minutes"><?php echo esc_html( 'بازه محدودیت درخواست به دقیقه' ); ?></label></th><td><input name="crpcrm_settings[request_rate_limit_minutes]" id="request_rate_limit_minutes" type="number" min="1" max="1440" value="<?php echo esc_attr( $settings['request_rate_limit_minutes'] ); ?>" /></td></tr>
 				<tr><th><label for="stale_request_hours"><?php echo esc_html( 'ساعت تشخیص درخواست رهاشده' ); ?></label></th><td><input name="crpcrm_settings[stale_request_hours]" id="stale_request_hours" type="number" min="1" max="720" value="<?php echo esc_attr( $settings['stale_request_hours'] ); ?>" /></td></tr>
 				<tr><th><label for="requests_per_page"><?php echo esc_html( 'تعداد آیتم در هر صفحه لیست درخواست‌ها' ); ?></label></th><td><input name="crpcrm_settings[requests_per_page]" id="requests_per_page" type="number" min="5" max="100" value="<?php echo esc_attr( $settings['requests_per_page'] ); ?>" /></td></tr>
 				<tr><th><?php echo esc_html( 'اجازه اقدام مدیر روی درخواست بسته‌شده' ); ?></th><td><label><input name="crpcrm_settings[allow_manager_note_on_closed_request]" type="checkbox" value="yes" <?php checked( $settings['allow_manager_note_on_closed_request'], 'yes' ); ?> /> <?php echo esc_html( 'مدیر بتواند روی درخواست بسته‌شده فقط یادداشت داخلی ثبت کند.' ); ?></label></td></tr>
 			</tbody></table>
+		<?php elseif ( 'profile' === $active_tab ) : ?>
+			<h2><?php echo esc_html( 'تنظیمات اختصاصی پروفایل فعال' ); ?></h2>
+			<?php $profile_manager->render_active_profile_settings(); ?>
 		<?php elseif ( 'staff' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات پنل کارکنان' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>

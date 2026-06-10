@@ -90,7 +90,7 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 									<tr>
 										<td><strong><?php echo esc_html( $request['request_code'] ); ?></strong></td>
 										<td><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'] ) ); ?></td>
-										<td><?php $request_data = CRPCRM_Helpers::maybe_json_decode( isset( $request['request_data'] ) ? $request['request_data'] : '', true ); echo esc_html( wp_trim_words( CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] ), 18, '…' ) ); ?></td>
+										<td><?php $request_data = CRPCRM_Request_Repository::get_merged_request_data( $request ); echo esc_html( wp_trim_words( CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] ), 18, '…' ) ); ?></td>
 										<td><span class="crpcrm-status-badge"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request['status'] ) ); ?></span></td>
 										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td>
 										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request['last_activity_at'] ) ? $request['last_activity_at'] : $request['updated_at'] ) ); ?></td>
@@ -163,7 +163,7 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 				<?php if ( ! empty( $portal_data['access_denied'] ) ) : ?>
 					<div class="crpcrm-notice crpcrm-notice-error crpcrm-alert crpcrm-alert-error"><?php echo esc_html( 'شما اجازه مشاهده این درخواست را ندارید.' ); ?></div>
 				<?php elseif ( $request_detail ) : ?>
-					<?php $request_data = CRPCRM_Helpers::maybe_json_decode( $request_detail['request_data'], true ); ?>
+					<?php $request_data = CRPCRM_Request_Repository::get_merged_request_data( $request_detail ); ?>
 					<h2><?php echo esc_html( 'جزئیات درخواست' ); ?></h2>
 					<div class="crpcrm-detail-grid">
 						<div><span><?php echo esc_html( 'کد پیگیری' ); ?></span><strong><?php echo esc_html( $request_detail['request_code'] ); ?></strong></div>
