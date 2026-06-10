@@ -819,6 +819,37 @@
 	transform: none !important;
 }
 
+.crpcrm-profile-save-actions,
+.crpcrm-profile-save-actions .crpcrm-button {
+	width: 100%;
+}
+
+.crpcrm-profile-save-actions .crpcrm-button {
+	font-size: 1.08rem;
+	min-height: 54px;
+}
+
+.crpcrm-profile-logout {
+	text-align: center;
+}
+
+.crpcrm-profile-logout .crpcrm-logout-link {
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	color: #9ca3af;
+	display: inline;
+	font-weight: 400;
+	padding: 0;
+	text-decoration: none;
+}
+
+.crpcrm-profile-logout .crpcrm-logout-link:hover,
+.crpcrm-profile-logout .crpcrm-logout-link:focus {
+	color: #6b7280;
+	text-decoration: none;
+}
+
 .crpcrm-inline-request-form-card {
 	border-color: #bfdbfe;
 	box-shadow: 0 16px 34px rgba(37, 99, 235, 0.12);

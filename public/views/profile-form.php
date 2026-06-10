@@ -38,6 +38,11 @@ $is_embedded = ! empty( $is_embedded );
 									<option value=""><?php echo esc_html( 'استان را انتخاب کنید' ); ?></option>
 									<?php foreach ( $provinces as $province ) : ?><option value="<?php echo esc_attr( $province ); ?>" <?php selected( $field_value, $province ); ?>><?php echo esc_html( $province ); ?></option><?php endforeach; ?>
 								</select>
+							<?php elseif ( 'select' === $field['type'] ) : ?>
+								<select class="crpcrm-select" id="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>" name="crpcrm_registration[<?php echo esc_attr( $field_id ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>>
+									<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
+									<?php foreach ( $field['options'] as $option ) : ?><option value="<?php echo esc_attr( $option ); ?>" <?php selected( $field_value, $option ); ?>><?php echo esc_html( $option ); ?></option><?php endforeach; ?>
+								</select>
 							<?php elseif ( 'textarea' === $field['type'] ) : ?>
 								<textarea class="crpcrm-input" id="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>" name="crpcrm_registration[<?php echo esc_attr( $field_id ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>><?php echo esc_textarea( $field_value ); ?></textarea>
 							<?php else : ?>
@@ -46,12 +51,12 @@ $is_embedded = ! empty( $is_embedded );
 						</div>
 					</div>
 				<?php endforeach; ?>
-				<div class="crpcrm-form-actions"><button class="crpcrm-button crpcrm-button-primary" type="submit"><?php echo esc_html( 'ذخیره اطلاعات' ); ?></button></div>
+				<div class="crpcrm-form-actions crpcrm-profile-save-actions"><button class="crpcrm-button crpcrm-button-primary" type="submit"><?php echo esc_html( 'ذخیره اطلاعات' ); ?></button></div>
 			</form>
 		</div>
 
 		<?php if ( ! $is_embedded ) : ?>
-			<footer class="crpcrm-card-footer"><a class="crpcrm-logout-link crpcrm-button crpcrm-button-secondary" href="<?php echo esc_url( $logout_url ); ?>"><?php echo esc_html( 'خروج از حساب کاربری' ); ?></a></footer>
+			<footer class="crpcrm-card-footer crpcrm-profile-logout"><a class="crpcrm-logout-link" href="<?php echo esc_url( $logout_url ); ?>"><?php echo esc_html( 'خروج از حساب کاربری' ); ?></a></footer>
 		<?php endif; ?>
 	</div>
 <?php if ( ! $is_embedded ) : ?>

@@ -17,7 +17,7 @@ class CRPCRM_Customer_Registration_Fields {
 		return array(
 			'full_name'      => array( 'label' => 'نام و نام خانوادگی', 'type' => 'text' ),
 			'company_name'   => array( 'label' => 'نام شرکت / فروشگاه', 'type' => 'text' ),
-			'activity_field' => array( 'label' => 'حوزه فعالیت', 'type' => 'text' ),
+			'activity_field' => array( 'label' => 'حوزه فعالیت', 'type' => 'select' ),
 			'role_title'     => array( 'label' => 'سمت شما', 'type' => 'text' ),
 			'birth_date'     => array( 'label' => 'تاریخ تولد', 'type' => 'date' ),
 			'city'           => array( 'label' => 'شهر', 'type' => 'text' ),
@@ -37,6 +37,9 @@ class CRPCRM_Customer_Registration_Fields {
 				'required' => in_array( $field, array( 'full_name', 'activity_field' ), true ),
 				'order'    => $order,
 			);
+			if ( 'activity_field' === $field ) {
+				$defaults[ $field ]['options'] = array();
+			}
 		}
 		return $defaults;
 	}
@@ -55,6 +58,9 @@ class CRPCRM_Customer_Registration_Fields {
 				$settings[ $field ]['enabled']  = $enabled;
 				$settings[ $field ]['required'] = $enabled && ! empty( $stored[ $field ]['required'] );
 				$settings[ $field ]['order']    = isset( $stored[ $field ]['order'] ) ? absint( $stored[ $field ]['order'] ) : $settings[ $field ]['order'];
+				if ( 'activity_field' === $field && isset( $stored[ $field ]['options'] ) && is_array( $stored[ $field ]['options'] ) ) {
+					$settings[ $field ]['options'] = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $stored[ $field ]['options'] ) ) ) );
+				}
 			}
 		}
 		return $settings;
@@ -80,6 +86,10 @@ class CRPCRM_Customer_Registration_Fields {
 				'order'    => $default_order,
 			);
 			$submitted_order[ $field ] = isset( $settings[ $field ]['order'] ) ? absint( $settings[ $field ]['order'] ) : $default_order;
+			if ( 'activity_field' === $field ) {
+				$options = isset( $settings[ $field ]['options'] ) ? preg_split( '/\r\n|\r|\n/', (string) $settings[ $field ]['options'] ) : array();
+				$clean[ $field ]['options'] = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $options ) ) ) );
+			}
 		}
 		asort( $submitted_order, SORT_NUMERIC );
 		foreach ( array_keys( $submitted_order ) as $order => $field ) {
@@ -112,6 +122,9 @@ class CRPCRM_Customer_Registration_Fields {
 		foreach ( self::get_ordered_fields() as $field => $definition ) {
 			if ( ! empty( $settings[ $field ]['enabled'] ) ) {
 				$definition['required'] = ! empty( $settings[ $field ]['required'] );
+				if ( isset( $settings[ $field ]['options'] ) ) {
+					$definition['options'] = $settings[ $field ]['options'];
+				}
 				$enabled[ $field ]      = $definition;
 			}
 		}
@@ -159,6 +172,9 @@ class CRPCRM_Customer_Registration_Fields {
 				}
 			}
 			if ( 'date' === $definition['type'] && '' !== trim( (string) $raw_value ) && ! self::is_valid_date( $raw_value ) ) {
+				$errors[] = sprintf( '%s معتبر نیست.', $definition['label'] );
+			}
+			if ( 'select' === $definition['type'] && '' !== $value && ! in_array( $value, $definition['options'], true ) ) {
 				$errors[] = sprintf( '%s معتبر نیست.', $definition['label'] );
 			}
 		}

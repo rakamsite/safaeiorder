@@ -85,6 +85,9 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			<h3><?php echo esc_html( 'مقادیر حوزه فعالیت' ); ?></h3>
+			<p class="description"><?php echo esc_html( 'هر مقدار را در یک ردیف وارد کنید.' ); ?></p>
+			<textarea class="large-text" rows="8" name="crpcrm_registration_fields[activity_field][options]"><?php echo esc_textarea( implode( "\n", $registration_field_settings['activity_field']['options'] ) ); ?></textarea>
 		<?php elseif ( 'portal' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات پرتال مشتری' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
