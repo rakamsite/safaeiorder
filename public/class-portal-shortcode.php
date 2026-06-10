@@ -315,6 +315,7 @@ class CRPCRM_Portal_Shortcode {
 		$request_data['business_profile'] = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
 		$request_data['form_id']          = sanitize_key( $form['id'] );
 		$request_data['form_version']     = sanitize_text_field( $form['version'] );
+		$request_data['fields']           = $submitted_fields;
 		$request_data['submitted_fields'] = $submitted_fields;
 		$attribution      = $this->attribution_service->get_attribution_for_new_request();
 		$now             = CRPCRM_Helpers::current_datetime();

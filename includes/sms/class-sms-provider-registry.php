@@ -47,38 +47,32 @@ class CRPCRM_SMS_Provider_Registry {
 	}
 
 	public function get_configured_provider_id() {
-		return sanitize_key( CRPCRM_Settings::get( 'otp_provider', self::DEFAULT_PROVIDER_ID ) );
+		$stored = get_option( CRPCRM_Settings::OPTION_NAME, array() );
+		if ( ! is_array( $stored ) || empty( $stored['otp_provider'] ) ) {
+			return self::DEFAULT_PROVIDER_ID;
+		}
+		return sanitize_key( $stored['otp_provider'] );
 	}
 
 	public function get_active_provider_id() {
-		$provider = $this->get_active_provider();
-		return $provider ? $provider->get_id() : self::DEFAULT_PROVIDER_ID;
+		return $this->get_configured_provider_id();
 	}
 
 	public function get_active_provider() {
-		$provider_id = $this->get_configured_provider_id();
-		$provider    = $this->get_provider( $provider_id );
-
-		if ( ! $provider ) {
-			return $this->get_provider( self::DEFAULT_PROVIDER_ID );
-		}
-
-		$validation = $provider->validate_settings( CRPCRM_Settings::get() );
-		if ( is_wp_error( $validation ) && self::DEFAULT_PROVIDER_ID !== $provider_id ) {
-			$default_provider   = $this->get_provider( self::DEFAULT_PROVIDER_ID );
-			$default_validation = $default_provider ? $default_provider->validate_settings( CRPCRM_Settings::get() ) : null;
-			if ( $default_provider && ! is_wp_error( $default_validation ) ) {
-				return $default_provider;
-			}
-		}
-
-		return $provider;
+		return $this->get_provider( $this->get_configured_provider_id() );
 	}
 
 	public function send( $phone_normalized, $template_key, array $variables = array() ) {
 		$provider = $this->get_active_provider();
 		if ( ! $provider ) {
-			return new WP_Error( 'crpcrm_sms_provider_unavailable', 'ارائه‌دهنده پیامک در دسترس نیست.' );
+			CRPCRM_Logger::warning( 'sms_provider_unknown', 'sms', array( 'provider' => $this->get_configured_provider_id() ) );
+			return new WP_Error( 'crpcrm_sms_provider_unavailable', 'ارائه‌دهنده پیامک انتخاب‌شده در دسترس نیست.' );
+		}
+
+		$validation = $provider->validate_settings( CRPCRM_Settings::get() );
+		if ( is_wp_error( $validation ) ) {
+			CRPCRM_Logger::warning( 'sms_provider_settings_incomplete', 'sms', array( 'provider' => $provider->get_id(), 'code' => $validation->get_error_code() ) );
+			return $validation;
 		}
 
 		$result = $provider->send( $phone_normalized, sanitize_key( $template_key ), $variables );
