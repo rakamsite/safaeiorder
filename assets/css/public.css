@@ -286,7 +286,8 @@
 .crpcrm-portal-actions {
 	display: grid;
 	gap: 16px;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(220px, 300px));
+	justify-content: center;
 	margin-top: 24px;
 }
 
@@ -873,6 +874,16 @@
 	color: #ffffff !important;
 }
 
+.crpcrm-request-form .crpcrm-form-actions,
+.crpcrm-request-form .crpcrm-form-actions .crpcrm-button-primary {
+	width: 100%;
+}
+
+.crpcrm-request-form .crpcrm-form-actions .crpcrm-button-primary {
+	font-size: 1.08rem;
+	min-height: 54px;
+}
+
 .crpcrm-request-form .crpcrm-button:hover,
 .crpcrm-request-form .crpcrm-button:focus,
 .crpcrm-otp-form .crpcrm-button:hover,
@@ -1179,15 +1190,43 @@
 }
 
 /* Token-backed compatibility overrides for the existing Safaei portal appearance. */
-.crpcrm-portal-sidebar,
 .crpcrm-action-card.crpcrm-form-card {
 	background: var(--crpcrm-primary);
 }
 
+.crpcrm-portal-sidebar {
+	background: #ffffff;
+	border-color: var(--crpcrm-border);
+	color: var(--crpcrm-text);
+}
+
+.crpcrm-portal-sidebar-title {
+	color: var(--crpcrm-text);
+}
+
+.crpcrm-portal-menu a {
+	color: #374151;
+}
+
 .crpcrm-portal-menu a:hover,
-.crpcrm-portal-menu a:focus,
+.crpcrm-portal-menu a:focus {
+	background: #f3f4f6;
+	color: #111827;
+}
+
 .crpcrm-portal-menu a.is-active {
-	background: var(--crpcrm-primary-hover);
+	background: #eff6ff;
+	color: var(--crpcrm-primary);
+}
+
+.crpcrm-portal-menu a.crpcrm-menu-logout {
+	color: #9ca3af;
+}
+
+.crpcrm-portal-menu a.crpcrm-menu-logout:hover,
+.crpcrm-portal-menu a.crpcrm-menu-logout:focus {
+	background: #f9fafb;
+	color: #6b7280;
 }
 
 .crpcrm-action-card.crpcrm-form-card:hover,
