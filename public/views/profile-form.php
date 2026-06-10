@@ -28,10 +28,6 @@ $is_embedded = ! empty( $is_embedded );
 					<label class="crpcrm-field-label" for="crpcrm-profile-phone"><?php echo esc_html( 'شماره موبایل' ); ?></label>
 					<div class="crpcrm-field-control"><input class="crpcrm-input" id="crpcrm-profile-phone" type="text" value="<?php echo esc_attr( $phone_display ); ?>" readonly /></div>
 				</div>
-				<div class="crpcrm-field crpcrm-field-text">
-					<label class="crpcrm-field-label" for="crpcrm-full-name"><?php echo esc_html( 'نام و نام خانوادگی' ); ?></label>
-					<div class="crpcrm-field-control"><input class="crpcrm-input" id="crpcrm-full-name" name="crpcrm_full_name" type="text" value="<?php echo esc_attr( isset( $customer['full_name'] ) ? $customer['full_name'] : '' ); ?>" placeholder="<?php echo esc_attr( 'مثلاً علی رضایی' ); ?>" required /></div>
-				</div>
 				<?php foreach ( $registration_fields as $field_id => $field ) : ?>
 					<?php $field_value = isset( $registration_values[ $field_id ] ) ? $registration_values[ $field_id ] : ''; ?>
 					<div class="crpcrm-field crpcrm-field-<?php echo esc_attr( sanitize_html_class( $field['type'] ) ); ?>">

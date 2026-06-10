@@ -15,6 +15,7 @@ class CRPCRM_Customer_Registration_Fields {
 
 	public static function get_fields() {
 		return array(
+			'full_name'      => array( 'label' => 'نام و نام خانوادگی', 'type' => 'text' ),
 			'company_name'   => array( 'label' => 'نام شرکت / فروشگاه', 'type' => 'text' ),
 			'activity_field' => array( 'label' => 'حوزه فعالیت', 'type' => 'text' ),
 			'role_title'     => array( 'label' => 'سمت شما', 'type' => 'text' ),
@@ -32,8 +33,8 @@ class CRPCRM_Customer_Registration_Fields {
 		$defaults = array();
 		foreach ( array_keys( self::get_fields() ) as $order => $field ) {
 			$defaults[ $field ] = array(
-				'enabled'  => 'activity_field' === $field,
-				'required' => 'activity_field' === $field,
+				'enabled'  => in_array( $field, array( 'full_name', 'activity_field' ), true ),
+				'required' => in_array( $field, array( 'full_name', 'activity_field' ), true ),
 				'order'    => $order,
 			);
 		}
@@ -196,7 +197,7 @@ class CRPCRM_Customer_Registration_Fields {
 		$user_id = absint( $customer['user_id'] );
 		foreach ( self::get_enabled_fields() as $field => $definition ) {
 			$value = isset( $values[ $field ] ) ? $values[ $field ] : '';
-			if ( in_array( $field, array( 'city', 'province' ), true ) ) {
+			if ( in_array( $field, array( 'full_name', 'city', 'province' ), true ) ) {
 				continue;
 			}
 			if ( 'email' === $field ) {
@@ -214,7 +215,7 @@ class CRPCRM_Customer_Registration_Fields {
 		$user_id = isset( $customer['user_id'] ) ? absint( $customer['user_id'] ) : 0;
 		$user    = $user_id ? get_userdata( $user_id ) : null;
 		foreach ( self::get_fields() as $field => $definition ) {
-			if ( in_array( $field, array( 'city', 'province' ), true ) ) {
+			if ( in_array( $field, array( 'full_name', 'city', 'province' ), true ) ) {
 				$values[ $field ] = isset( $customer[ $field ] ) ? $customer[ $field ] : '';
 			} elseif ( 'email' === $field ) {
 				$values[ $field ] = $user ? $user->user_email : '';
