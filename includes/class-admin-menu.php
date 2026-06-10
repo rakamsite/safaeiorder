@@ -53,7 +53,7 @@ class CRPCRM_Admin_Menu {
 			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
 		}
 		if ( 'crpcrm-settings' === $page && isset( $_GET['tab'] ) ) {
-			$tab_features = array( 'portal' => 'portal', 'attribution' => 'tracking', 'staff' => 'staff', 'tools' => 'admin_tools' );
+			$tab_features = array( 'portal' => 'portal', 'registration_fields' => 'customer_registration', 'attribution' => 'tracking', 'staff' => 'staff', 'tools' => 'admin_tools' );
 			$tab          = sanitize_key( wp_unslash( $_GET['tab'] ) );
 			if ( 'crm' === $tab && ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
 				wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );

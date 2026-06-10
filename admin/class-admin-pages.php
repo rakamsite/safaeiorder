@@ -163,7 +163,7 @@ class CRPCRM_Admin_Pages {
 			array(
 				'mode'               => 'profile',
 				'customer'           => $customer,
-				'registration_fields'=> CRPCRM_Customer_Registration_Fields::get_fields(),
+				'registration_fields'=> CRPCRM_Customer_Registration_Fields::get_ordered_fields(),
 				'registration_values'=> CRPCRM_Customer_Registration_Fields::get_customer_values( $customer ),
 				'stats'              => $this->customer_repository->get_customer_stats( $customer_id ),
 				'requests'           => $this->customer_repository->get_customer_requests( $customer_id, array( 'limit' => 100, 'user_id' => get_current_user_id() ) ),

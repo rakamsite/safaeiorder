@@ -68,20 +68,23 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 					<tr><th><?php echo esc_html( $feature_label ); ?></th><td><label><input name="crpcrm_features[<?php echo esc_attr( $feature_id ); ?>]" type="checkbox" value="yes" <?php checked( CRPCRM_Feature_Manager::is_enabled( $feature_id ) ); ?> /> <?php echo esc_html( 'فعال باشد' ); ?></label></td></tr>
 				<?php endforeach; ?>
 			</tbody></table>
-			<?php if ( CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) ) : ?>
-				<?php $registration_field_settings = CRPCRM_Customer_Registration_Fields::get_settings(); ?>
-				<input type="hidden" name="crpcrm_registration_fields_present" value="yes" />
-				<h3><?php echo esc_html( 'اطلاعات تکمیلی ثبت‌نام مشتری' ); ?></h3>
-				<table class="widefat striped"><thead><tr><th><?php echo esc_html( 'فیلد' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th><th><?php echo esc_html( 'اجباری' ); ?></th></tr></thead><tbody>
-					<?php foreach ( CRPCRM_Customer_Registration_Fields::get_fields() as $field_id => $field ) : ?>
-						<tr>
-							<td><?php echo esc_html( $field['label'] ); ?></td>
+		<?php elseif ( 'registration_fields' === $active_tab ) : ?>
+			<?php $registration_field_settings = CRPCRM_Customer_Registration_Fields::get_settings(); ?>
+			<h2><?php echo esc_html( 'اطلاعات تکمیلی' ); ?></h2>
+			<p class="description"><?php echo esc_html( 'ردیف‌ها را بکشید و رها کنید تا ترتیب نمایش فیلدها در فرم ثبت‌نام تغییر کند.' ); ?></p>
+			<table class="widefat striped crpcrm-registration-fields-table">
+				<thead><tr><th class="crpcrm-sort-column"><?php echo esc_html( 'ترتیب' ); ?></th><th><?php echo esc_html( 'فیلد' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th><th><?php echo esc_html( 'اجباری' ); ?></th></tr></thead>
+				<tbody class="crpcrm-sortable-registration-fields">
+					<?php foreach ( CRPCRM_Customer_Registration_Fields::get_ordered_fields() as $field_id => $field ) : ?>
+						<tr draggable="true">
+							<td class="crpcrm-drag-handle" title="<?php echo esc_attr( 'برای جابه‌جایی بکشید' ); ?>"><span class="dashicons dashicons-move"></span></td>
+							<td><?php echo esc_html( $field['label'] ); ?><input class="crpcrm-registration-field-order" name="crpcrm_registration_fields[<?php echo esc_attr( $field_id ); ?>][order]" type="hidden" value="<?php echo esc_attr( $registration_field_settings[ $field_id ]['order'] ); ?>" /></td>
 							<td><input name="crpcrm_registration_fields[<?php echo esc_attr( $field_id ); ?>][enabled]" type="checkbox" value="yes" <?php checked( ! empty( $registration_field_settings[ $field_id ]['enabled'] ) ); ?> /></td>
 							<td><input name="crpcrm_registration_fields[<?php echo esc_attr( $field_id ); ?>][required]" type="checkbox" value="yes" <?php checked( ! empty( $registration_field_settings[ $field_id ]['required'] ) ); ?> /></td>
 						</tr>
 					<?php endforeach; ?>
-				</tbody></table>
-			<?php endif; ?>
+				</tbody>
+			</table>
 		<?php elseif ( 'portal' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات پرتال مشتری' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>

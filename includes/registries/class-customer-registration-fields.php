@@ -30,10 +30,11 @@ class CRPCRM_Customer_Registration_Fields {
 
 	public static function get_default_settings() {
 		$defaults = array();
-		foreach ( array_keys( self::get_fields() ) as $field ) {
+		foreach ( array_keys( self::get_fields() ) as $order => $field ) {
 			$defaults[ $field ] = array(
 				'enabled'  => 'activity_field' === $field,
 				'required' => 'activity_field' === $field,
+				'order'    => $order,
 			);
 		}
 		return $defaults;
@@ -52,6 +53,7 @@ class CRPCRM_Customer_Registration_Fields {
 				$enabled                       = ! empty( $stored[ $field ]['enabled'] );
 				$settings[ $field ]['enabled']  = $enabled;
 				$settings[ $field ]['required'] = $enabled && ! empty( $stored[ $field ]['required'] );
+				$settings[ $field ]['order']    = isset( $stored[ $field ]['order'] ) ? absint( $stored[ $field ]['order'] ) : $settings[ $field ]['order'];
 			}
 		}
 		return $settings;
@@ -67,15 +69,36 @@ class CRPCRM_Customer_Registration_Fields {
 			return false;
 		}
 
-		$clean = array();
-		foreach ( array_keys( self::get_fields() ) as $field ) {
+		$clean           = array();
+		$submitted_order = array();
+		foreach ( array_keys( self::get_fields() ) as $default_order => $field ) {
 			$enabled = isset( $settings[ $field ]['enabled'] ) && 'yes' === $settings[ $field ]['enabled'];
 			$clean[ $field ] = array(
 				'enabled'  => $enabled,
 				'required' => $enabled && isset( $settings[ $field ]['required'] ) && 'yes' === $settings[ $field ]['required'],
+				'order'    => $default_order,
 			);
+			$submitted_order[ $field ] = isset( $settings[ $field ]['order'] ) ? absint( $settings[ $field ]['order'] ) : $default_order;
+		}
+		asort( $submitted_order, SORT_NUMERIC );
+		foreach ( array_keys( $submitted_order ) as $order => $field ) {
+			$clean[ $field ]['order'] = $order;
 		}
 		return update_option( self::OPTION_PREFIX . $profile_id, $clean );
+	}
+
+	public static function get_ordered_fields() {
+		$fields   = self::get_fields();
+		$settings = self::get_settings();
+		uksort(
+			$fields,
+			static function ( $first, $second ) use ( $settings ) {
+				$first_order  = isset( $settings[ $first ]['order'] ) ? absint( $settings[ $first ]['order'] ) : PHP_INT_MAX;
+				$second_order = isset( $settings[ $second ]['order'] ) ? absint( $settings[ $second ]['order'] ) : PHP_INT_MAX;
+				return $first_order === $second_order ? strcmp( $first, $second ) : $first_order - $second_order;
+			}
+		);
+		return $fields;
 	}
 
 	public static function get_enabled_fields() {
@@ -85,7 +108,7 @@ class CRPCRM_Customer_Registration_Fields {
 
 		$enabled  = array();
 		$settings = self::get_settings();
-		foreach ( self::get_fields() as $field => $definition ) {
+		foreach ( self::get_ordered_fields() as $field => $definition ) {
 			if ( ! empty( $settings[ $field ]['enabled'] ) ) {
 				$definition['required'] = ! empty( $settings[ $field ]['required'] );
 				$enabled[ $field ]      = $definition;

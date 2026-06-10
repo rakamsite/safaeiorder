@@ -439,6 +439,24 @@
 	margin-top: -4px;
 }
 
+.crpcrm-registration-fields-table {
+	margin-top: 16px;
+}
+
+.crpcrm-registration-fields-table .crpcrm-sort-column,
+.crpcrm-registration-fields-table .crpcrm-drag-handle {
+	text-align: center;
+	width: 64px;
+}
+
+.crpcrm-registration-fields-table .crpcrm-drag-handle {
+	cursor: grab;
+}
+
+.crpcrm-registration-fields-table .crpcrm-is-dragging {
+	opacity: 0.45;
+}
+
 .crpcrm-tools-grid {
 	display: grid;
 	gap: 16px;

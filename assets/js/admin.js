@@ -301,8 +301,50 @@
 		}
 	}
 
+	function initRegistrationFieldSorting() {
+		document.querySelectorAll('.crpcrm-sortable-registration-fields').forEach(function (tbody) {
+			var draggedRow = null;
+
+			function updateOrder() {
+				tbody.querySelectorAll('tr').forEach(function (row, index) {
+					var input = row.querySelector('.crpcrm-registration-field-order');
+					if (input) {
+						input.value = index;
+					}
+				});
+			}
+
+			tbody.querySelectorAll('tr').forEach(function (row) {
+				row.addEventListener('dragstart', function (event) {
+					draggedRow = row;
+					row.classList.add('crpcrm-is-dragging');
+					event.dataTransfer.effectAllowed = 'move';
+				});
+				row.addEventListener('dragend', function () {
+					row.classList.remove('crpcrm-is-dragging');
+					draggedRow = null;
+					updateOrder();
+				});
+			});
+
+			tbody.addEventListener('dragover', function (event) {
+				if (!draggedRow) {
+					return;
+				}
+				event.preventDefault();
+				var target = event.target.closest('tr');
+				if (!target || target === draggedRow || target.parentNode !== tbody) {
+					return;
+				}
+				var rectangle = target.getBoundingClientRect();
+				tbody.insertBefore(draggedRow, event.clientY < rectangle.top + (rectangle.height / 2) ? target : target.nextSibling);
+			});
+		});
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
 		initJalaliDatePickers();
+		initRegistrationFieldSorting();
 		document.querySelectorAll('.crpcrm-manual-request-form').forEach(function (form) {
 			updateManualCustomerFields(form);
 			form.querySelectorAll('input[name="customer_mode"]').forEach(function (radio) {
