@@ -302,43 +302,26 @@
 	}
 
 	function initRegistrationFieldSorting() {
-		document.querySelectorAll('.crpcrm-sortable-registration-fields').forEach(function (tbody) {
-			var draggedRow = null;
+		if (!window.jQuery || !window.jQuery.fn.sortable) {
+			return;
+		}
 
-			function updateOrder() {
-				tbody.querySelectorAll('tr').forEach(function (row, index) {
-					var input = row.querySelector('.crpcrm-registration-field-order');
-					if (input) {
-						input.value = index;
-					}
+		window.jQuery('.crpcrm-sortable-registration-fields').sortable({
+			axis: 'y',
+			cursor: 'grabbing',
+			handle: '.crpcrm-drag-handle',
+			helper: function (event, row) {
+				row.children().each(function () {
+					window.jQuery(this).width(window.jQuery(this).width());
+				});
+				return row;
+			},
+			placeholder: 'crpcrm-registration-field-placeholder',
+			update: function (event, ui) {
+				window.jQuery(ui.item).parent().children('tr').each(function (index) {
+					window.jQuery(this).find('.crpcrm-registration-field-order').val(index);
 				});
 			}
-
-			tbody.querySelectorAll('tr').forEach(function (row) {
-				row.addEventListener('dragstart', function (event) {
-					draggedRow = row;
-					row.classList.add('crpcrm-is-dragging');
-					event.dataTransfer.effectAllowed = 'move';
-				});
-				row.addEventListener('dragend', function () {
-					row.classList.remove('crpcrm-is-dragging');
-					draggedRow = null;
-					updateOrder();
-				});
-			});
-
-			tbody.addEventListener('dragover', function (event) {
-				if (!draggedRow) {
-					return;
-				}
-				event.preventDefault();
-				var target = event.target.closest('tr');
-				if (!target || target === draggedRow || target.parentNode !== tbody) {
-					return;
-				}
-				var rectangle = target.getBoundingClientRect();
-				tbody.insertBefore(draggedRow, event.clientY < rectangle.top + (rectangle.height / 2) ? target : target.nextSibling);
-			});
 		});
 	}
 
