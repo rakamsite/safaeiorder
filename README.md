@@ -280,3 +280,4 @@
 - چرخیدن بین صفحات داخلی نباید source را به direct تغییر دهد.
 - referrer داخلی attribution جدید نمی‌سازد.
 - اگر هیچ UTM/referrer/session معتبری وجود نداشته باشد، direct ثبت می‌شود.
+> Before development or architecture changes, read and follow [docs/ARCHITECTURE_RULES.md](docs/ARCHITECTURE_RULES.md).
