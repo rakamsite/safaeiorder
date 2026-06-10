@@ -20,6 +20,7 @@ class CRPCRM_Request_Repository {
 		global $wpdb;
 
 		$now  = CRPCRM_Helpers::current_datetime();
+		$data = $this->with_profile_metadata( $data );
 		$data = $this->sanitize_data( $data );
 		$data = wp_parse_args(
 			$data,
@@ -103,13 +104,15 @@ class CRPCRM_Request_Repository {
 		$limit    = max( 1, min( 100, absint( $args['limit'] ) ) );
 		$offset   = absint( $args['offset'] );
 		$user_id  = absint( $args['user_id'] );
+		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
 
 		if ( $user_id ) {
 			return $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM {$this->table} WHERE (customer_id = %d OR user_id = %d) AND request_type <> 'lead_follow_up' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+					"SELECT * FROM {$this->table} WHERE (customer_id = %d OR user_id = %d) AND business_profile = %s AND request_type <> '" . CRPCRM_System_Request_Types::LEAD_FOLLOW_UP . "' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
 					absint( $customer_id ),
 					$user_id,
+					$profile_id,
 					$limit,
 					$offset
 				),
@@ -119,8 +122,9 @@ class CRPCRM_Request_Repository {
 
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table} WHERE customer_id = %d AND request_type <> 'lead_follow_up' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+				"SELECT * FROM {$this->table} WHERE customer_id = %d AND business_profile = %s AND request_type <> '" . CRPCRM_System_Request_Types::LEAD_FOLLOW_UP . "' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
 				absint( $customer_id ),
+				$profile_id,
 				$limit,
 				$offset
 			),
@@ -130,12 +134,14 @@ class CRPCRM_Request_Repository {
 
 	public function count_recent_for_customer_user( $customer_id, $user_id, $since_datetime ) {
 		global $wpdb;
+		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table} WHERE customer_id = %d AND user_id = %d AND request_type <> 'lead_follow_up' AND created_at >= %s",
+				"SELECT COUNT(*) FROM {$this->table} WHERE customer_id = %d AND user_id = %d AND business_profile = %s AND request_type <> '" . CRPCRM_System_Request_Types::LEAD_FOLLOW_UP . "' AND created_at >= %s",
 				absint( $customer_id ),
 				absint( $user_id ),
+				$profile_id,
 				sanitize_text_field( $since_datetime )
 			)
 		);
@@ -467,6 +473,12 @@ class CRPCRM_Request_Repository {
 		$user_id = isset( $args['user_id'] ) ? absint( $args['user_id'] ) : get_current_user_id();
 		$where   = array( '1=1' );
 		$values  = array();
+		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+
+		if ( $profile_id ) {
+			$where[]  = 'r.business_profile = %s';
+			$values[] = $profile_id;
+		}
 
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 			$where[]  = '(r.owner_id = %d OR r.owner_id IS NULL)';
@@ -567,7 +579,8 @@ class CRPCRM_Request_Repository {
 	private function sanitize_data( $data ) {
 		$clean = array();
 		$int_fields = array( 'customer_id', 'user_id', 'owner_id' );
-		$text_fields = array( 'request_code', 'request_type', 'status', 'request_title', 'request_source', 'request_medium', 'request_campaign', 'request_content', 'request_term', 'last_action', 'close_reason', 'invalid_reason' );
+		$key_fields = array( 'request_type', 'business_profile', 'form_id' );
+		$text_fields = array( 'request_code', 'form_version', 'status', 'request_title', 'request_source', 'request_medium', 'request_campaign', 'request_content', 'request_term', 'last_action', 'close_reason', 'invalid_reason' );
 		$textarea_fields = array( 'request_summary', 'request_landing_page', 'request_referrer' );
 		$date_fields = array( 'first_assigned_at', 'last_activity_at', 'next_follow_up_at', 'closed_at', 'created_at', 'updated_at' );
 
@@ -579,6 +592,11 @@ class CRPCRM_Request_Repository {
 		foreach ( $text_fields as $field ) {
 			if ( array_key_exists( $field, $data ) ) {
 				$clean[ $field ] = sanitize_text_field( $data[ $field ] );
+			}
+		}
+		foreach ( $key_fields as $field ) {
+			if ( array_key_exists( $field, $data ) ) {
+				$clean[ $field ] = sanitize_key( $data[ $field ] );
 			}
 		}
 		foreach ( $textarea_fields as $field ) {
@@ -596,5 +614,24 @@ class CRPCRM_Request_Repository {
 		}
 
 		return $clean;
+	}
+
+	private function with_profile_metadata( $data ) {
+		$data         = is_array( $data ) ? $data : array();
+		$request_data = isset( $data['request_data'] ) ? $data['request_data'] : array();
+		$request_data = is_string( $request_data ) ? CRPCRM_Helpers::maybe_json_decode( $request_data, true ) : $request_data;
+		$request_data = is_array( $request_data ) ? $request_data : array();
+
+		if ( empty( $data['business_profile'] ) ) {
+			$data['business_profile'] = $request_data['business_profile'] ?? CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		}
+		if ( empty( $data['form_id'] ) && ! empty( $request_data['form_id'] ) ) {
+			$data['form_id'] = $request_data['form_id'];
+		}
+		if ( empty( $data['form_version'] ) && ! empty( $request_data['form_version'] ) ) {
+			$data['form_version'] = $request_data['form_version'];
+		}
+
+		return $data;
 	}
 }

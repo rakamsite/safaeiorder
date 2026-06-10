@@ -318,7 +318,7 @@ class CRPCRM_Portal_Shortcode {
 		$request_summary  = CRPCRM_Request_Forms::build_summary( $form, $request_data );
 		$request_data['business_profile'] = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
 		$request_data['form_id']          = sanitize_key( $form['id'] );
-		$request_data['form_version']     = sanitize_text_field( $form['version'] );
+		$request_data['form_version']     = sanitize_text_field( $form['version'] ?? '' );
 		$request_data['fields']           = $submitted_fields;
 		$request_data['submitted_fields'] = $submitted_fields;
 		$attribution      = $this->attribution_service->get_attribution_for_new_request();
@@ -329,6 +329,9 @@ class CRPCRM_Portal_Shortcode {
 				'customer_id'          => $customer_id,
 				'user_id'              => $user_id,
 				'request_type'         => $form['request_type'],
+				'business_profile'     => $request_data['business_profile'],
+				'form_id'              => $request_data['form_id'],
+				'form_version'         => $request_data['form_version'],
 				'status'               => 'new',
 				'owner_id'             => null,
 				'request_title'        => $form['title'],

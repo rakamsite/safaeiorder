@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interface {
+	const CATALOG_OPTION = 'crpcrm_safaei_catalog';
+
 	public function get_id() {
 		return 'safaei';
 	}
@@ -23,7 +25,6 @@ class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interfac
 			'car_registration' => 'ثبت‌نام خودرو',
 			'parts_request'    => 'درخواست قطعات',
 			'repair_booking'   => 'درخواست تعمیرات',
-			'lead_follow_up'   => 'پیگیری سرنخ',
 		);
 	}
 
@@ -56,7 +57,59 @@ class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interfac
 	}
 
 	public function get_active_vehicle_options( $form_id ) {
-		return CRPCRM_Settings::get_active_vehicle_options( $form_id );
+		$form_id = sanitize_key( $form_id );
+		$catalog = $this->get_vehicle_catalog();
+		$items   = isset( $catalog[ $form_id ] ) && is_array( $catalog[ $form_id ] ) ? $catalog[ $form_id ] : $this->get_default_vehicle_options();
+		$items   = array_filter( $items, function ( $item ) {
+			return is_array( $item ) && ! empty( $item['label'] ) && 'yes' === ( $item['enabled'] ?? 'no' );
+		} );
+
+		usort( $items, function ( $a, $b ) {
+			return absint( $a['priority'] ?? 999 ) <=> absint( $b['priority'] ?? 999 );
+		} );
+
+		return array_values( array_unique( wp_list_pluck( $items, 'label' ) ) );
+	}
+
+	public function get_vehicle_catalog() {
+		$catalog = get_option( self::CATALOG_OPTION, false );
+		if ( is_array( $catalog ) ) {
+			return $catalog;
+		}
+
+		$legacy  = get_option( CRPCRM_Settings::OPTION_NAME, array() );
+		$catalog = is_array( $legacy ) && isset( $legacy['vehicle_options_by_form'] ) && is_array( $legacy['vehicle_options_by_form'] ) ? $legacy['vehicle_options_by_form'] : array();
+		$fallback = is_array( $legacy ) && isset( $legacy['vehicle_options'] ) && is_array( $legacy['vehicle_options'] ) ? $legacy['vehicle_options'] : $this->get_default_vehicle_options();
+		foreach ( array_keys( $this->get_vehicle_form_labels() ) as $form_id ) {
+			if ( empty( $catalog[ $form_id ] ) || ! is_array( $catalog[ $form_id ] ) ) {
+				$catalog[ $form_id ] = $fallback;
+			}
+		}
+		add_option( self::CATALOG_OPTION, $catalog );
+		return $catalog;
+	}
+
+	public function save_vehicle_catalog( $input ) {
+		$current = $this->get_vehicle_catalog();
+		$clean   = array();
+		foreach ( array_keys( $this->get_vehicle_form_labels() ) as $form_id ) {
+			$items = isset( $input[ $form_id ] ) && is_array( $input[ $form_id ] ) ? $input[ $form_id ] : ( $current[ $form_id ] ?? array() );
+			foreach ( $items as $item ) {
+				$label = isset( $item['label'] ) ? trim( sanitize_text_field( $item['label'] ) ) : '';
+				if ( '' === $label ) {
+					continue;
+				}
+				$clean[ $form_id ][] = array(
+					'label'    => $label,
+					'priority' => absint( $item['priority'] ?? 999 ),
+					'enabled'  => isset( $item['enabled'] ) && 'yes' === $item['enabled'] ? 'yes' : 'no',
+				);
+			}
+			if ( empty( $clean[ $form_id ] ) ) {
+				$clean[ $form_id ] = $this->get_default_vehicle_options();
+			}
+		}
+		update_option( self::CATALOG_OPTION, $clean );
 	}
 
 	public function get_forms() {

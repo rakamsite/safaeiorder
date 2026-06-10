@@ -21,7 +21,6 @@ class CRPCRM_Settings {
 	public static function defaults() {
 		$site_host = wp_parse_url( home_url(), PHP_URL_HOST );
 		return array(
-			'business_profile'                      => 'safaei',
 			'enabled_forms'                         => array(),
 			'portal_page_id'                       => 0,
 			'portal_menu_id'                       => 0,
@@ -57,73 +56,7 @@ class CRPCRM_Settings {
 			'delete_data_on_uninstall'             => 'no',
 			'log_retention_days'                   => 90,
 			'log_level'                            => 'info',
-			'vehicle_options'                      => self::default_vehicle_options(),
-			'vehicle_options_by_form'              => self::default_vehicle_options_by_form(),
 		);
-	}
-
-	/** Backward-compatible wrapper; vehicle definitions belong to the Safaei profile. */
-	public static function vehicle_form_labels() {
-		$profile = class_exists( 'CRPCRM_Safaei_Business_Profile' ) ? new CRPCRM_Safaei_Business_Profile() : null;
-		return $profile && method_exists( $profile, 'get_vehicle_form_labels' ) ? $profile->get_vehicle_form_labels() : array();
-	}
-
-	/** Backward-compatible wrapper; vehicle definitions belong to the Safaei profile. */
-	public static function default_vehicle_options() {
-		$profile = class_exists( 'CRPCRM_Safaei_Business_Profile' ) ? new CRPCRM_Safaei_Business_Profile() : null;
-		return $profile && method_exists( $profile, 'get_default_vehicle_options' ) ? $profile->get_default_vehicle_options() : array();
-	}
-
-
-	public static function default_vehicle_options_by_form() {
-		$options = array();
-		foreach ( array_keys( self::vehicle_form_labels() ) as $form_key ) {
-			$options[ $form_key ] = self::default_vehicle_options();
-		}
-
-		return $options;
-	}
-
-	public static function get_active_vehicle_options( $form_key = '' ) {
-		$vehicles = self::get_vehicle_options_for_form( $form_key );
-
-		$active = array_filter( $vehicles, function ( $vehicle ) {
-			return is_array( $vehicle ) && ! empty( $vehicle['label'] ) && 'yes' === ( $vehicle['enabled'] ?? 'no' );
-		} );
-
-		usort( $active, function ( $a, $b ) {
-			$priority_a = isset( $a['priority'] ) ? absint( $a['priority'] ) : 999;
-			$priority_b = isset( $b['priority'] ) ? absint( $b['priority'] ) : 999;
-			if ( $priority_a === $priority_b ) {
-				return strcmp( (string) $a['label'], (string) $b['label'] );
-			}
-			return $priority_a <=> $priority_b;
-		} );
-
-		$labels = array_values( array_unique( array_map( function ( $vehicle ) {
-			return (string) $vehicle['label'];
-		}, $active ) ) );
-
-		return $labels;
-	}
-
-
-	public static function get_vehicle_options_for_form( $form_key = '' ) {
-		$form_key       = sanitize_key( $form_key );
-		$stored_options = get_option( self::OPTION_NAME, array() );
-		$stored_options = is_array( $stored_options ) ? $stored_options : array();
-		$options_by_form = isset( $stored_options['vehicle_options_by_form'] ) && is_array( $stored_options['vehicle_options_by_form'] ) ? $stored_options['vehicle_options_by_form'] : array();
-		$legacy_options  = isset( $stored_options['vehicle_options'] ) && is_array( $stored_options['vehicle_options'] ) ? $stored_options['vehicle_options'] : self::default_vehicle_options();
-
-		$form_key = class_exists( 'CRPCRM_Form_Registry' ) ? CRPCRM_Form_Registry::resolve_form_id( $form_key ) : $form_key;
-		$legacy_keys = array_flip( class_exists( 'CRPCRM_Form_Registry' ) ? CRPCRM_Form_Registry::get_aliases() : array() );
-		if ( $form_key && ! isset( $options_by_form[ $form_key ] ) && isset( $legacy_keys[ $form_key ], $options_by_form[ $legacy_keys[ $form_key ] ] ) ) { $options_by_form[ $form_key ] = $options_by_form[ $legacy_keys[ $form_key ] ]; }
-
-		if ( $form_key && isset( $options_by_form[ $form_key ] ) && is_array( $options_by_form[ $form_key ] ) ) {
-			return $options_by_form[ $form_key ];
-		}
-
-		return $legacy_options;
 	}
 
 	public static function add_default_options() {
@@ -135,10 +68,6 @@ class CRPCRM_Settings {
 
 		$stored_options = is_array( $stored_options ) ? $stored_options : array();
 		$defaults       = self::defaults();
-		if ( empty( $stored_options['vehicle_options_by_form'] ) && ! empty( $stored_options['vehicle_options'] ) && is_array( $stored_options['vehicle_options'] ) ) {
-			$defaults['vehicle_options_by_form'] = array_fill_keys( array_keys( self::vehicle_form_labels() ), $stored_options['vehicle_options'] );
-		}
-
 		update_option( self::OPTION_NAME, wp_parse_args( $stored_options, $defaults ) );
 	}
 
@@ -274,8 +203,10 @@ class CRPCRM_Settings {
 			$settings['attribution_events_enabled'] = $this->checkbox( $input, 'attribution_events_enabled' );
 			$settings['internal_domains']           = $this->sanitize_domains( isset( $input['internal_domains'] ) ? $input['internal_domains'] : $defaults['internal_domains'] );
 		} elseif ( 'crm' === $active_tab ) {
-			$settings['vehicle_options_by_form']              = $this->sanitize_vehicle_options_by_form( isset( $input['vehicle_options_by_form'] ) ? $input['vehicle_options_by_form'] : array(), $current );
-			$settings['vehicle_options']                      = isset( $settings['vehicle_options_by_form']['safaei_car_registration'] ) ? $settings['vehicle_options_by_form']['safaei_car_registration'] : $this->sanitize_vehicle_options( isset( $input['vehicle_options'] ) ? $input['vehicle_options'] : array() );
+			$profile = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile();
+			if ( $profile && method_exists( $profile, 'save_vehicle_catalog' ) ) {
+				$profile->save_vehicle_catalog( isset( $input['profile_catalog'] ) && is_array( $input['profile_catalog'] ) ? $input['profile_catalog'] : array() );
+			}
 			$settings['request_rate_limit_count']             = $this->bounded_absint( $input, 'request_rate_limit_count', 1, 100, $defaults['request_rate_limit_count'] );
 			$settings['request_rate_limit_minutes']           = $this->bounded_absint( $input, 'request_rate_limit_minutes', 1, 1440, $defaults['request_rate_limit_minutes'] );
 			$settings['stale_request_hours']                  = $this->bounded_absint( $input, 'stale_request_hours', 1, 720, $defaults['stale_request_hours'] );
@@ -303,62 +234,6 @@ class CRPCRM_Settings {
 		}
 
 		return wp_parse_args( $settings, $defaults );
-	}
-
-	private function sanitize_vehicle_options( $input ) {
-		if ( ! is_array( $input ) ) {
-			return self::default_vehicle_options();
-		}
-
-		$vehicles = array();
-		foreach ( $input as $vehicle ) {
-			if ( ! is_array( $vehicle ) ) {
-				continue;
-			}
-
-			$label = isset( $vehicle['label'] ) ? sanitize_text_field( $vehicle['label'] ) : '';
-			$label = trim( $label );
-			if ( '' === $label ) {
-				continue;
-			}
-
-			$vehicles[] = array(
-				'label'    => $label,
-				'priority' => isset( $vehicle['priority'] ) ? absint( $vehicle['priority'] ) : 999,
-				'enabled'  => isset( $vehicle['enabled'] ) && 'yes' === $vehicle['enabled'] ? 'yes' : 'no',
-			);
-		}
-
-		if ( empty( $vehicles ) ) {
-			return self::default_vehicle_options();
-		}
-
-		usort( $vehicles, function ( $a, $b ) {
-			if ( $a['priority'] === $b['priority'] ) {
-				return strcmp( $a['label'], $b['label'] );
-			}
-			return $a['priority'] <=> $b['priority'];
-		} );
-
-		return $vehicles;
-	}
-
-	private function sanitize_vehicle_options_by_form( $input, $current ) {
-		$sanitized       = array();
-		$legacy_options  = isset( $current['vehicle_options'] ) && is_array( $current['vehicle_options'] ) ? $current['vehicle_options'] : self::default_vehicle_options();
-		$current_by_form = isset( $current['vehicle_options_by_form'] ) && is_array( $current['vehicle_options_by_form'] ) ? $current['vehicle_options_by_form'] : array();
-
-		foreach ( array_keys( self::vehicle_form_labels() ) as $form_key ) {
-			if ( isset( $input[ $form_key ] ) && is_array( $input[ $form_key ] ) ) {
-				$sanitized[ $form_key ] = $this->sanitize_vehicle_options( $input[ $form_key ] );
-			} elseif ( isset( $current_by_form[ $form_key ] ) && is_array( $current_by_form[ $form_key ] ) ) {
-				$sanitized[ $form_key ] = $this->sanitize_vehicle_options( $current_by_form[ $form_key ] );
-			} else {
-				$sanitized[ $form_key ] = $this->sanitize_vehicle_options( $legacy_options );
-			}
-		}
-
-		return $sanitized;
 	}
 
 	private function checkbox( $input, $key ) {
