@@ -134,6 +134,7 @@ $known_source_keys = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegr
 			<label><?php echo esc_html( 'کمپین' ); ?><input type="text" name="campaign" value="<?php echo esc_attr( $filters['campaign'] ); ?>" placeholder="request_campaign"></label>
 			<label><?php echo esc_html( 'محتوا' ); ?><input type="text" name="content" value="<?php echo esc_attr( $filters['content'] ); ?>" placeholder="request_content"></label>
 			<label><?php echo esc_html( 'وضعیت' ); ?><select name="status"><?php foreach ( $statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label>
+			<?php if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
 			<label><?php echo esc_html( 'کارشناس' ); ?>
 				<select name="owner_filter">
 					<option value="all" <?php selected( $filters['owner_filter'], 'all' ); ?>><?php echo esc_html( 'همه' ); ?></option>
@@ -141,6 +142,7 @@ $known_source_keys = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegr
 					<?php foreach ( $assignable_users as $user ) : ?><option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( (string) $filters['owner_filter'], (string) $user->ID ); ?>><?php echo esc_html( $user->display_name ); ?></option><?php endforeach; ?>
 				</select>
 			</label>
+			<?php endif; ?>
 		</div>
 		<p class="submit">
 			<button type="submit" class="button button-primary"><?php echo esc_html( 'اعمال فیلتر' ); ?></button>
@@ -205,11 +207,13 @@ $known_source_keys = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegr
 		<?php endforeach; ?>
 	</div></div>
 
+	<?php if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
 	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'عملکرد کارشناسان' ); ?></h2>
 		<table class="widefat striped"><thead><tr><th>نام کارشناس</th><th>فعلی تحت مسئولیت</th><th>برداشته در بازه</th><th>اقدامات</th><th>تماس پاسخ داده</th><th>تماس پاسخ داده نشد</th><th>واتساپ</th><th>پیگیری تنظیم‌شده</th><th>موفق</th><th>ناموفق</th><th>نامعتبر</th><th>پیگیری عقب‌افتاده</th><th>میانگین اولین اقدام</th><th>نرخ موفقیت</th></tr></thead><tbody>
 		<?php foreach ( $agent_performance as $row ) : ?><tr><td><?php echo esc_html( $row['display_name'] ); ?></td><td><?php echo esc_html( number_format_i18n( $row['current_owned'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['claimed'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['activities'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['call_answered'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['call_no_answer'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['whatsapp_sent'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['follow_up_scheduled'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['won'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['lost'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['invalid'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['overdue_followups'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_duration( $row['avg_first_action_seconds'] ) ); ?></td><td><?php echo esc_html( null === $row['success_rate'] ? 'قابل محاسبه نیست' : $row['success_rate'] . '%' ); ?></td></tr><?php endforeach; ?>
 		</tbody></table>
 	</div>
+	<?php endif; ?>
 
 	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'پیگیری‌ها و موارد عقب‌افتاده' ); ?></h2><div class="crpcrm-summary-cards">
 		<?php foreach ( $followup_report as $item ) : ?><div><strong><?php echo esc_html( number_format_i18n( $item['total'] ) ); ?></strong><span><?php echo esc_html( $item['label'] ); ?></span><a href="<?php echo esc_url( crpcrm_reports_url( array( 'workflow_filter' => $item['key'], 'paged' => 1 ) ) ); ?>"><?php echo esc_html( 'مشاهده لیست' ); ?></a></div><?php endforeach; ?>

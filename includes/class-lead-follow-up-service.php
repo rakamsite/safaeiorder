@@ -26,6 +26,9 @@ class CRPCRM_Lead_Follow_Up_Service {
 	}
 
 	public static function schedule_cron() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'lead_followup' ) ) {
+			return;
+		}
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', self::CRON_HOOK );
 		}
@@ -36,7 +39,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 	}
 
 	public function create_due_follow_ups() {
-		if ( ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'lead_followup' ) || ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
 			return 0;
 		}
 

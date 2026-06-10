@@ -28,6 +28,13 @@ class CRPCRM_OTP_Service {
 	}
 
 	public function request_code( $phone ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) {
+			return new WP_Error( 'otp_disabled', CRPCRM_Feature_Manager::disabled_message() );
+		}
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'sms' ) ) {
+			return new WP_Error( 'sms_disabled', CRPCRM_Feature_Manager::disabled_message() );
+		}
+
 		$phone_normalized = CRPCRM_Helpers::normalize_iran_phone( $phone );
 		if ( ! CRPCRM_Helpers::is_valid_iran_phone_normalized( $phone_normalized ) ) {
 			return new WP_Error( 'invalid_phone', 'شماره موبایل واردشده معتبر نیست.' );
@@ -35,7 +42,7 @@ class CRPCRM_OTP_Service {
 
 		CRPCRM_Logger::info( 'otp_requested', 'otp', array( 'phone_hash' => $this->hash_value( $phone_normalized ) ) );
 
-		if ( 'yes' !== CRPCRM_Settings::get( 'customer_registration_enabled', 'yes' ) && ! $this->find_existing_user_by_phone( $phone_normalized ) ) {
+		if ( ( ! CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) || 'yes' !== CRPCRM_Settings::get( 'customer_registration_enabled', 'yes' ) ) && ! $this->find_existing_user_by_phone( $phone_normalized ) ) {
 			CRPCRM_Logger::info( 'otp_registration_disabled_for_new_phone', 'otp', array( 'phone_hash' => $this->hash_value( $phone_normalized ) ) );
 			return new WP_Error( 'registration_disabled', 'در حال حاضر ثبت‌نام کاربران جدید غیرفعال است.' );
 		}
@@ -115,6 +122,10 @@ class CRPCRM_OTP_Service {
 	}
 
 	public function resend_code( $state_token ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) {
+			return new WP_Error( 'otp_disabled', CRPCRM_Feature_Manager::disabled_message() );
+		}
+
 		$state = $this->get_state( $state_token );
 		if ( is_wp_error( $state ) ) {
 			return $state;
@@ -124,6 +135,10 @@ class CRPCRM_OTP_Service {
 	}
 
 	public function verify_code( $state_token, $code ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) {
+			return new WP_Error( 'otp_disabled', CRPCRM_Feature_Manager::disabled_message() );
+		}
+
 		$state = $this->get_state( $state_token );
 		if ( is_wp_error( $state ) ) {
 			return $state;
@@ -163,7 +178,7 @@ class CRPCRM_OTP_Service {
 			return new WP_Error( 'wrong_code', 'کد واردشده صحیح نیست.' );
 		}
 
-		if ( 'yes' !== CRPCRM_Settings::get( 'customer_registration_enabled', 'yes' ) && ! $this->find_existing_user_by_phone( $otp['phone_normalized'] ) ) {
+		if ( ( ! CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) || 'yes' !== CRPCRM_Settings::get( 'customer_registration_enabled', 'yes' ) ) && ! $this->find_existing_user_by_phone( $otp['phone_normalized'] ) ) {
 			CRPCRM_Logger::info( 'customer_registration_disabled', 'customer', array( 'phone_hash' => $this->hash_value( $otp['phone_normalized'] ) ) );
 			return new WP_Error( 'registration_disabled', 'در حال حاضر ثبت‌نام کاربران جدید غیرفعال است.' );
 		}
@@ -256,7 +271,7 @@ class CRPCRM_OTP_Service {
 			return $user;
 		}
 
-		if ( 'yes' !== CRPCRM_Settings::get( 'customer_registration_enabled', 'yes' ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) || 'yes' !== CRPCRM_Settings::get( 'customer_registration_enabled', 'yes' ) ) {
 			CRPCRM_Logger::info( 'customer_registration_disabled', 'customer', array( 'phone_hash' => $this->hash_value( $phone_normalized ) ) );
 			return new WP_Error( 'registration_disabled', 'در حال حاضر ثبت‌نام کاربران جدید غیرفعال است.' );
 		}

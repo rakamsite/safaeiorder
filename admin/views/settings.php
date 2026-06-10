@@ -61,7 +61,14 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 		</div>
 
 		<div class="crpcrm-card">
-		<?php if ( 'portal' === $active_tab ) : ?>
+		<?php if ( 'features' === $active_tab ) : ?>
+			<h2><?php echo esc_html( 'امکانات افزونه' ); ?></h2>
+			<table class="form-table" role="presentation"><tbody>
+				<?php foreach ( CRPCRM_Feature_Manager::get_features() as $feature_id => $feature_label ) : ?>
+					<tr><th><?php echo esc_html( $feature_label ); ?></th><td><label><input name="crpcrm_features[<?php echo esc_attr( $feature_id ); ?>]" type="checkbox" value="yes" <?php checked( CRPCRM_Feature_Manager::is_enabled( $feature_id ) ); ?> /> <?php echo esc_html( 'فعال باشد' ); ?></label></td></tr>
+				<?php endforeach; ?>
+			</tbody></table>
+		<?php elseif ( 'portal' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات پرتال مشتری' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
@@ -85,12 +92,15 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 						<p class="description"><?php echo esc_html( 'لینک‌های این فهرست در کنار آیتم‌های اجباری پرتال نمایش داده می‌شوند.' ); ?></p>
 					</td>
 				</tr>
-				<tr><th><?php echo esc_html( 'فعال بودن ثبت‌نام مشتریان جدید' ); ?></th><td><label><input name="crpcrm_settings[customer_registration_enabled]" type="checkbox" value="yes" <?php checked( $settings['customer_registration_enabled'], 'yes' ); ?> /> <?php echo esc_html( 'ثبت‌نام شماره‌های جدید فعال باشد.' ); ?></label></td></tr>
+				<?php if ( CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) ) : ?>
+					<tr><th><?php echo esc_html( 'فعال بودن ثبت‌نام مشتریان جدید' ); ?></th><td><label><input name="crpcrm_settings[customer_registration_enabled]" type="checkbox" value="yes" <?php checked( $settings['customer_registration_enabled'], 'yes' ); ?> /> <?php echo esc_html( 'ثبت‌نام شماره‌های جدید فعال باشد.' ); ?></label></td></tr>
+				<?php endif; ?>
 				<tr><th><label for="request_success_message"><?php echo esc_html( 'متن پیام بعد از ثبت موفق درخواست' ); ?></label></th><td><textarea name="crpcrm_settings[request_success_message]" id="request_success_message" class="large-text" rows="4"><?php echo esc_textarea( $settings['request_success_message'] ); ?></textarea></td></tr>
 			</tbody></table>
 		<?php elseif ( 'otp' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات ورود OTP و پیامک' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
+				<?php if ( CRPCRM_Feature_Manager::is_enabled( 'sms' ) ) : ?>
 				<tr><th><label for="otp_provider"><?php echo esc_html( 'ارائه‌دهنده پیامک' ); ?></label></th><td><select name="crpcrm_settings[otp_provider]" id="otp_provider"><?php foreach ( $sms_providers as $provider_id => $provider ) : ?><option value="<?php echo esc_attr( $provider_id ); ?>" <?php selected( $settings['otp_provider'], $provider_id ); ?>><?php echo esc_html( $provider->get_label() ); ?></option><?php endforeach; ?></select></td></tr>
 				<tr><th colspan="2"><h3><?php echo esc_html( 'تنظیمات ملی پیامک' ); ?></h3></th></tr>
 				<tr><th><label for="melipayamak_username"><?php echo esc_html( 'نام کاربری ملی پیامک' ); ?></label></th><td><input name="crpcrm_settings[melipayamak_username]" id="melipayamak_username" type="text" value="<?php echo esc_attr( $settings['melipayamak_username'] ); ?>" class="regular-text" /></td></tr>
@@ -102,10 +112,13 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 				<tr><th><label for="sms_ir_line_number"><?php echo esc_html( 'شماره خط SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_line_number]" id="sms_ir_line_number" type="text" value="<?php echo esc_attr( $settings['sms_ir_line_number'] ); ?>" class="regular-text" /></td></tr>
 				<tr><th><label for="sms_ir_template_id_otp"><?php echo esc_html( 'شناسه قالب OTP در SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_template_id_otp]" id="sms_ir_template_id_otp" type="text" value="<?php echo esc_attr( $settings['sms_ir_template_id_otp'] ); ?>" class="regular-text" /></td></tr>
 				<tr><th><label for="sms_ir_template_id_request_created"><?php echo esc_html( 'شناسه قالب ثبت درخواست در SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_template_id_request_created]" id="sms_ir_template_id_request_created" type="text" value="<?php echo esc_attr( $settings['sms_ir_template_id_request_created'] ); ?>" class="regular-text" /></td></tr>
+				<?php endif; ?>
+				<?php if ( CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) : ?>
 				<tr><th><label for="otp_expiration_minutes"><?php echo esc_html( 'مدت اعتبار کد OTP به دقیقه' ); ?></label></th><td><input name="crpcrm_settings[otp_expiration_minutes]" id="otp_expiration_minutes" type="number" min="1" max="60" value="<?php echo esc_attr( $settings['otp_expiration_minutes'] ); ?>" /></td></tr>
 				<tr><th><label for="otp_resend_seconds"><?php echo esc_html( 'فاصله مجاز ارسال مجدد به ثانیه' ); ?></label></th><td><input name="crpcrm_settings[otp_resend_seconds]" id="otp_resend_seconds" type="number" min="10" max="600" value="<?php echo esc_attr( $settings['otp_resend_seconds'] ); ?>" /></td></tr>
 				<tr><th><label for="otp_max_attempts"><?php echo esc_html( 'حداکثر تلاش برای وارد کردن کد' ); ?></label></th><td><input name="crpcrm_settings[otp_max_attempts]" id="otp_max_attempts" type="number" min="1" max="20" value="<?php echo esc_attr( $settings['otp_max_attempts'] ); ?>" /></td></tr>
 				<?php if ( current_user_can( 'manage_options' ) ) : ?><tr><th><?php echo esc_html( 'حالت تست OTP' ); ?></th><td><label><input name="crpcrm_settings[otp_debug_mode]" type="checkbox" value="yes" <?php checked( $settings['otp_debug_mode'], 'yes' ); ?> /> <?php echo esc_html( 'فعال باشد' ); ?></label><p class="description"><?php echo esc_html( 'در حالت تست، کد OTP در لاگ داخلی افزونه ثبت می‌شود. این گزینه در سایت عملیاتی نباید فعال باشد.' ); ?></p></td></tr><?php endif; ?>
+				<?php endif; ?>
 			</tbody></table>
 		<?php elseif ( 'attribution' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات رهگیری ورودی' ); ?></h2>

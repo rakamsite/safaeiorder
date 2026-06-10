@@ -63,6 +63,10 @@ class CRPCRM_SMS_Provider_Registry {
 	}
 
 	public function send( $phone_normalized, $template_key, array $variables = array() ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'sms' ) ) {
+			return new WP_Error( 'crpcrm_sms_disabled', CRPCRM_Feature_Manager::disabled_message() );
+		}
+
 		$provider = $this->get_active_provider();
 		if ( ! $provider ) {
 			CRPCRM_Logger::warning( 'sms_provider_unknown', 'sms', array( 'provider' => $this->get_configured_provider_id() ) );

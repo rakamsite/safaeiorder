@@ -40,6 +40,9 @@ class CRPCRM_Admin_Tools {
 	}
 
 	public static function schedule_cron() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'admin_tools' ) ) {
+			return;
+		}
 		if ( ! wp_next_scheduled( 'crpcrm_daily_log_cleanup' ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'crpcrm_daily_log_cleanup' );
 		}
@@ -50,6 +53,10 @@ class CRPCRM_Admin_Tools {
 	}
 
 	public function run_scheduled_log_cleanup() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'admin_tools' ) ) {
+			return 0;
+		}
+
 		$deleted = $this->maintenance->cleanup_old_logs( CRPCRM_Settings::get( 'log_retention_days', 90 ) );
 		CRPCRM_Logger::info( 'logs_cleanup_run', 'logs_cleanup_run', array( 'deleted' => $deleted, 'mode' => 'cron' ) );
 	}
@@ -60,6 +67,9 @@ class CRPCRM_Admin_Tools {
 	}
 
 	private function verify_export( $action ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'admin_tools' ) ) {
+			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+		}
 		if ( ! self::can_export() ) {
 			$this->deny( $action );
 		}
@@ -67,6 +77,9 @@ class CRPCRM_Admin_Tools {
 	}
 
 	private function verify_maintenance( $action, $nonce_field = 'crpcrm_tools_nonce' ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'admin_tools' ) ) {
+			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+		}
 		if ( ! self::can_maintain() ) {
 			$this->deny( $action );
 		}

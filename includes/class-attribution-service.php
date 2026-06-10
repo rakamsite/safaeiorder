@@ -25,7 +25,7 @@ class CRPCRM_Attribution_Service {
 	}
 
 	public function maybe_track_current_request() {
-		if ( 'yes' !== CRPCRM_Settings::get( 'attribution_enabled', 'yes' ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) || 'yes' !== CRPCRM_Settings::get( 'attribution_enabled', 'yes' ) ) {
 			return;
 		}
 
@@ -195,6 +195,10 @@ class CRPCRM_Attribution_Service {
 	}
 
 	public function apply_to_customer( $customer_id, $user_id, $attribution ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
+			return false;
+		}
+
 		$customer_id = absint( $customer_id );
 		$user_id     = absint( $user_id );
 		$attribution = $this->sanitize_attribution( $attribution );
@@ -239,7 +243,7 @@ class CRPCRM_Attribution_Service {
 	}
 
 	public function record_event( $attribution, $customer_id = null, $user_id = null, $is_logged_in = false ) {
-		if ( 'yes' !== CRPCRM_Settings::get( 'attribution_events_enabled', 'yes' ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) || 'yes' !== CRPCRM_Settings::get( 'attribution_events_enabled', 'yes' ) ) {
 			return false;
 		}
 
@@ -320,6 +324,21 @@ class CRPCRM_Attribution_Service {
 	}
 
 	public function get_attribution_for_new_request() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
+			$now = CRPCRM_Helpers::current_datetime();
+			return array(
+				'source'       => 'direct',
+				'medium'       => 'none',
+				'campaign'     => '',
+				'content'      => '',
+				'term'         => '',
+				'landing_page' => '',
+				'referrer'     => '',
+				'detected_at'  => $now,
+				'expires_at'   => $now,
+			);
+		}
+
 		$current = $this->get_current_attribution();
 		if ( $current ) {
 			return $current;

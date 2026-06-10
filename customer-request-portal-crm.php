@@ -26,6 +26,7 @@ define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 require_once CRPCRM_PLUGIN_DIR . 'includes/business-profiles/interface-business-profile.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/business-profiles/class-business-profile-manager.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/business-profiles/class-business-profile-loader.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-feature-manager.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-public-theme.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-form-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-request-type-registry.php';
