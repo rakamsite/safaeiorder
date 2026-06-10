@@ -26,7 +26,9 @@ class CRPCRM_Public {
 			return;
 		}
 
-		wp_register_style( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/css/public.css', array(), CRPCRM_VERSION );
-		wp_register_script( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/js/public.js', array(), CRPCRM_VERSION, true );
+		$public_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/public.css';
+		$public_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/public.js';
+		wp_register_style( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/css/public.css', array(), file_exists( $public_css_path ) ? filemtime( $public_css_path ) : CRPCRM_VERSION );
+		wp_register_script( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/js/public.js', array(), file_exists( $public_js_path ) ? filemtime( $public_js_path ) : CRPCRM_VERSION, true );
 	}
 }

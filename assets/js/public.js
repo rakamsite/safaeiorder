@@ -131,6 +131,48 @@
 		render();
 	}
 
+	function setupPhoneEntry(control) {
+		var suffix = control.querySelector('.crpcrm-phone-suffix');
+		var hidden = control.querySelector('#crpcrm_phone');
+		var digits = Array.prototype.slice.call(control.querySelectorAll('.crpcrm-phone-digit'));
+		var form = control.closest('form');
+
+		if (!suffix || !hidden || !form) {
+			return;
+		}
+
+		function renderDigits() {
+			digits.forEach(function (digit, index) {
+				digit.textContent = suffix.value.charAt(index) || '';
+				digit.classList.toggle('is-filled', index < suffix.value.length);
+				digit.classList.toggle('is-active', index === suffix.value.length && suffix.value.length < digits.length);
+			});
+		}
+
+		function syncPhone() {
+			suffix.value = toEnglishDigits(suffix.value).replace(/\D+/g, '').slice(0, 9);
+			hidden.value = '09' + suffix.value;
+			renderDigits();
+		}
+
+		suffix.addEventListener('input', syncPhone);
+		suffix.addEventListener('focus', function () {
+			control.classList.add('is-focused');
+			renderDigits();
+		});
+		suffix.addEventListener('blur', function () {
+			control.classList.remove('is-focused');
+			digits.forEach(function (digit) {
+				digit.classList.remove('is-active');
+			});
+		});
+		control.addEventListener('click', function () {
+			suffix.focus();
+		});
+		form.addEventListener('submit', syncPhone);
+		syncPhone();
+	}
+
 
 	function setupInlineRequestForms() {
 		var triggers = Array.prototype.slice.call(document.querySelectorAll('[data-crpcrm-open-form]'));
@@ -205,6 +247,7 @@
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
+		document.querySelectorAll('.crpcrm-phone-entry').forEach(setupPhoneEntry);
 		document.querySelectorAll('.crpcrm-otp-code-boxes').forEach(setupOtpBoxes);
 		document.querySelectorAll('.crpcrm-resend-otp-form').forEach(setupResendTimer);
 		setupInlineRequestForms();

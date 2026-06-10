@@ -125,7 +125,9 @@ class CRPCRM_Admin_Menu {
 			return;
 		}
 
-		wp_enqueue_style( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/css/admin.css', array(), CRPCRM_VERSION );
-		wp_enqueue_script( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), CRPCRM_VERSION, true );
+		$admin_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/admin.css';
+		$admin_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/admin.js';
+		wp_enqueue_style( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/css/admin.css', array(), file_exists( $admin_css_path ) ? filemtime( $admin_css_path ) : CRPCRM_VERSION );
+		wp_enqueue_script( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'jquery-ui-sortable' ), file_exists( $admin_js_path ) ? filemtime( $admin_js_path ) : CRPCRM_VERSION, true );
 	}
 }

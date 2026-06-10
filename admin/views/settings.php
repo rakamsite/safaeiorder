@@ -76,7 +76,7 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 				<thead><tr><th class="crpcrm-sort-column"><?php echo esc_html( 'ترتیب' ); ?></th><th><?php echo esc_html( 'فیلد' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th><th><?php echo esc_html( 'اجباری' ); ?></th></tr></thead>
 				<tbody class="crpcrm-sortable-registration-fields">
 					<?php foreach ( CRPCRM_Customer_Registration_Fields::get_ordered_fields() as $field_id => $field ) : ?>
-						<tr draggable="true">
+						<tr>
 							<td class="crpcrm-drag-handle" title="<?php echo esc_attr( 'برای جابه‌جایی بکشید' ); ?>"><span class="dashicons dashicons-move"></span></td>
 							<td><?php echo esc_html( $field['label'] ); ?><input class="crpcrm-registration-field-order" name="crpcrm_registration_fields[<?php echo esc_attr( $field_id ); ?>][order]" type="hidden" value="<?php echo esc_attr( $registration_field_settings[ $field_id ]['order'] ); ?>" /></td>
 							<td><input name="crpcrm_registration_fields[<?php echo esc_attr( $field_id ); ?>][enabled]" type="checkbox" value="yes" <?php checked( ! empty( $registration_field_settings[ $field_id ]['enabled'] ) ); ?> /></td>

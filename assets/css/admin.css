@@ -453,8 +453,9 @@
 	cursor: grab;
 }
 
-.crpcrm-registration-fields-table .crpcrm-is-dragging {
-	opacity: 0.45;
+.crpcrm-registration-field-placeholder {
+	background: #f0f6fc;
+	height: 48px;
 }
 
 .crpcrm-tools-grid {
