@@ -112,6 +112,20 @@ class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interfac
 		update_option( self::CATALOG_OPTION, $clean );
 	}
 
+	public function get_catalog_settings() {
+		return array(
+			'title'        => 'خودروهای قابل انتخاب هر فرم',
+			'item_label'   => 'نام خودرو',
+			'placeholder'  => 'مثلاً تیگو ۸',
+			'groups'       => $this->get_vehicle_form_labels(),
+			'catalog'      => $this->get_vehicle_catalog(),
+		);
+	}
+
+	public function save_catalog_settings( $input ) {
+		$this->save_vehicle_catalog( $input );
+	}
+
 	public function get_forms() {
 		return array(
 			'safaei_car_registration' => array(

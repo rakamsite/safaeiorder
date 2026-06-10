@@ -473,28 +473,28 @@
 	color: #b32d2e;
 }
 
-.crpcrm-vehicle-options-groups {
+.crpcrm-profile-catalog-groups {
 	display: grid;
 	gap: 18px;
 }
 
-.crpcrm-vehicle-options-group {
+.crpcrm-profile-catalog-group {
 	background: #f6f7f7;
 	border: 1px solid #dcdcde;
 	border-radius: 8px;
 	padding: 12px;
 }
 
-.crpcrm-vehicle-options-group h3 {
+.crpcrm-profile-catalog-group h3 {
 	margin: 0 0 10px;
 }
 
-.crpcrm-vehicle-options-table input[type="number"] {
+.crpcrm-profile-catalog-table input[type="number"] {
 	max-width: 110px;
 }
 
-.crpcrm-vehicle-options-table td,
-.crpcrm-vehicle-options-table th {
+.crpcrm-profile-catalog-table td,
+.crpcrm-profile-catalog-table th {
 	vertical-align: middle;
 }
 

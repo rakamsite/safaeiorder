@@ -204,8 +204,8 @@ class CRPCRM_Settings {
 			$settings['internal_domains']           = $this->sanitize_domains( isset( $input['internal_domains'] ) ? $input['internal_domains'] : $defaults['internal_domains'] );
 		} elseif ( 'crm' === $active_tab ) {
 			$profile = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile();
-			if ( $profile && method_exists( $profile, 'save_vehicle_catalog' ) ) {
-				$profile->save_vehicle_catalog( isset( $input['profile_catalog'] ) && is_array( $input['profile_catalog'] ) ? $input['profile_catalog'] : array() );
+			if ( $profile && method_exists( $profile, 'save_catalog_settings' ) ) {
+				$profile->save_catalog_settings( isset( $input['profile_catalog'] ) && is_array( $input['profile_catalog'] ) ? $input['profile_catalog'] : array() );
 			}
 			$settings['request_rate_limit_count']             = $this->bounded_absint( $input, 'request_rate_limit_count', 1, 100, $defaults['request_rate_limit_count'] );
 			$settings['request_rate_limit_minutes']           = $this->bounded_absint( $input, 'request_rate_limit_minutes', 1, 1440, $defaults['request_rate_limit_minutes'] );

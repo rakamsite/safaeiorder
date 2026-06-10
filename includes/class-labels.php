@@ -82,7 +82,7 @@ class CRPCRM_Labels {
 		return self::from_map( $activity_type, array(
 			'request_created'          => 'ثبت درخواست',
 			'manual_request_created'   => 'ثبت دستی درخواست',
-			'lead_follow_up_created'   => 'ایجاد پیگیری سرنخ',
+			CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED => 'ایجاد پیگیری سرنخ',
 			'request_claimed'          => 'شروع پیگیری',
 			'request_owner_changed'    => 'تغییر مسئول',
 			'request_owner_released'   => 'آزادسازی مسئول',

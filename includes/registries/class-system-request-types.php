@@ -11,6 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_System_Request_Types {
 	const LEAD_FOLLOW_UP = 'lead_follow_up';
+	const LEAD_FOLLOW_UP_CRON = 'crpcrm_create_lead_follow_ups';
+	const LEAD_FOLLOW_UP_CREATED = 'lead_follow_up_created';
 
 	public static function get_types() {
 		return array(

@@ -57,12 +57,12 @@ class CRPCRM_Request_Repository {
 
 	public function get( $id ) {
 		global $wpdb;
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d LIMIT 1", absint( $id ) ), ARRAY_A );
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d AND business_profile = %s LIMIT 1", absint( $id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
 	}
 
 	public function get_by_code( $request_code ) {
 		global $wpdb;
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE request_code = %s LIMIT 1", sanitize_text_field( $request_code ) ), ARRAY_A );
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE request_code = %s AND business_profile = %s LIMIT 1", sanitize_text_field( $request_code ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
 	}
 
 	public function delete_permanently( $request_id ) {
@@ -207,8 +207,9 @@ class CRPCRM_Request_Repository {
 				"SELECT r.*, c.full_name AS customer_name, c.phone AS customer_phone, c.phone_normalized AS customer_phone_normalized, c.province AS customer_province, c.city AS customer_city, c.user_id AS customer_user_id
 				FROM {$this->table} r
 				LEFT JOIN {$customers} c ON c.id = r.customer_id
-				WHERE r.id = %d LIMIT 1",
-				absint( $request_id )
+				WHERE r.id = %d AND r.business_profile = %s LIMIT 1",
+				absint( $request_id ),
+				CRPCRM_Business_Profile_Manager::get_locked_profile_id()
 			),
 			ARRAY_A
 		);
@@ -428,7 +429,7 @@ class CRPCRM_Request_Repository {
 
 	public function count_by_customer_grouped_by_type( $customer_id ) {
 		global $wpdb;
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT request_type, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d GROUP BY request_type", absint( $customer_id ) ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT request_type, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d AND business_profile = %s GROUP BY request_type", absint( $customer_id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
 		$counts = array();
 		foreach ( $rows as $row ) {
 			$counts[ $row['request_type'] ] = absint( $row['total'] );
@@ -438,7 +439,7 @@ class CRPCRM_Request_Repository {
 
 	public function count_by_customer_grouped_by_status( $customer_id ) {
 		global $wpdb;
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT status, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d GROUP BY status", absint( $customer_id ) ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT status, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d AND business_profile = %s GROUP BY status", absint( $customer_id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
 		$counts = array();
 		foreach ( $rows as $row ) {
 			$counts[ $row['status'] ] = absint( $row['total'] );
@@ -448,7 +449,7 @@ class CRPCRM_Request_Repository {
 
 	public function get_last_request_for_customer( $customer_id ) {
 		global $wpdb;
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE customer_id = %d ORDER BY created_at DESC, id DESC LIMIT 1", absint( $customer_id ) ), ARRAY_A );
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE customer_id = %d AND business_profile = %s ORDER BY created_at DESC, id DESC LIMIT 1", absint( $customer_id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
 	}
 
 	public function get_last_activity_for_customer( $customer_id ) {
@@ -457,8 +458,9 @@ class CRPCRM_Request_Repository {
 		$requests   = CRPCRM_DB::table( 'requests' );
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT a.*, r.request_code FROM {$activities} a LEFT JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d ORDER BY a.created_at DESC, a.id DESC LIMIT 1",
-				absint( $customer_id )
+				"SELECT a.*, r.request_code FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND r.business_profile = %s ORDER BY a.created_at DESC, a.id DESC LIMIT 1",
+				absint( $customer_id ),
+				CRPCRM_Business_Profile_Manager::get_locked_profile_id()
 			),
 			ARRAY_A
 		);
