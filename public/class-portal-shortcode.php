@@ -113,6 +113,8 @@ class CRPCRM_Portal_Shortcode {
 						'notice'             => $notice,
 						'logout_url'         => $this->get_logout_url(),
 						'customer'           => $customer,
+						'registration_fields'=> CRPCRM_Customer_Registration_Fields::get_enabled_fields(),
+						'registration_values'=> CRPCRM_Customer_Registration_Fields::get_customer_values( $customer ),
 						'phone_display'      => $this->format_phone_for_display( ! empty( $customer['phone_normalized'] ) ? $customer['phone_normalized'] : $customer['phone'] ),
 						'provinces'          => $this->get_iran_provinces(),
 						'is_edit'            => false,
@@ -236,21 +238,12 @@ class CRPCRM_Portal_Shortcode {
 			$this->redirect_with_notice( $redirect_to, 'error', 'اطلاعات حساب شما کامل نیست. لطفاً دوباره وارد شوید.' );
 		}
 
-		$full_name = isset( $_POST['crpcrm_full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['crpcrm_full_name'] ) ) : '';
-		$province  = isset( $_POST['crpcrm_province'] ) ? sanitize_text_field( wp_unslash( $_POST['crpcrm_province'] ) ) : '';
-		$city      = isset( $_POST['crpcrm_city'] ) ? sanitize_text_field( wp_unslash( $_POST['crpcrm_city'] ) ) : '';
-		$errors    = array();
+		$registration_input = isset( $_POST['crpcrm_registration'] ) && is_array( $_POST['crpcrm_registration'] ) ? $_POST['crpcrm_registration'] : array();
+		$registration_data  = CRPCRM_Customer_Registration_Fields::sanitize_registration_input( $registration_input );
+		$errors             = CRPCRM_Customer_Registration_Fields::validate_registration_input( $registration_input, $user_id );
 
-		if ( '' === trim( $full_name ) ) {
-			$errors[] = 'نام و نام خانوادگی الزامی است.';
-		}
-		if ( '' === trim( $province ) ) {
-			$errors[] = 'استان الزامی است.';
-		} elseif ( ! in_array( $province, $this->get_iran_provinces(), true ) ) {
+		if ( isset( $registration_data['province'] ) && '' !== $registration_data['province'] && ! in_array( $registration_data['province'], $this->get_iran_provinces(), true ) ) {
 			$errors[] = 'استان انتخاب‌شده معتبر نیست.';
-		}
-		if ( '' === trim( $city ) ) {
-			$errors[] = 'شهر الزامی است.';
 		}
 
 		if ( ! empty( $errors ) ) {
@@ -259,22 +252,25 @@ class CRPCRM_Portal_Shortcode {
 		}
 
 		$was_completed = (bool) absint( $customer['profile_completed'] );
-		$updated       = $this->customer_repository->update(
-			absint( $customer['id'] ),
-			array(
-				'full_name'         => $full_name,
-				'province'          => $province,
-				'city'              => $city,
-				'profile_completed' => 1,
-			)
+		$customer_update = array(
+			'profile_completed' => 1,
 		);
+		foreach ( array( 'full_name', 'province', 'city' ) as $column ) {
+			if ( array_key_exists( $column, $registration_data ) ) {
+				$customer_update[ $column ] = $registration_data[ $column ];
+			}
+		}
+		$updated = $this->customer_repository->update( absint( $customer['id'] ), $customer_update );
 
 		if ( ! $updated ) {
 			CRPCRM_Logger::error( 'customer_profile_validation_failed', 'customer', array( 'user_id' => $user_id, 'customer_id' => absint( $customer['id'] ), 'reason' => 'db_update_failed' ) );
 			$this->redirect_with_notice( $redirect_to, 'error', 'خطایی در ذخیره اطلاعات رخ داد. لطفاً دوباره تلاش کنید.' );
 		}
 
-		$this->maybe_update_display_name( $user_id, $full_name, $customer );
+		CRPCRM_Customer_Registration_Fields::save_customer_values( $customer, $registration_data );
+		if ( isset( $registration_data['full_name'] ) && '' !== $registration_data['full_name'] ) {
+			$this->maybe_update_display_name( $user_id, $registration_data['full_name'], $customer );
+		}
 		CRPCRM_Logger::info( $was_completed ? 'customer_profile_updated' : 'customer_profile_completed', 'customer', array( 'user_id' => $user_id, 'customer_id' => absint( $customer['id'] ) ) );
 
 		$success_message = $was_completed ? 'پروفایل شما با موفقیت بروزرسانی شد.' : 'اطلاعات شما با موفقیت ذخیره شد.';
@@ -436,6 +432,8 @@ class CRPCRM_Portal_Shortcode {
 				'portal_data'     => $portal_data,
 				'current_page'    => $page,
 				'customer'        => $customer,
+				'registration_fields' => CRPCRM_Customer_Registration_Fields::get_enabled_fields(),
+				'registration_values' => CRPCRM_Customer_Registration_Fields::get_customer_values( $customer ),
 				'menu_items'      => $this->get_required_menu_items( $page ),
 				'custom_links'    => $this->get_custom_menu_links(),
 				'logout_url'      => $this->get_logout_url(),

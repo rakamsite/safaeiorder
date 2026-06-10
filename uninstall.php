@@ -50,4 +50,6 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $profile_settings_prefix ) );
 	$feature_settings_prefix = $wpdb->esc_like( 'crpcrm_enabled_features_' ) . '%';
 	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $feature_settings_prefix ) );
+	$registration_fields_prefix = $wpdb->esc_like( 'crpcrm_customer_registration_fields_' ) . '%';
+	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $registration_fields_prefix ) );
 }

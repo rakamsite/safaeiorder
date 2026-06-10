@@ -31,6 +31,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-public-theme.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-form-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-request-type-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-system-request-types.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-customer-registration-fields.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-labels.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-helpers.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-db.php';

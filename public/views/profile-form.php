@@ -28,23 +28,24 @@ $is_embedded = ! empty( $is_embedded );
 					<label class="crpcrm-field-label" for="crpcrm-profile-phone"><?php echo esc_html( 'شماره موبایل' ); ?></label>
 					<div class="crpcrm-field-control"><input class="crpcrm-input" id="crpcrm-profile-phone" type="text" value="<?php echo esc_attr( $phone_display ); ?>" readonly /></div>
 				</div>
-				<div class="crpcrm-field crpcrm-field-text">
-					<label class="crpcrm-field-label" for="crpcrm-full-name"><?php echo esc_html( 'نام و نام خانوادگی' ); ?></label>
-					<div class="crpcrm-field-control"><input class="crpcrm-input" id="crpcrm-full-name" name="crpcrm_full_name" type="text" value="<?php echo esc_attr( isset( $customer['full_name'] ) ? $customer['full_name'] : '' ); ?>" placeholder="<?php echo esc_attr( 'مثلاً علی رضایی' ); ?>" required /></div>
-				</div>
-				<div class="crpcrm-field crpcrm-field-select">
-					<label class="crpcrm-field-label" for="crpcrm-province"><?php echo esc_html( 'استان' ); ?></label>
-					<div class="crpcrm-field-control"><select class="crpcrm-select" id="crpcrm-province" name="crpcrm_province" required>
-						<option value=""><?php echo esc_html( 'استان را انتخاب کنید' ); ?></option>
-						<?php foreach ( $provinces as $province ) : ?>
-							<option value="<?php echo esc_attr( $province ); ?>" <?php selected( isset( $customer['province'] ) ? $customer['province'] : '', $province ); ?>><?php echo esc_html( $province ); ?></option>
-						<?php endforeach; ?>
-					</select></div>
-				</div>
-				<div class="crpcrm-field crpcrm-field-text">
-					<label class="crpcrm-field-label" for="crpcrm-city"><?php echo esc_html( 'شهر' ); ?></label>
-					<div class="crpcrm-field-control"><input class="crpcrm-input" id="crpcrm-city" name="crpcrm_city" type="text" value="<?php echo esc_attr( isset( $customer['city'] ) ? $customer['city'] : '' ); ?>" required /></div>
-				</div>
+				<?php foreach ( $registration_fields as $field_id => $field ) : ?>
+					<?php $field_value = isset( $registration_values[ $field_id ] ) ? $registration_values[ $field_id ] : ''; ?>
+					<div class="crpcrm-field crpcrm-field-<?php echo esc_attr( sanitize_html_class( $field['type'] ) ); ?>">
+						<label class="crpcrm-field-label" for="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>"><?php echo esc_html( $field['label'] ); ?></label>
+						<div class="crpcrm-field-control">
+							<?php if ( 'province' === $field['type'] ) : ?>
+								<select class="crpcrm-select" id="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>" name="crpcrm_registration[<?php echo esc_attr( $field_id ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>>
+									<option value=""><?php echo esc_html( 'استان را انتخاب کنید' ); ?></option>
+									<?php foreach ( $provinces as $province ) : ?><option value="<?php echo esc_attr( $province ); ?>" <?php selected( $field_value, $province ); ?>><?php echo esc_html( $province ); ?></option><?php endforeach; ?>
+								</select>
+							<?php elseif ( 'textarea' === $field['type'] ) : ?>
+								<textarea class="crpcrm-input" id="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>" name="crpcrm_registration[<?php echo esc_attr( $field_id ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>><?php echo esc_textarea( $field_value ); ?></textarea>
+							<?php else : ?>
+								<input class="crpcrm-input" id="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>" name="crpcrm_registration[<?php echo esc_attr( $field_id ); ?>]" type="<?php echo esc_attr( in_array( $field['type'], array( 'email', 'date' ), true ) ? $field['type'] : 'text' ); ?>" value="<?php echo esc_attr( $field_value ); ?>" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?> />
+							<?php endif; ?>
+						</div>
+					</div>
+				<?php endforeach; ?>
 				<div class="crpcrm-form-actions"><button class="crpcrm-button crpcrm-button-primary" type="submit"><?php echo esc_html( 'ذخیره اطلاعات' ); ?></button></div>
 			</form>
 		</div>
