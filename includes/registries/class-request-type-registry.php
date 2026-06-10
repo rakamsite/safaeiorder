@@ -11,7 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Request_Type_Registry {
 	public static function get_request_types() {
-		return CRPCRM_Business_Profile_Manager::get_instance()->get_active_request_types();
+		return array_merge(
+			CRPCRM_Business_Profile_Manager::get_instance()->get_active_request_types(),
+			CRPCRM_System_Request_Types::get_types()
+		);
 	}
 
 	public static function get_request_type_ids() {
@@ -37,6 +40,6 @@ class CRPCRM_Request_Type_Registry {
 			return 'ثبت نشده';
 		}
 
-		return ucwords( str_replace( array( '_', '-' ), ' ', $request_type ) );
+		return $request_type;
 	}
 }

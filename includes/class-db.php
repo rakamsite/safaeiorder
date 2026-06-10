@@ -44,6 +44,7 @@ class CRPCRM_DB {
 			dbDelta( $sql );
 		}
 
+		self::backfill_request_profile_columns();
 		update_option( 'crpcrm_db_version', CRPCRM_DB_VERSION );
 	}
 
@@ -133,6 +134,9 @@ class CRPCRM_DB {
 				customer_id BIGINT UNSIGNED NOT NULL,
 				user_id BIGINT UNSIGNED NOT NULL,
 				request_type VARCHAR(50) NOT NULL,
+				business_profile VARCHAR(100) NULL,
+				form_id VARCHAR(100) NULL,
+				form_version VARCHAR(50) NULL,
 				status VARCHAR(50) NOT NULL DEFAULT 'new',
 				owner_id BIGINT UNSIGNED NULL,
 				first_assigned_at DATETIME NULL,
@@ -159,6 +163,8 @@ class CRPCRM_DB {
 				KEY customer_id (customer_id),
 				KEY user_id (user_id),
 				KEY request_type (request_type),
+				KEY business_profile (business_profile),
+				KEY form_id (form_id),
 				KEY status (status),
 				KEY owner_id (owner_id),
 				KEY request_source (request_source),
@@ -333,5 +339,47 @@ class CRPCRM_DB {
 				KEY created_at (created_at)
 			) $charset_collate;",
 		);
+	}
+
+	private static function backfill_request_profile_columns() {
+		global $wpdb;
+
+		$table              = self::table( 'requests' );
+		$locked_profile_id  = sanitize_key( get_option( CRPCRM_Business_Profile_Manager::PROFILE_OPTION, '' ) );
+		$last_id            = 0;
+
+		do {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT id, request_type, request_data, business_profile, form_id, form_version FROM {$table}
+					WHERE id > %d AND (business_profile IS NULL OR business_profile = '' OR form_id IS NULL OR form_id = '' OR form_version IS NULL OR form_version = '')
+					ORDER BY id ASC LIMIT 200",
+					$last_id
+				),
+				ARRAY_A
+			);
+
+			foreach ( $rows as $row ) {
+				$last_id      = absint( $row['id'] );
+				$request_data = CRPCRM_Helpers::maybe_json_decode( $row['request_data'], true );
+				$request_data = is_array( $request_data ) ? $request_data : array();
+				$system_data  = CRPCRM_System_Request_Types::get_metadata( $row['request_type'] ?? '' );
+				$update       = array();
+
+				if ( empty( $row['business_profile'] ) ) {
+					$update['business_profile'] = sanitize_key( $request_data['business_profile'] ?? $locked_profile_id );
+				}
+				if ( empty( $row['form_id'] ) && ( ! empty( $request_data['form_id'] ) || ! empty( $system_data['form_id'] ) ) ) {
+					$update['form_id'] = sanitize_key( $request_data['form_id'] ?? $system_data['form_id'] );
+				}
+				if ( empty( $row['form_version'] ) && ( ! empty( $request_data['form_version'] ) || ! empty( $system_data['form_version'] ) ) ) {
+					$update['form_version'] = sanitize_text_field( $request_data['form_version'] ?? $system_data['form_version'] );
+				}
+
+				if ( $update ) {
+					$wpdb->update( $table, $update, array( 'id' => $last_id ) );
+				}
+			}
+		} while ( count( $rows ) === 200 );
 	}
 }

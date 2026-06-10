@@ -27,7 +27,6 @@ class CRPCRM_Labels {
 			'car_registration' => 'ثبت‌نام خودرو',
 			'parts_request'    => 'درخواست قطعات',
 			'repair_booking'   => 'درخواست تعمیرات',
-			'lead_follow_up'   => 'پیگیری سرنخ',
 		) );
 	}
 

@@ -36,6 +36,10 @@ class CRPCRM_Lead_Follow_Up_Service {
 	}
 
 	public function create_due_follow_ups() {
+		if ( ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
+			return 0;
+		}
+
 		$cutoff    = wp_date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - DAY_IN_SECONDS );
 		$customers = $this->customer_repository->find_customers_without_requests( $cutoff, 100 );
 		$created   = 0;
@@ -48,14 +52,19 @@ class CRPCRM_Lead_Follow_Up_Service {
 
 			$profile_completed = ! empty( $customer['profile_completed'] );
 			$reason            = $profile_completed ? 'پروفایل تکمیل شده است، اما مشتری هنوز درخواستی ثبت نکرده است.' : 'مشتری پس از ۲۴ ساعت هنوز اطلاعات پروفایل خود را تکمیل نکرده است.';
+			$profile_id        = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+			$system_metadata   = CRPCRM_System_Request_Types::get_metadata( CRPCRM_System_Request_Types::LEAD_FOLLOW_UP );
 			$request_id        = $this->request_repository->create(
 				array(
 					'customer_id'      => absint( $customer['id'] ),
 					'user_id'          => absint( $customer['user_id'] ),
-					'request_type'     => 'lead_follow_up',
+					'request_type'     => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP,
+					'business_profile' => $profile_id,
+					'form_id'          => $system_metadata['form_id'],
+					'form_version'     => $system_metadata['form_version'],
 					'request_title'    => 'پیگیری سرنخ',
 					'request_summary'  => $reason,
-					'request_data'     => array( 'profile_completed' => $profile_completed ? 'yes' : 'no', 'lead_reason' => $reason ),
+					'request_data'     => array( 'profile_completed' => $profile_completed ? 'yes' : 'no', 'lead_reason' => $reason, 'business_profile' => $profile_id, 'form_id' => $system_metadata['form_id'], 'form_version' => $system_metadata['form_version'] ),
 					'request_source'   => ! empty( $customer['first_source'] ) ? $customer['first_source'] : 'direct',
 					'request_medium'   => ! empty( $customer['first_medium'] ) ? $customer['first_medium'] : 'none',
 					'request_campaign' => isset( $customer['first_campaign'] ) ? $customer['first_campaign'] : '',

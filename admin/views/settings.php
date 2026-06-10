@@ -24,19 +24,17 @@ $log_levels      = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌�
 $saveable_tabs   = CRPCRM_Settings::saveable_tabs();
 $portal_menu_id  = absint( $settings['portal_menu_id'] ?? 0 );
 $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( array( 'hide_empty' => false ) ) : array();
-$vehicle_form_labels      = CRPCRM_Settings::vehicle_form_labels();
-$stored_settings          = get_option( CRPCRM_Settings::OPTION_NAME, array() );
-$stored_settings          = is_array( $stored_settings ) ? $stored_settings : array();
-$legacy_vehicle_options  = isset( $settings['vehicle_options'] ) && is_array( $settings['vehicle_options'] ) ? $settings['vehicle_options'] : CRPCRM_Settings::default_vehicle_options();
-$vehicle_options_by_form = isset( $stored_settings['vehicle_options_by_form'] ) && is_array( $stored_settings['vehicle_options_by_form'] ) ? $stored_settings['vehicle_options_by_form'] : array();
+$active_profile           = $profile_manager->get_active_profile();
+$vehicle_form_labels      = $active_profile && method_exists( $active_profile, 'get_vehicle_form_labels' ) ? $active_profile->get_vehicle_form_labels() : array();
+$profile_catalog          = $active_profile && method_exists( $active_profile, 'get_vehicle_catalog' ) ? $active_profile->get_vehicle_catalog() : array();
 foreach ( $vehicle_form_labels as $vehicle_form_key => $vehicle_form_label ) {
-	if ( ! isset( $vehicle_options_by_form[ $vehicle_form_key ] ) || ! is_array( $vehicle_options_by_form[ $vehicle_form_key ] ) ) {
-		$vehicle_options_by_form[ $vehicle_form_key ] = $legacy_vehicle_options;
+	if ( ! isset( $profile_catalog[ $vehicle_form_key ] ) || ! is_array( $profile_catalog[ $vehicle_form_key ] ) ) {
+		$profile_catalog[ $vehicle_form_key ] = array();
 	}
 
-	$vehicle_rows = count( $vehicle_options_by_form[ $vehicle_form_key ] );
+	$vehicle_rows = count( $profile_catalog[ $vehicle_form_key ] );
 	for ( $i = $vehicle_rows; $i < $vehicle_rows + 5; $i++ ) {
-		$vehicle_options_by_form[ $vehicle_form_key ][] = array( 'label' => '', 'priority' => ( $i + 1 ) * 10, 'enabled' => 'yes' );
+		$profile_catalog[ $vehicle_form_key ][] = array( 'label' => '', 'priority' => ( $i + 1 ) * 10, 'enabled' => 'yes' );
 	}
 }
 ?>
@@ -143,11 +141,11 @@ foreach ( $vehicle_form_labels as $vehicle_form_key => $vehicle_form_label ) {
 									<table class="widefat striped crpcrm-vehicle-options-table">
 										<thead><tr><th><?php echo esc_html( 'نام خودرو' ); ?></th><th><?php echo esc_html( 'اولویت نمایش' ); ?></th><th><?php echo esc_html( 'فعال' ); ?></th></tr></thead>
 										<tbody>
-											<?php foreach ( $vehicle_options_by_form[ $vehicle_form_key ] as $vehicle_index => $vehicle ) : ?>
+											<?php foreach ( $profile_catalog[ $vehicle_form_key ] as $vehicle_index => $vehicle ) : ?>
 												<tr>
-													<td><input class="regular-text" name="crpcrm_settings[vehicle_options_by_form][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][label]" type="text" value="<?php echo esc_attr( $vehicle['label'] ?? '' ); ?>" placeholder="<?php echo esc_attr( 'مثلاً تیگو ۸' ); ?>" /></td>
-													<td><input name="crpcrm_settings[vehicle_options_by_form][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][priority]" type="number" min="0" value="<?php echo esc_attr( absint( $vehicle['priority'] ?? 999 ) ); ?>" /></td>
-													<td><label><input name="crpcrm_settings[vehicle_options_by_form][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][enabled]" type="checkbox" value="yes" <?php checked( $vehicle['enabled'] ?? 'yes', 'yes' ); ?> /> <?php echo esc_html( 'نمایش داده شود' ); ?></label></td>
+													<td><input class="regular-text" name="crpcrm_settings[profile_catalog][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][label]" type="text" value="<?php echo esc_attr( $vehicle['label'] ?? '' ); ?>" placeholder="<?php echo esc_attr( 'مثلاً تیگو ۸' ); ?>" /></td>
+													<td><input name="crpcrm_settings[profile_catalog][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][priority]" type="number" min="0" value="<?php echo esc_attr( absint( $vehicle['priority'] ?? 999 ) ); ?>" /></td>
+													<td><label><input name="crpcrm_settings[profile_catalog][<?php echo esc_attr( $vehicle_form_key ); ?>][<?php echo esc_attr( $vehicle_index ); ?>][enabled]" type="checkbox" value="yes" <?php checked( $vehicle['enabled'] ?? 'yes', 'yes' ); ?> /> <?php echo esc_html( 'نمایش داده شود' ); ?></label></td>
 												</tr>
 											<?php endforeach; ?>
 										</tbody>
