@@ -22,6 +22,21 @@ class CRPCRM_Admin_Menu {
 	}
 
 	public function register_menu() {
+		if ( ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
+			if ( current_user_can( 'manage_options' ) ) {
+				add_menu_page(
+					'راه‌اندازی اولیه پرتال و CRM',
+					'راه‌اندازی پرتال و CRM',
+					'manage_options',
+					'crpcrm-setup',
+					array( $this->admin_pages, 'setup' ),
+					'dashicons-admin-settings',
+					26
+				);
+			}
+			return;
+		}
+
 		$requests_capability = current_user_can( 'crpcrm_view_all_requests' ) ? 'crpcrm_view_all_requests' : 'crpcrm_view_assigned_requests';
 
 		add_menu_page(

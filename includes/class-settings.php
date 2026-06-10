@@ -14,6 +14,7 @@ class CRPCRM_Settings {
 
 	public function register_hooks() {
 		add_action( 'admin_post_crpcrm_save_settings', array( $this, 'handle_save' ) );
+		add_action( 'admin_post_crpcrm_complete_setup', array( $this, 'handle_complete_setup' ) );
 		add_action( 'admin_post_crpcrm_rebuild_roles', array( $this, 'handle_rebuild_roles' ) );
 	}
 
@@ -218,16 +219,32 @@ class CRPCRM_Settings {
 		exit;
 	}
 
+	public function handle_complete_setup() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'شما اجازه راه‌اندازی اولیه افزونه را ندارید.', 'customer-request-portal-crm' ) );
+		}
+
+		check_admin_referer( 'crpcrm_complete_setup', 'crpcrm_setup_nonce' );
+		$profile_id = isset( $_POST['business_profile_id'] ) ? sanitize_key( wp_unslash( $_POST['business_profile_id'] ) ) : '';
+		$completed  = CRPCRM_Business_Profile_Manager::get_instance()->complete_setup( $profile_id );
+
+		if ( ! $completed ) {
+			wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-setup', 'setup-error' => 'invalid-profile' ), admin_url( 'admin.php' ) ) );
+			exit;
+		}
+
+		wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-settings', 'setup-completed' => 'true' ), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
 	private function sanitize_settings( $input, $active_tab ) {
 		$defaults = self::defaults();
 		$current  = self::get();
 		$settings = $current;
 
 		if ( 'portal' === $active_tab ) {
-			$profile_id = isset( $input['business_profile'] ) ? sanitize_key( $input['business_profile'] ) : $defaults['business_profile'];
 			$profiles                          = CRPCRM_Business_Profile_Manager::get_instance()->get_profiles();
-			$settings['business_profile']      = isset( $profiles[ $profile_id ] ) ? $profile_id : $defaults['business_profile'];
-			$active_profile_id                    = $settings['business_profile'];
+			$active_profile_id                    = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
 			$profile_forms                        = isset( $profiles[ $active_profile_id ] ) ? $profiles[ $active_profile_id ]->get_forms() : array();
 			$submitted_forms                      = isset( $input['enabled_forms'][ $active_profile_id ] ) && is_array( $input['enabled_forms'][ $active_profile_id ] ) ? array_map( 'sanitize_key', $input['enabled_forms'][ $active_profile_id ] ) : array();
 			$settings['enabled_forms'][ $active_profile_id ] = array_values( array_intersect( array_map( 'sanitize_key', array_keys( $profile_forms ) ), $submitted_forms ) );

@@ -46,6 +46,9 @@ foreach ( $vehicle_form_labels as $vehicle_form_key => $vehicle_form_label ) {
 	<?php if ( isset( $_GET['settings-updated'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['settings-updated'] ) ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'تنظیمات با موفقیت ذخیره شد.' ); ?></p></div>
 	<?php endif; ?>
+	<?php if ( isset( $_GET['setup-completed'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['setup-completed'] ) ) ) : ?>
+		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'راه‌اندازی اولیه تکمیل و پروفایل کسب‌وکار قفل شد.' ); ?></p></div>
+	<?php endif; ?>
 	<?php if ( isset( $_GET['roles-rebuilt'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['roles-rebuilt'] ) ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'نقش‌ها و دسترسی‌ها با موفقیت بازسازی شدند.' ); ?></p></div>
 	<?php endif; ?>
@@ -77,8 +80,11 @@ foreach ( $vehicle_form_labels as $vehicle_form_key => $vehicle_form_label ) {
 			<h2><?php echo esc_html( 'تنظیمات پرتال مشتری' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
-					<th><label for="business_profile"><?php echo esc_html( 'پروفایل کسب‌وکار فعال' ); ?></label></th>
-					<td><select name="crpcrm_settings[business_profile]" id="business_profile"><?php foreach ( $business_profiles as $profile_id => $profile ) : ?><option value="<?php echo esc_attr( $profile_id ); ?>" <?php selected( $active_business_profile_id, $profile_id ); ?>><?php echo esc_html( $profile->get_label() ); ?></option><?php endforeach; ?></select></td>
+					<th><?php echo esc_html( 'پروفایل کسب‌وکار فعال' ); ?></th>
+					<td>
+						<strong><?php echo esc_html( isset( $business_profiles[ $active_business_profile_id ] ) ? $business_profiles[ $active_business_profile_id ]->get_label() : $active_business_profile_id ); ?></strong>
+						<p class="description"><?php echo esc_html( 'این پروفایل در راه‌اندازی اولیه انتخاب شده و قابل تغییر نیست.' ); ?></p>
+					</td>
 				</tr>
 				<tr><th><?php echo esc_html( 'فرم‌های فعال پروفایل فعلی' ); ?></th><td><?php if ( empty( $active_profile_forms ) ) : ?><?php echo esc_html( 'فرم فعالی برای این پروفایل تعریف نشده است.' ); ?><?php else : ?><?php foreach ( $active_profile_forms as $form_id => $profile_form ) : ?><label style="display:block;margin-bottom:6px"><input type="checkbox" name="crpcrm_settings[enabled_forms][<?php echo esc_attr( $active_business_profile_id ); ?>][]" value="<?php echo esc_attr( $form_id ); ?>" <?php checked( in_array( $form_id, $enabled_form_ids, true ) ); ?> /> <?php echo esc_html( $profile_form['label'] ?? $profile_form['title'] ?? $form_id ); ?></label><?php endforeach; ?><?php endif; ?></td></tr>
 				<tr><th><label for="portal_page_id"><?php echo esc_html( 'صفحه پرتال مشتری' ); ?></label></th><td><?php wp_dropdown_pages( array( 'name' => 'crpcrm_settings[portal_page_id]', 'id' => 'portal_page_id', 'selected' => $portal_page_id, 'show_option_none' => '— انتخاب کنید —', 'option_none_value' => 0 ) ); ?><p class="description"><?php echo esc_html( 'صفحه‌ای که shortcode پرتال در آن قرار دارد.' ); ?></p></td></tr>
