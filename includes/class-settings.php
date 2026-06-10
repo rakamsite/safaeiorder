@@ -136,6 +136,10 @@ class CRPCRM_Settings {
 		if ( 'features' === $active_tab ) {
 			$input = isset( $_POST['crpcrm_features'] ) && is_array( $_POST['crpcrm_features'] ) ? wp_unslash( $_POST['crpcrm_features'] ) : array();
 			CRPCRM_Feature_Manager::save_features( $input );
+			if ( isset( $_POST['crpcrm_registration_fields_present'] ) && CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) ) {
+				$field_settings = isset( $_POST['crpcrm_registration_fields'] ) && is_array( $_POST['crpcrm_registration_fields'] ) ? wp_unslash( $_POST['crpcrm_registration_fields'] ) : array();
+				CRPCRM_Customer_Registration_Fields::save_settings( $field_settings );
+			}
 		} elseif ( 'profile' === $active_tab ) {
 			$input = isset( $_POST['crpcrm_profile_settings'] ) && is_array( $_POST['crpcrm_profile_settings'] ) ? wp_unslash( $_POST['crpcrm_profile_settings'] ) : array();
 			CRPCRM_Business_Profile_Manager::get_instance()->save_active_profile_settings( $input );
