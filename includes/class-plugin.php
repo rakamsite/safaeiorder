@@ -40,9 +40,15 @@ class CRPCRM_Plugin {
 		$this->settings->register_hooks();
 		$this->admin_menu->register_hooks();
 		$this->public->register_hooks();
-		$this->attribution_service->register_hooks();
-		$this->admin_tools->register_hooks();
-		$this->lead_follow_up_service->register_hooks();
+		if ( CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
+			$this->attribution_service->register_hooks();
+		}
+		if ( CRPCRM_Feature_Manager::is_enabled( 'admin_tools' ) ) {
+			$this->admin_tools->register_hooks();
+		}
+		if ( CRPCRM_Feature_Manager::is_enabled( 'lead_followup' ) ) {
+			$this->lead_follow_up_service->register_hooks();
+		}
 		$this->customer_deletion_service->register_hooks();
 	}
 

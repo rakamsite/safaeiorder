@@ -43,6 +43,21 @@ class CRPCRM_Admin_Menu {
 		if ( ! $manager->is_locked_profile_valid() ) {
 			wp_die( esc_html( 'پروفایل کسب‌وکار قفل‌شده معتبر نیست. لطفاً با مدیر سایت تماس بگیرید.' ) );
 		}
+
+		$page_features = array( 'crpcrm-reports' => 'reports', 'crpcrm-staff' => 'staff' );
+		if ( isset( $page_features[ $page ] ) && ! CRPCRM_Feature_Manager::is_enabled( $page_features[ $page ] ) ) {
+			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+		}
+		if ( 'crpcrm-settings' === $page && isset( $_GET['tab'] ) ) {
+			$tab_features = array( 'portal' => 'portal', 'attribution' => 'tracking', 'staff' => 'staff', 'tools' => 'admin_tools' );
+			$tab          = sanitize_key( wp_unslash( $_GET['tab'] ) );
+			if ( 'otp' === $tab && ! CRPCRM_Feature_Manager::is_enabled( 'otp' ) && ! CRPCRM_Feature_Manager::is_enabled( 'sms' ) ) {
+				wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+			}
+			if ( isset( $tab_features[ $tab ] ) && ! CRPCRM_Feature_Manager::is_enabled( $tab_features[ $tab ] ) ) {
+				wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+			}
+		}
 	}
 
 	public function register_menu() {
@@ -80,8 +95,10 @@ class CRPCRM_Admin_Menu {
 		add_submenu_page( 'crpcrm-dashboard', 'درخواست‌ها', 'درخواست‌ها', $requests_capability, 'crpcrm-requests', array( $this->admin_pages, 'requests' ) );
 		add_submenu_page( 'crpcrm-dashboard', 'مشتریان', 'مشتریان', 'crpcrm_view_all_requests', 'crpcrm-customers', array( $this->admin_pages, 'customers' ) );
 		add_submenu_page( null, 'پروفایل مشتری', 'پروفایل مشتری', 'crpcrm_use_staff_portal', 'crpcrm-customer-profile', array( $this->admin_pages, 'customer_profile' ) );
-		add_submenu_page( 'crpcrm-dashboard', 'گزارش‌ها', 'گزارش‌ها', 'crpcrm_view_reports', 'crpcrm-reports', array( $this->admin_pages, 'reports' ) );
-		if ( 'yes' === CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) || current_user_can( 'manage_options' ) ) {
+		if ( CRPCRM_Feature_Manager::is_enabled( 'reports' ) ) {
+			add_submenu_page( 'crpcrm-dashboard', 'گزارش‌ها', 'گزارش‌ها', 'crpcrm_view_reports', 'crpcrm-reports', array( $this->admin_pages, 'reports' ) );
+		}
+		if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) && ( 'yes' === CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) || current_user_can( 'manage_options' ) ) ) {
 			add_submenu_page( 'crpcrm-dashboard', 'کارکنان', 'کارکنان', 'crpcrm_use_staff_portal', 'crpcrm-staff', array( $this->admin_pages, 'staff' ) );
 		}
 		if ( CRPCRM_Settings::current_user_can_manage() ) {

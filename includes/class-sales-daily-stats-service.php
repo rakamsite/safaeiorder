@@ -35,6 +35,10 @@ class CRPCRM_Sales_Daily_Stats_Service {
 	}
 
 	public function get_sales_users() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			return array();
+		}
+
 		$users = get_users(
 			array(
 				'role__in' => array( 'sales_agent', 'sales_manager' ),
@@ -55,6 +59,10 @@ class CRPCRM_Sales_Daily_Stats_Service {
 	}
 
 	public function get_stats_for_users( $user_ids, $date = null ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			return array();
+		}
+
 		$stats = array();
 		foreach ( array_map( 'absint', (array) $user_ids ) as $user_id ) {
 			if ( $user_id && $this->is_sales_user( $user_id ) ) {
@@ -68,6 +76,10 @@ class CRPCRM_Sales_Daily_Stats_Service {
 		global $wpdb;
 
 		$user_id = absint( $user_id );
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			return $this->empty_stats( $user_id, $date );
+		}
+
 		if ( ! $this->is_sales_user( $user_id ) ) {
 			CRPCRM_Logger::warning( 'sales_daily_stats_access_denied', 'sales_daily_stats_access_denied', array( 'target_user_id' => $user_id, 'viewer_user_id' => get_current_user_id() ) );
 			return $this->empty_stats( $user_id, $date );

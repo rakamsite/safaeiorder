@@ -57,7 +57,7 @@ class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interfac
 
 	public function get_active_vehicle_options( $form_id ) {
 		$form_id = sanitize_key( $form_id );
-		$catalog = $this->get_vehicle_catalog();
+		$catalog = CRPCRM_Feature_Manager::is_enabled( 'vehicle_catalog' ) ? $this->get_vehicle_catalog() : array();
 		$items   = isset( $catalog[ $form_id ] ) && is_array( $catalog[ $form_id ] ) ? $catalog[ $form_id ] : $this->get_default_vehicle_options();
 		$items   = array_filter( $items, function ( $item ) {
 			return is_array( $item ) && ! empty( $item['label'] ) && 'yes' === ( $item['enabled'] ?? 'no' );
@@ -100,7 +100,11 @@ class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interfac
 	}
 
 	public function has_profile_settings() {
-		return true;
+		return CRPCRM_Feature_Manager::is_enabled( 'vehicle_catalog' );
+	}
+
+	public function get_default_features() {
+		return CRPCRM_Feature_Manager::get_default_features();
 	}
 
 	public function get_profile_default_settings() {

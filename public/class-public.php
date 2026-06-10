@@ -22,6 +22,10 @@ class CRPCRM_Public {
 	}
 
 	public function enqueue_assets() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'portal' ) ) {
+			return;
+		}
+
 		wp_register_style( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/css/public.css', array(), CRPCRM_VERSION );
 		wp_register_script( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/js/public.js', array(), CRPCRM_VERSION, true );
 	}

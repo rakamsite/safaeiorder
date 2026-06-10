@@ -48,4 +48,6 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 	delete_option( 'crpcrm_safaei_catalog' );
 	$profile_settings_prefix = $wpdb->esc_like( 'crpcrm_profile_settings_' ) . '%';
 	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $profile_settings_prefix ) );
+	$feature_settings_prefix = $wpdb->esc_like( 'crpcrm_enabled_features_' ) . '%';
+	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $feature_settings_prefix ) );
 }

@@ -70,6 +70,10 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function render() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'portal' ) ) {
+			return '<div class="crpcrm-feature-disabled" dir="rtl">' . esc_html( CRPCRM_Feature_Manager::disabled_message() ) . '</div>';
+		}
+
 		if ( ! CRPCRM_Business_Profile_Manager::get_instance()->is_locked_profile_valid() ) {
 			return '<div class="crpcrm-setup-required" dir="rtl">' . esc_html( 'افزونه هنوز راه‌اندازی اولیه نشده است' ) . '</div>';
 		}
@@ -125,6 +129,10 @@ class CRPCRM_Portal_Shortcode {
 			return $this->render_portal( $page, $customer, $notice );
 		}
 
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) {
+			return '<div class="crpcrm-feature-disabled" dir="rtl">' . esc_html( CRPCRM_Feature_Manager::disabled_message() ) . '</div>';
+		}
+
 		$state_token = isset( $_GET['crpcrm_otp_state'] ) ? sanitize_text_field( wp_unslash( $_GET['crpcrm_otp_state'] ) ) : '';
 		if ( $state_token ) {
 			$state = $this->otp_service->get_state( $state_token );
@@ -155,6 +163,8 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function handle_request_otp() {
+		$this->guard_feature( 'portal' );
+		$this->guard_feature( 'otp' );
 		check_admin_referer( 'crpcrm_request_otp', 'crpcrm_otp_nonce' );
 		$redirect_to = $this->posted_redirect_url();
 		$phone       = isset( $_POST['crpcrm_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['crpcrm_phone'] ) ) : '';
@@ -169,6 +179,8 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function handle_resend_otp() {
+		$this->guard_feature( 'portal' );
+		$this->guard_feature( 'otp' );
 		check_admin_referer( 'crpcrm_resend_otp', 'crpcrm_otp_nonce' );
 		$redirect_to = $this->posted_redirect_url();
 		$state_token = isset( $_POST['crpcrm_otp_state'] ) ? sanitize_text_field( wp_unslash( $_POST['crpcrm_otp_state'] ) ) : '';
@@ -183,6 +195,8 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function handle_verify_otp() {
+		$this->guard_feature( 'portal' );
+		$this->guard_feature( 'otp' );
 		check_admin_referer( 'crpcrm_verify_otp', 'crpcrm_otp_nonce' );
 		$redirect_to = $this->posted_redirect_url();
 		$state_token = isset( $_POST['crpcrm_otp_state'] ) ? sanitize_text_field( wp_unslash( $_POST['crpcrm_otp_state'] ) ) : '';
@@ -269,6 +283,8 @@ class CRPCRM_Portal_Shortcode {
 
 
 	public function handle_submit_request() {
+		$this->guard_feature( 'portal' );
+
 		if ( ! is_user_logged_in() ) {
 			wp_safe_redirect( $this->clean_portal_url() );
 			exit;
@@ -755,6 +771,12 @@ class CRPCRM_Portal_Shortcode {
 	private function enqueue_assets() {
 		wp_enqueue_style( 'crpcrm-public' );
 		wp_enqueue_script( 'crpcrm-public' );
+	}
+
+	private function guard_feature( $feature ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( $feature ) ) {
+			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+		}
 	}
 
 	private function get_notice() {

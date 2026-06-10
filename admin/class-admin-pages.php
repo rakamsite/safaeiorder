@@ -145,15 +145,19 @@ class CRPCRM_Admin_Pages {
 				'customer'           => $customer,
 				'stats'              => $this->customer_repository->get_customer_stats( $customer_id ),
 				'requests'           => $this->customer_repository->get_customer_requests( $customer_id, array( 'limit' => 100, 'user_id' => get_current_user_id() ) ),
-				'agents'             => $this->customer_repository->get_customer_agents( $customer_id ),
+				'agents'             => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->customer_repository->get_customer_agents( $customer_id ) : array(),
 				'activities'         => $this->customer_repository->get_customer_recent_activities( $customer_id, 20 ),
-				'attribution_events' => $attribution_repository->get_events_by_customer( $customer_id, 20 ),
+				'attribution_events' => CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ? $attribution_repository->get_events_by_customer( $customer_id, 20 ) : array(),
 				'return_request_id'  => isset( $_GET['return_request_id'] ) ? absint( $_GET['return_request_id'] ) : 0,
 			)
 		);
 	}
 
 	public function reports() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'reports' ) ) {
+			$this->render_message( CRPCRM_Feature_Manager::disabled_message() );
+			return;
+		}
 		if ( ! current_user_can( 'crpcrm_view_reports' ) ) {
 			CRPCRM_Logger::warning( 'reports_access_denied', 'reports_access_denied', array( 'user_id' => get_current_user_id(), 'screen' => 'admin_reports' ) );
 			$this->render_message( 'شما اجازه دسترسی به گزارش‌ها را ندارید.' );
@@ -163,6 +167,9 @@ class CRPCRM_Admin_Pages {
 		$page       = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
 		$per_page   = max( 5, absint( CRPCRM_Settings::get( 'staff_items_per_page', 20 ) ) );
 		$filters    = $this->reports_repository->normalize_filters( $_GET );
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			$filters['owner_filter'] = 'all';
+		}
 		$pagination = array( 'limit' => $per_page, 'offset' => ( $page - 1 ) * $per_page );
 
 		if ( ! empty( $_GET ) && count( array_intersect( array_keys( $_GET ), array( 'date_range', 'request_type', 'source', 'campaign', 'content', 'status', 'owner_filter', 'workflow_filter' ) ) ) ) {
@@ -183,12 +190,12 @@ class CRPCRM_Admin_Pages {
 				'request_type_report'   => $this->reports_repository->get_request_type_report( $filters ),
 				'source_type_matrix'    => $this->reports_repository->get_source_type_matrix( $filters ),
 				'status_funnel'         => $this->reports_repository->get_status_funnel( $filters ),
-				'agent_performance'     => $this->reports_repository->get_agent_performance( $filters ),
+				'agent_performance'     => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->reports_repository->get_agent_performance( $filters ) : array(),
 				'followup_report'       => $this->reports_repository->get_followup_report( $filters ),
 				'close_reason_report'   => $this->reports_repository->get_close_reason_report( $filters ),
 				'invalid_reason_report' => $this->reports_repository->get_invalid_reason_report( $filters ),
 				'request_details'       => $this->reports_repository->get_request_details( $filters, $pagination ),
-				'assignable_users'      => $this->get_assignable_users(),
+				'assignable_users'      => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->get_assignable_users() : array(),
 				'page'                  => $page,
 				'per_page'              => $per_page,
 				'total'                 => $total,
@@ -198,7 +205,7 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function staff() {
-		if ( 'yes' !== CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) && ! current_user_can( 'manage_options' ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) || ( 'yes' !== CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) && ! current_user_can( 'manage_options' ) ) ) {
 			CRPCRM_Logger::warning( 'staff_access_denied', 'staff_access_denied', array( 'user_id' => get_current_user_id(), 'reason' => 'disabled' ) );
 			$this->render_message( 'پنل داخلی کارکنان در حال حاضر غیرفعال است.' );
 			return;
@@ -294,7 +301,7 @@ class CRPCRM_Admin_Pages {
 			$active_tab = 'tools';
 		}
 		if ( ! isset( $tabs[ $active_tab ] ) ) {
-			$active_tab = 'portal';
+			$active_tab = sanitize_key( array_key_first( $tabs ) );
 		}
 		if ( 'tools' === $active_tab && ! CRPCRM_Admin_Tools::can_export() && ! CRPCRM_Admin_Tools::can_maintain() ) {
 			CRPCRM_Logger::warning( 'maintenance_access_denied', 'maintenance_access_denied', array( 'user_id' => get_current_user_id(), 'context' => 'tools_tab' ) );
@@ -332,16 +339,19 @@ class CRPCRM_Admin_Pages {
 		$jalali_month = CRPCRM_Helpers::get_jalali_month_range();
 		$month_start = substr( $jalali_month['start'], 0, 10 );
 		$stale_hours = absint( CRPCRM_Settings::get( 'stale_request_hours', 48 ) );
-		return array(
+		$cards = array(
 			array( 'title' => 'درخواست‌های امروز', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'date_from' => $today, 'date_to' => $today ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&date_from=' . rawurlencode( $today ) . '&date_to=' . rawurlencode( $today ) ) ),
-			array( 'title' => 'درخواست‌های بدون مسئول', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&owner_filter=unassigned&status_group=open' ) ),
 			array( 'title' => 'پیگیری‌های عقب‌افتاده', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'overdue_followups' ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&workflow_filter=overdue_followups' ) ),
 			array( 'title' => 'درخواست‌های موفق این ماه', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'status' => 'won', 'date_from' => $month_start ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&status=won&date_from=' . rawurlencode( $month_start ) ) ),
 			array( 'title' => 'درخواست‌های ناموفق این ماه', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'status' => 'lost', 'date_from' => $month_start ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&status=lost&date_from=' . rawurlencode( $month_start ) ) ),
-			array( 'title' => 'گزارش‌های روزانه نیازمند توجه', 'count' => $this->staff_repository->count_daily_reports( array( 'needs_manager_attention' => 1 ) ), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=daily_reports&needs_manager_attention=1' ) ),
-			array( 'title' => 'درخواست‌های جدید از مدیریت', 'count' => $this->staff_repository->count_staff_requests( array( 'status' => 'new' ) ), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=requests&status=new' ) ),
-			array( 'title' => 'وظایف عقب‌افتاده', 'count' => $this->staff_repository->count_overdue_tasks(), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=tasks&overdue=1' ) ),
 		);
+		if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			$cards[] = array( 'title' => 'درخواست‌های بدون مسئول', 'count' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ), 'url' => admin_url( 'admin.php?page=crpcrm-requests&owner_filter=unassigned&status_group=open' ) );
+			$cards[] = array( 'title' => 'گزارش‌های روزانه نیازمند توجه', 'count' => $this->staff_repository->count_daily_reports( array( 'needs_manager_attention' => 1 ) ), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=daily_reports&needs_manager_attention=1' ) );
+			$cards[] = array( 'title' => 'درخواست‌های جدید از مدیریت', 'count' => $this->staff_repository->count_staff_requests( array( 'status' => 'new' ) ), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=requests&status=new' ) );
+			$cards[] = array( 'title' => 'وظایف عقب‌افتاده', 'count' => $this->staff_repository->count_overdue_tasks(), 'url' => admin_url( 'admin.php?page=crpcrm-staff&staff_tab=tasks&overdue=1' ) );
+		}
+		return $cards;
 	}
 
 
@@ -425,6 +435,9 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function handle_staff_action() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+		}
 		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) ) {
 			CRPCRM_Logger::warning( 'staff_access_denied', 'staff_access_denied', array( 'user_id' => get_current_user_id(), 'action' => 'post' ) );
 			wp_die( esc_html( 'شما اجازه دسترسی به پنل کارکنان را ندارید.' ) );
@@ -581,6 +594,9 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function handle_reports_csv() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'reports' ) ) {
+			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+		}
 		if ( ! current_user_can( 'crpcrm_view_reports' ) ) {
 			CRPCRM_Logger::warning( 'reports_access_denied', 'reports_access_denied', array( 'user_id' => get_current_user_id(), 'screen' => 'reports_csv' ) );
 			wp_die( esc_html( 'شما اجازه دسترسی به گزارش‌ها را ندارید.' ) );
@@ -782,7 +798,7 @@ class CRPCRM_Admin_Pages {
 			$status = 'new';
 		}
 
-		$owner_id = get_current_user_id();
+		$owner_id = CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? get_current_user_id() : 0;
 		if ( CRPCRM_Request_Access_Service::can_manage_request() && isset( $_POST['owner_id'] ) ) {
 			$requested_owner_id = absint( $_POST['owner_id'] );
 			$assignable_ids     = wp_list_pluck( $this->get_assignable_users(), 'ID' );
@@ -870,7 +886,8 @@ class CRPCRM_Admin_Pages {
 		$forms         = CRPCRM_Form_Registry::get_enabled_forms();
 		$selected_id   = isset( $_GET['form_id'] ) ? sanitize_key( wp_unslash( $_GET['form_id'] ) ) : ( $forms ? sanitize_key( array_key_first( $forms ) ) : '' );
 		$selected_form = CRPCRM_Form_Registry::get_enabled_form( $selected_id );
-		$this->render( 'request-create.php', array( 'customer_search' => $search, 'customer_results' => $this->customer_repository->search_for_manual_request( $search ), 'assignable_users' => CRPCRM_Request_Access_Service::can_manage_request() ? $this->get_assignable_users() : array( wp_get_current_user() ), 'can_manage' => CRPCRM_Request_Access_Service::can_manage_request(), 'forms' => $forms, 'selected_form' => $selected_form ) );
+		$staff_enabled = CRPCRM_Feature_Manager::is_enabled( 'staff' );
+		$this->render( 'request-create.php', array( 'customer_search' => $search, 'customer_results' => $this->customer_repository->search_for_manual_request( $search ), 'assignable_users' => $staff_enabled && CRPCRM_Request_Access_Service::can_manage_request() ? $this->get_assignable_users() : array(), 'can_manage' => $staff_enabled && CRPCRM_Request_Access_Service::can_manage_request(), 'forms' => $forms, 'selected_form' => $selected_form ) );
 	}
 
 	private function redirect_to_manual_request_form( $notice ) {
@@ -900,8 +917,8 @@ class CRPCRM_Admin_Pages {
 				'per_page'      => $per_page,
 				'total'         => $total,
 				'total_pages'   => max( 1, (int) ceil( $total / $per_page ) ),
-				'assignable_users' => $this->get_assignable_users(),
-				'can_manage'    => CRPCRM_Request_Access_Service::can_manage_request(),
+				'assignable_users' => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->get_assignable_users() : array(),
+				'can_manage'    => CRPCRM_Feature_Manager::is_enabled( 'staff' ) && CRPCRM_Request_Access_Service::can_manage_request(),
 				'can_delete'    => CRPCRM_Request_Access_Service::can_delete_request(),
 				'summary'       => $summary,
 				'stale_hours'   => $stale_hours,
@@ -931,7 +948,7 @@ class CRPCRM_Admin_Pages {
 				'mode'          => 'detail',
 				'request'       => $request,
 				'activities'    => $activities,
-				'assignable_users' => $this->get_assignable_users(),
+				'assignable_users' => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->get_assignable_users() : array(),
 				'can_manage'    => CRPCRM_Request_Access_Service::can_manage_request( $request ),
 				'can_delete'    => CRPCRM_Request_Access_Service::can_delete_request(),
 				'can_claim'     => CRPCRM_Request_Access_Service::can_claim_request( $request ),

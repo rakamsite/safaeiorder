@@ -212,6 +212,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 						<?php endforeach; ?>
 					</select>
 				</label>
+				<?php if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
 				<label><?php echo esc_html( 'مسئول' ); ?>
 					<select name="owner_filter">
 						<option value="all" <?php selected( $filters['owner_filter'], 'all' ); ?>><?php echo esc_html( 'همه موارد مجاز' ); ?></option>
@@ -224,6 +225,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 						<?php endif; ?>
 					</select>
 				</label>
+				<?php endif; ?>
 				<label><?php echo esc_html( 'منبع' ); ?>
 					<select name="source">
 						<option value=""><?php echo esc_html( 'همه' ); ?></option>
