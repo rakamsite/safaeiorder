@@ -64,6 +64,16 @@ class CRPCRM_Feature_Manager {
 		return isset( $features[ $feature ] ) && true === $features[ $feature ];
 	}
 
+	public static function is_crm_ui_enabled() {
+		foreach ( array( 'portal', 'customer_registration', 'staff', 'reports', 'otp', 'tracking', 'lead_followup', 'admin_tools' ) as $feature ) {
+			if ( self::is_enabled( $feature ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	public static function save_features( $features ) {
 		$profile_id = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
 		if ( ! $profile_id ) {

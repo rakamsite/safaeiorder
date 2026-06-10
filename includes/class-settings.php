@@ -97,7 +97,9 @@ class CRPCRM_Settings {
 		if ( CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
 			$tabs['attribution'] = 'تنظیمات رهگیری ورودی';
 		}
-		$tabs['crm'] = 'تنظیمات درخواست‌ها و CRM';
+		if ( CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
+			$tabs['crm'] = 'تنظیمات درخواست‌ها و CRM';
+		}
 		if ( CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile() && CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile()->has_profile_settings() ) {
 			$tabs['profile'] = 'تنظیمات اختصاصی پروفایل فعال';
 		}

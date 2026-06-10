@@ -36,6 +36,11 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function dashboard() {
+		if ( ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
+			$this->render_message( CRPCRM_Feature_Manager::disabled_message() );
+			return;
+		}
+
 		CRPCRM_Logger::info( 'admin_dashboard_viewed', 'admin_dashboard_viewed', array( 'user_id' => get_current_user_id() ) );
 		$this->render( 'dashboard.php', array( 'cards' => $this->get_admin_dashboard_cards() ) );
 	}
@@ -60,6 +65,11 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function requests() {
+		if ( ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
+			$this->render_message( CRPCRM_Feature_Manager::disabled_message() );
+			return;
+		}
+
 		if ( ! CRPCRM_Request_Access_Service::can_access_admin_requests() ) {
 			CRPCRM_Logger::warning( 'request_access_denied', 'request_access_denied', array( 'user_id' => get_current_user_id(), 'screen' => 'admin_requests' ) );
 			$this->render_message( 'شما اجازه دسترسی به این بخش را ندارید.' );
@@ -81,6 +91,11 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function customers() {
+		if ( ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
+			$this->render_message( CRPCRM_Feature_Manager::disabled_message() );
+			return;
+		}
+
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( get_current_user_id() ) ) {
 			$this->render_message( 'شما اجازه دسترسی به این بخش را ندارید.' );
 			return;
@@ -110,6 +125,11 @@ class CRPCRM_Admin_Pages {
 	}
 
 	public function customer_profile() {
+		if ( ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
+			$this->render_message( CRPCRM_Feature_Manager::disabled_message() );
+			return;
+		}
+
 		if ( ! CRPCRM_Request_Access_Service::can_access_admin_requests() ) {
 			$this->render_message( 'شما اجازه دسترسی به این بخش را ندارید.' );
 			return;
