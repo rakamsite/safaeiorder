@@ -303,7 +303,12 @@ class CRPCRM_Customer_Repository {
 		$values[] = $limit;
 		$values[] = $offset;
 		$sql = "SELECT r.* FROM {$requests} r WHERE " . implode( ' AND ', $where ) . ' ORDER BY r.created_at DESC, r.id DESC LIMIT %d OFFSET %d';
-		return $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A );
+		foreach ( $rows as &$row ) {
+			$row['request_data'] = CRPCRM_Helpers::maybe_json_encode( CRPCRM_Request_Repository::get_merged_request_data( $row ) );
+		}
+		unset( $row );
+		return $rows;
 	}
 
 	public function get_customer_agents( $customer_id ) {

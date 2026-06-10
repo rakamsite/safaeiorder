@@ -18,9 +18,7 @@ class CRPCRM_Business_Profile_Manager {
 	private $profiles = array();
 	private $profiles_initialized = false;
 
-	private function __construct() {
-		$this->register_profile( new CRPCRM_Safaei_Business_Profile() );
-	}
+	private function __construct() {}
 
 	public static function get_instance() {
 		if ( ! self::$instance ) {
@@ -37,6 +35,10 @@ class CRPCRM_Business_Profile_Manager {
 
 	public function initialize_profiles() {
 		if ( $this->profiles_initialized ) {
+			return;
+		}
+
+		if ( ! did_action( 'plugins_loaded' ) && ! doing_action( 'plugins_loaded' ) ) {
 			return;
 		}
 
@@ -62,9 +64,7 @@ class CRPCRM_Business_Profile_Manager {
 	}
 
 	public function get_profiles() {
-		if ( did_action( 'plugins_loaded' ) ) {
-			$this->initialize_profiles();
-		}
+		$this->initialize_profiles();
 
 		return $this->profiles;
 	}
@@ -96,6 +96,7 @@ class CRPCRM_Business_Profile_Manager {
 	}
 
 	public function get_active_profile() {
+		$this->initialize_profiles();
 		$profile_id = $this->get_active_profile_id();
 		return isset( $this->profiles[ $profile_id ] ) ? $this->profiles[ $profile_id ] : null;
 	}
@@ -125,7 +126,7 @@ class CRPCRM_Business_Profile_Manager {
 		$stored   = get_option( $this->get_profile_settings_option_name( $profile->get_id() ), array() );
 		$stored   = is_array( $stored ) ? $stored : array();
 		$defaults = $profile->get_profile_default_settings();
-		return wp_parse_args( $stored, is_array( $defaults ) ? $defaults : array() );
+		return $this->merge_profile_settings( is_array( $defaults ) ? $defaults : array(), $stored );
 	}
 
 	public function save_active_profile_settings( $input ) {
@@ -171,5 +172,30 @@ class CRPCRM_Business_Profile_Manager {
 		}
 
 		echo '<div class="notice notice-error"><p>' . esc_html( 'پروفایل کسب‌وکار قفل‌شده ثبت نشده یا نامعتبر است. تا رفع مشکل، بخش‌های افزونه غیرفعال هستند.' ) . '</p></div>';
+	}
+
+	private function merge_profile_settings( $defaults, $stored ) {
+		$merged = $defaults;
+		foreach ( $stored as $key => $value ) {
+			if (
+				isset( $defaults[ $key ] )
+				&& is_array( $defaults[ $key ] )
+				&& is_array( $value )
+				&& ! $this->is_list_array( $defaults[ $key ] )
+				&& ! $this->is_list_array( $value )
+			) {
+				$merged[ $key ] = $this->merge_profile_settings( $defaults[ $key ], $value );
+			} else {
+				$merged[ $key ] = $value;
+			}
+		}
+		return $merged;
+	}
+
+	private function is_list_array( $value ) {
+		if ( array() === $value ) {
+			return true;
+		}
+		return array_keys( $value ) === range( 0, count( $value ) - 1 );
 	}
 }

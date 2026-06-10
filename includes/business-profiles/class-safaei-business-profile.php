@@ -71,8 +71,7 @@ class CRPCRM_Safaei_Business_Profile implements CRPCRM_Business_Profile_Interfac
 	}
 
 	public function get_vehicle_catalog() {
-		$settings = get_option( 'crpcrm_profile_settings_' . $this->get_id(), array() );
-		$settings = is_array( $settings ) ? $settings : array();
+		$settings = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_settings();
 		return isset( $settings['vehicle_catalog'] ) && is_array( $settings['vehicle_catalog'] )
 			? $settings['vehicle_catalog']
 			: $this->get_profile_default_settings()['vehicle_catalog'];

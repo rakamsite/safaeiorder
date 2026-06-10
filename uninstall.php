@@ -46,5 +46,6 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 	delete_option( 'crpcrm_setup_completed_at' );
 	// Cleanup for the pre-profile-settings test builds.
 	delete_option( 'crpcrm_safaei_catalog' );
-	delete_option( 'crpcrm_profile_settings_safaei' );
+	$profile_settings_prefix = $wpdb->esc_like( 'crpcrm_profile_settings_' ) . '%';
+	$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $profile_settings_prefix ) );
 }
