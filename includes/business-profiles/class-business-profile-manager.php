@@ -11,13 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Business_Profile_Manager {
 	const DEFAULT_PROFILE_ID = 'safaei';
+	const PROFILE_OPTION = 'crpcrm_business_profile_id';
+	const SETUP_COMPLETED_OPTION = 'crpcrm_setup_completed';
+	const SETUP_COMPLETED_AT_OPTION = 'crpcrm_setup_completed_at';
 
 	private static $instance;
 	private $profiles = array();
+	private $profiles_initialized = false;
 
 	private function __construct() {
 		$this->register_profile( new CRPCRM_Safaei_Business_Profile() );
-		do_action( 'crpcrm_register_business_profiles', $this );
 	}
 
 	public static function get_instance() {
@@ -26,6 +29,20 @@ class CRPCRM_Business_Profile_Manager {
 		}
 
 		return self::$instance;
+	}
+
+	public function register_hooks() {
+		add_action( 'plugins_loaded', array( $this, 'initialize_profiles' ), 20 );
+		add_action( 'plugins_loaded', array( $this, 'maybe_migrate_legacy_profile' ), 30 );
+	}
+
+	public function initialize_profiles() {
+		if ( $this->profiles_initialized ) {
+			return;
+		}
+
+		$this->profiles_initialized = true;
+		do_action( 'crpcrm_register_business_profiles', $this );
 	}
 
 	public function register_profile( $profile ) {
@@ -46,16 +63,24 @@ class CRPCRM_Business_Profile_Manager {
 	}
 
 	public function get_profiles() {
+		if ( did_action( 'plugins_loaded' ) ) {
+			$this->initialize_profiles();
+		}
+
 		return $this->profiles;
 	}
 
+	public static function is_setup_completed() {
+		return 'yes' === get_option( self::SETUP_COMPLETED_OPTION, 'no' ) && '' !== sanitize_key( get_option( self::PROFILE_OPTION, '' ) );
+	}
+
 	public function get_active_profile_id() {
-		$profile_id = self::DEFAULT_PROFILE_ID;
-		if ( class_exists( 'CRPCRM_Settings' ) ) {
-			$profile_id = sanitize_key( CRPCRM_Settings::get( 'business_profile', self::DEFAULT_PROFILE_ID ) );
+		if ( ! self::is_setup_completed() ) {
+			return '';
 		}
 
-		return isset( $this->profiles[ $profile_id ] ) ? $profile_id : self::DEFAULT_PROFILE_ID;
+		$profile_id = sanitize_key( get_option( self::PROFILE_OPTION, '' ) );
+		return isset( $this->get_profiles()[ $profile_id ] ) ? $profile_id : '';
 	}
 
 	public function get_active_profile() {
@@ -73,5 +98,46 @@ class CRPCRM_Business_Profile_Manager {
 		$profile       = $this->get_active_profile();
 		$request_types = $profile ? $profile->get_request_types() : array();
 		return is_array( $request_types ) ? $request_types : array();
+	}
+
+	public function complete_setup( $profile_id ) {
+		if ( 'yes' === get_option( self::SETUP_COMPLETED_OPTION, 'no' ) ) {
+			return false;
+		}
+
+		$profile_id = sanitize_key( $profile_id );
+		if ( '' === $profile_id || ! isset( $this->get_profiles()[ $profile_id ] ) ) {
+			return false;
+		}
+
+		update_option( self::PROFILE_OPTION, $profile_id );
+		update_option( self::SETUP_COMPLETED_AT_OPTION, current_time( 'mysql', true ) );
+		update_option( self::SETUP_COMPLETED_OPTION, 'yes' );
+		return true;
+	}
+
+	public function maybe_migrate_legacy_profile() {
+		if ( false !== get_option( self::SETUP_COMPLETED_OPTION, false ) ) {
+			return;
+		}
+
+		$settings   = get_option( 'crpcrm_settings', array() );
+		$candidates = array(
+			get_option( 'active_business_profile', '' ),
+			is_array( $settings ) && isset( $settings['active_business_profile'] ) ? $settings['active_business_profile'] : '',
+			is_array( $settings ) && isset( $settings['business_profile'] ) ? $settings['business_profile'] : '',
+		);
+
+		foreach ( $candidates as $candidate ) {
+			$candidate = sanitize_key( $candidate );
+			if ( $candidate && isset( $this->get_profiles()[ $candidate ] ) ) {
+				$this->complete_setup( $candidate );
+				return;
+			}
+		}
+
+		add_option( self::PROFILE_OPTION, '' );
+		add_option( self::SETUP_COMPLETED_OPTION, 'no' );
+		add_option( self::SETUP_COMPLETED_AT_OPTION, '' );
 	}
 }

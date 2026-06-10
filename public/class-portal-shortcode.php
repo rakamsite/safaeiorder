@@ -70,6 +70,10 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function render() {
+		if ( ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
+			return '<div class="crpcrm-setup-required" dir="rtl">' . esc_html( 'افزونه هنوز راه‌اندازی اولیه نشده است' ) . '</div>';
+		}
+
 		$this->enqueue_assets();
 		$notice = $this->get_notice();
 

@@ -40,6 +40,25 @@ class CRPCRM_Admin_Pages {
 		$this->render( 'dashboard.php', array( 'cards' => $this->get_admin_dashboard_cards() ) );
 	}
 
+	public function setup() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			$this->render_message( 'شما اجازه راه‌اندازی اولیه افزونه را ندارید.' );
+			return;
+		}
+
+		if ( CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
+			wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-settings' ), admin_url( 'admin.php' ) ) );
+			exit;
+		}
+
+		$this->render(
+			'setup.php',
+			array(
+				'business_profiles' => CRPCRM_Business_Profile_Manager::get_instance()->get_profiles(),
+			)
+		);
+	}
+
 	public function requests() {
 		if ( ! CRPCRM_Request_Access_Service::can_access_admin_requests() ) {
 			CRPCRM_Logger::warning( 'request_access_denied', 'request_access_denied', array( 'user_id' => get_current_user_id(), 'screen' => 'admin_requests' ) );
