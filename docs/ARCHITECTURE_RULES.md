@@ -26,7 +26,7 @@
 
 ### Form Builder
 
-ماژول آینده برای ساخت و مدیریت فرم‌ها از پنل مدیریت است. فرم‌های آینده باید از Form Builder بیایند، نه از Business Profile.
+ماژول مدیریت فرم‌های سفارشی از پنل مدیریت است. در فاز فعلی فرم‌ها را در `crpcrm_custom_forms` ذخیره می‌کند، اما تا فاز ۷ به ثبت درخواست متصل نیست.
 
 ### Business Profile
 
@@ -70,6 +70,7 @@ if ( 'ajax' === $site ) {
 - Feature Toggleها همچنان با `CRPCRM_Feature_Manager` کنترل می‌شوند.
 - حذف Business Profile نباید Feature Manager را حذف یا تضعیف کند.
 - feature آینده `form_builder` فقط امکان **مدیریت فرم‌ها** را خاموش/روشن می‌کند.
+- feature `form_builder` فقط منو و عملیات مدیریت فرم‌ها را کنترل می‌کند.
 - خاموش بودن `form_builder` نباید فرم‌های فعال، نمایش فرم‌ها یا ثبت درخواست را از کار بیندازد.
 - خاموش کردن هر feature نباید داده‌های ذخیره‌شده را حذف یا reset کند.
 
@@ -132,7 +133,7 @@ request_data
 - **Phase 3:** حذف Business Profile و setup/lock مربوط به آن.
 - **Phase 4:** پاکسازی دیتابیس و queryها از `business_profile`، انجام‌شده.
 - **Phase 5:** حذف تنظیمات خودرو و تبدیل آن به field options فرم، انجام‌شده.
-- **Phase 6:** اضافه کردن ماژول سبک Form Builder.
+- **Phase 6:** اضافه کردن ماژول سبک Form Builder، انجام‌شده.
 - **Phase 7:** اتصال Form Builder به ثبت درخواست و seed فرم‌های اولیه.
 - **Phase 8:** پاکسازی نهایی docs و code.
 

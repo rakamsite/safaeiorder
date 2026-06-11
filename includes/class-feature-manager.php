@@ -22,6 +22,7 @@ class CRPCRM_Feature_Manager {
 			'sms'                   => 'پیامک',
 			'tracking'              => 'رهگیری ورودی‌ها',
 			'lead_followup'         => 'پیگیری لیدها',
+			'form_builder'          => 'فرم‌ساز',
 			'admin_tools'           => 'ابزارهای مدیریتی',
 		);
 	}
