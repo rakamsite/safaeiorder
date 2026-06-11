@@ -39,7 +39,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 	}
 
 	public function create_due_follow_ups() {
-		if ( ! CRPCRM_Feature_Manager::is_enabled( 'lead_followup' ) || ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'lead_followup' ) ) {
 			return 0;
 		}
 
@@ -55,7 +55,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 
 			$profile_completed = ! empty( $customer['profile_completed'] );
 			$reason            = $profile_completed ? 'پروفایل تکمیل شده است، اما مشتری هنوز درخواستی ثبت نکرده است.' : 'مشتری پس از ۲۴ ساعت هنوز اطلاعات پروفایل خود را تکمیل نکرده است.';
-			$profile_id        = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+			$profile_id        = CRPCRM_Request_Scope::get_legacy_partition();
 			$system_metadata   = CRPCRM_System_Request_Types::get_metadata( CRPCRM_System_Request_Types::LEAD_FOLLOW_UP );
 			$request_id        = $this->request_repository->create(
 				array(

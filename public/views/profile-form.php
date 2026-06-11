@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 $is_embedded = ! empty( $is_embedded );
 ?>
 <?php if ( ! $is_embedded ) : ?>
-<div class="crpcrm-portal <?php echo esc_attr( $portal_profile_class ); ?>" style="<?php echo esc_attr( $portal_theme_style ); ?>" dir="rtl">
+<div class="crpcrm-portal <?php echo esc_attr( $portal_theme_class ); ?>" style="<?php echo esc_attr( $portal_theme_style ); ?>" dir="rtl">
 <?php endif; ?>
 	<div class="crpcrm-portal-card crpcrm-card crpcrm-profile-card">
 		<?php if ( ! $is_embedded && ! empty( $notice ) ) : ?>

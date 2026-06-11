@@ -32,8 +32,6 @@ class CRPCRM_Plugin {
 
 	public function run() {
 		CRPCRM_Roles::register_hooks();
-		CRPCRM_Business_Profile_Loader::register_hooks();
-		CRPCRM_Business_Profile_Manager::get_instance()->register_hooks();
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 		add_action( 'plugins_loaded', array( 'CRPCRM_DB', 'maybe_upgrade' ), 40 );
 		add_action( 'plugins_loaded', array( 'CRPCRM_Roles', 'add_roles_and_caps' ) );

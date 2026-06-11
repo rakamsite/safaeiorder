@@ -41,7 +41,7 @@ class CRPCRM_Reports_Repository {
 			'status'          => isset( $input['status'] ) ? sanitize_key( wp_unslash( $input['status'] ) ) : '',
 			'owner_filter'    => isset( $input['owner_filter'] ) ? sanitize_text_field( wp_unslash( $input['owner_filter'] ) ) : 'all',
 			'workflow_filter' => isset( $input['workflow_filter'] ) ? sanitize_key( wp_unslash( $input['workflow_filter'] ) ) : '',
-			'business_profile' => CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id(),
+			'business_profile' => CRPCRM_Request_Scope::get_legacy_partition(),
 		);
 
 		$allowed_ranges = array( 'today', 'yesterday', 'last_7_days', 'last_30_days', 'current_month', 'last_month', 'custom' );
@@ -389,7 +389,7 @@ class CRPCRM_Reports_Repository {
 		$values = array();
 		$p      = preg_replace( '/[^a-zA-Z0-9_]/', '', $alias );
 
-		$profile_id = ! empty( $filters['business_profile'] ) ? sanitize_key( $filters['business_profile'] ) : CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile_id = ! empty( $filters['business_profile'] ) ? sanitize_key( $filters['business_profile'] ) : CRPCRM_Request_Scope::get_legacy_partition();
 		if ( $profile_id ) {
 			$where[]  = "$p.business_profile = %s";
 			$values[] = $profile_id;

@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Customer_Registration_Fields {
-	const OPTION_PREFIX = 'crpcrm_customer_registration_fields_';
+	const OPTION_NAME   = 'crpcrm_customer_registration_fields';
 	const META_PREFIX   = 'crpcrm_registration_';
 
 	public static function get_fields() {
@@ -50,8 +50,7 @@ class CRPCRM_Customer_Registration_Fields {
 			return $settings;
 		}
 
-		$profile_id = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-		$stored     = $profile_id ? get_option( self::OPTION_PREFIX . $profile_id, array() ) : array();
+		$stored = get_option( self::OPTION_NAME, array() );
 		foreach ( $settings as $field => $default ) {
 			if ( isset( $stored[ $field ] ) && is_array( $stored[ $field ] ) ) {
 				$enabled                       = ! empty( $stored[ $field ]['enabled'] );
@@ -68,11 +67,6 @@ class CRPCRM_Customer_Registration_Fields {
 
 	public static function save_settings( $settings ) {
 		if ( ! CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) ) {
-			return false;
-		}
-
-		$profile_id = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-		if ( ! $profile_id ) {
 			return false;
 		}
 
@@ -95,7 +89,7 @@ class CRPCRM_Customer_Registration_Fields {
 		foreach ( array_keys( $submitted_order ) as $order => $field ) {
 			$clean[ $field ]['order'] = $order;
 		}
-		return update_option( self::OPTION_PREFIX . $profile_id, $clean );
+		return update_option( self::OPTION_NAME, $clean );
 	}
 
 	public static function get_ordered_fields() {

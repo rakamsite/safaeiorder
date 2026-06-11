@@ -89,7 +89,7 @@ class CRPCRM_Sales_Daily_Stats_Service {
 		$start = $range['start'];
 		$end   = $range['end'];
 		$now   = CRPCRM_Helpers::current_datetime();
-		$profile_id = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile_id = CRPCRM_Request_Scope::get_legacy_partition();
 
 		$stats = $this->empty_stats( $user_id, $range['date'] );
 		$stats['claimed_today'] = $this->count_activities_by_types( $user_id, array( 'request_claimed' ), $start, $end );
@@ -210,7 +210,7 @@ class CRPCRM_Sales_Daily_Stats_Service {
 		}
 		$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
 		$sql = "SELECT COUNT(*) FROM {$this->requests_table} WHERE business_profile = %s AND owner_id = %d AND status IN ($placeholders)";
-		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( CRPCRM_Business_Profile_Manager::get_locked_profile_id(), absint( $user_id ) ), $statuses ) ) );
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( CRPCRM_Request_Scope::get_legacy_partition(), absint( $user_id ) ), $statuses ) ) );
 	}
 
 	private function count_activities_by_types( $user_id, $activity_types, $start, $end ) {
@@ -221,6 +221,6 @@ class CRPCRM_Sales_Daily_Stats_Service {
 		}
 		$placeholders = implode( ',', array_fill( 0, count( $activity_types ), '%s' ) );
 		$sql = "SELECT COUNT(*) FROM {$this->activities_table} a INNER JOIN {$this->requests_table} r ON r.id = a.request_id WHERE r.business_profile = %s AND a.actor_user_id = %d AND a.activity_type IN ($placeholders) AND a.created_at BETWEEN %s AND %s";
-		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( CRPCRM_Business_Profile_Manager::get_locked_profile_id(), absint( $user_id ) ), $activity_types, array( $start, $end ) ) ) );
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( CRPCRM_Request_Scope::get_legacy_partition(), absint( $user_id ) ), $activity_types, array( $start, $end ) ) ) );
 	}
 }

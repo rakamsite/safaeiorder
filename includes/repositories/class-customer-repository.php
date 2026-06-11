@@ -67,7 +67,7 @@ class CRPCRM_Customer_Repository {
 	public function find_customers_without_requests( $registered_before, $limit = 100 ) {
 		global $wpdb;
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile  = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile  = CRPCRM_Request_Scope::get_legacy_partition();
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT c.* FROM {$this->table} c LEFT JOIN {$requests} r ON r.customer_id = c.id AND r.business_profile = %s WHERE c.created_at <= %s AND r.id IS NULL ORDER BY c.created_at ASC LIMIT %d",
@@ -218,7 +218,7 @@ class CRPCRM_Customer_Repository {
 		$limit  = max( 1, min( 100, absint( $args['limit'] ) ) );
 		$offset = absint( $args['offset'] );
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile  = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile  = CRPCRM_Request_Scope::get_legacy_partition();
 
 		$sql = "SELECT c.*,
 			COUNT(r.id) AS requests_count,
@@ -241,7 +241,7 @@ class CRPCRM_Customer_Repository {
 		global $wpdb;
 		$args  = wp_parse_args( $args, array( 'user_id' => get_current_user_id(), 'first_source' => '', 'last_source' => '', 'province' => '', 'city' => '', 'open_filter' => '', 'search' => '' ) );
 		$where = $this->build_admin_where( $args );
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile = CRPCRM_Request_Scope::get_legacy_partition();
 		$sql   = "SELECT COUNT(DISTINCT c.id) FROM {$this->table} c LEFT JOIN " . CRPCRM_DB::table( 'requests' ) . " r ON r.customer_id = c.id AND r.business_profile = %s {$where['sql']}";
 		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( $profile ), $where['values'] ) ) );
 	}
@@ -251,7 +251,7 @@ class CRPCRM_Customer_Repository {
 		$requests   = CRPCRM_DB::table( 'requests' );
 		$activities = CRPCRM_DB::table( 'request_activities' );
 		$customer_id = absint( $customer_id );
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile = CRPCRM_Request_Scope::get_legacy_partition();
 
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
@@ -295,7 +295,7 @@ class CRPCRM_Customer_Repository {
 		$user_id = absint( $args['user_id'] );
 		$requests = CRPCRM_DB::table( 'requests' );
 		$where = array( 'r.customer_id = %d', 'r.business_profile = %s' );
-		$values = array( absint( $customer_id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() );
+		$values = array( absint( $customer_id ), CRPCRM_Request_Scope::get_legacy_partition() );
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 			$where[] = '(r.owner_id = %d OR r.owner_id IS NULL)';
 			$values[] = $user_id;
@@ -316,7 +316,7 @@ class CRPCRM_Customer_Repository {
 		$requests   = CRPCRM_DB::table( 'requests' );
 		$activities = CRPCRM_DB::table( 'request_activities' );
 		$customer_id = absint( $customer_id );
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile = CRPCRM_Request_Scope::get_legacy_partition();
 		$owner_rows = $wpdb->get_results( $wpdb->prepare( "SELECT owner_id AS user_id, COUNT(*) AS owner_requests FROM {$requests} WHERE customer_id = %d AND business_profile = %s AND owner_id IS NOT NULL GROUP BY owner_id", $customer_id, $profile ), ARRAY_A );
 		$activity_rows = $wpdb->get_results( $wpdb->prepare( "SELECT a.actor_user_id AS user_id, COUNT(*) AS activity_count, MAX(a.created_at) AS last_activity_at FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND r.business_profile = %s AND a.actor_user_id IS NOT NULL AND a.actor_type IN ('sales_agent','sales_manager','admin') GROUP BY a.actor_user_id", $customer_id, $profile ), ARRAY_A );
 		$agents = array();
@@ -339,7 +339,7 @@ class CRPCRM_Customer_Repository {
 		global $wpdb;
 		$activities = CRPCRM_DB::table( 'request_activities' );
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile = CRPCRM_Request_Scope::get_legacy_partition();
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT a.*, r.request_code FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND r.business_profile = %s AND a.is_internal = 1 ORDER BY a.created_at DESC, a.id DESC LIMIT %d",
@@ -362,7 +362,7 @@ class CRPCRM_Customer_Repository {
 			return true;
 		}
 		$requests = CRPCRM_DB::table( 'requests' );
-		$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$requests} WHERE customer_id = %d AND business_profile = %s AND (owner_id = %d OR owner_id IS NULL)", $customer_id, CRPCRM_Business_Profile_Manager::get_locked_profile_id(), $user_id ) );
+		$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$requests} WHERE customer_id = %d AND business_profile = %s AND (owner_id = %d OR owner_id IS NULL)", $customer_id, CRPCRM_Request_Scope::get_legacy_partition(), $user_id ) );
 		return $count > 0;
 	}
 
@@ -371,7 +371,7 @@ class CRPCRM_Customer_Repository {
 		$user_id = isset( $args['user_id'] ) ? absint( $args['user_id'] ) : get_current_user_id();
 		$where = array( '1=1' );
 		$values = array();
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile = CRPCRM_Request_Scope::get_legacy_partition();
 
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 			$where[] = '(r.owner_id = %d OR r.owner_id IS NULL)';

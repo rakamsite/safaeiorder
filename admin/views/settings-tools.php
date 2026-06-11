@@ -10,17 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php if ( isset( $_GET['request-codes-fixed'] ) ) : ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html( sprintf( 'تعداد %d درخواست فاقد کد پیگیری بروزرسانی شد.', absint( $_GET['request-codes-fixed'] ) ) ); ?></p></div><?php endif; ?>
 
 <?php if ( CRPCRM_Admin_Tools::can_maintain() ) : ?>
-<?php if ( CRPCRM_Settings::can_reset_setup() ) : ?>
-<div class="crpcrm-card">
-	<h2><?php echo esc_html( 'بازنشانی راه‌اندازی اولیه (فقط توسعه)' ); ?></h2>
-	<p><?php echo esc_html( 'این ابزار فقط قفل و وضعیت راه‌اندازی Business Profile را پاک می‌کند و هیچ درخواست یا مشتری‌ای حذف نمی‌شود.' ); ?></p>
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-		<input type="hidden" name="action" value="crpcrm_reset_setup" />
-		<?php wp_nonce_field( 'crpcrm_reset_setup', 'crpcrm_reset_setup_nonce' ); ?>
-		<?php submit_button( 'بازنشانی راه‌اندازی اولیه', 'secondary', 'submit', false ); ?>
-	</form>
-</div>
-<?php endif; ?>
 <div class="crpcrm-card">
 	<h2><?php echo esc_html( 'وضعیت سلامت افزونه' ); ?></h2>
 	<table class="widefat striped"><thead><tr><th><?php echo esc_html( 'مورد' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'پیام' ); ?></th></tr></thead><tbody>

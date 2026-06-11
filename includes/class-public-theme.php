@@ -1,6 +1,6 @@
 <?php
 /**
- * Safe public theme values supplied by the active business profile.
+ * Safe public theme values.
  *
  * @package CRPCRM
  */
@@ -28,14 +28,28 @@ class CRPCRM_Public_Theme {
 		'radius_sm'       => '--crpcrm-radius-sm',
 	);
 
-	public static function get_profile_class() {
-		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
-		return 'crpcrm-profile-' . sanitize_html_class( $profile_id, 'default' );
+	public static function get_theme_class() {
+		return 'crpcrm-theme-default';
 	}
 
 	public static function get_inline_style() {
-		$profile = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile();
-		$tokens  = $profile ? $profile->get_theme_tokens() : array();
+		$tokens  = array(
+			'primary'       => '#2563eb',
+			'primary_hover' => '#1d4ed8',
+			'secondary'     => '#64748b',
+			'bg'            => '#f8fafc',
+			'card_bg'       => '#ffffff',
+			'text'          => '#111827',
+			'muted_text'    => '#4b5563',
+			'border'        => '#e5e7eb',
+			'field_bg'      => '#ffffff',
+			'field_border'  => '#d1d5db',
+			'error'         => '#dc2626',
+			'success'       => '#059669',
+			'warning'       => '#d97706',
+			'radius'        => '14px',
+			'radius_sm'     => '10px',
+		);
 		$styles  = array();
 
 		foreach ( is_array( $tokens ) ? $tokens : array() as $name => $value ) {

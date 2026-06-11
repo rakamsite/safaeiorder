@@ -3,10 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$profile_manager            = CRPCRM_Business_Profile_Manager::get_instance();
-$business_profiles           = $profile_manager->get_profiles();
 $sms_providers               = CRPCRM_SMS_Provider_Registry::get_instance()->get_providers();
-$active_business_profile_id  = $profile_manager->get_active_profile_id();
 $default_forms               = CRPCRM_Form_Registry::get_forms();
 $enabled_form_ids            = array_keys( CRPCRM_Form_Registry::get_enabled_forms() );
 $portal_page_id              = absint( $settings['portal_page_id'] );
@@ -91,13 +88,6 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 		<?php elseif ( 'portal' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات پرتال مشتری' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
-				<tr>
-					<th><?php echo esc_html( 'پروفایل کسب‌وکار فعال' ); ?></th>
-					<td>
-						<strong><?php echo esc_html( isset( $business_profiles[ $active_business_profile_id ] ) ? $business_profiles[ $active_business_profile_id ]->get_label() : $active_business_profile_id ); ?></strong>
-						<p class="description"><?php echo esc_html( 'این پروفایل در راه‌اندازی اولیه انتخاب شده و قابل تغییر نیست.' ); ?></p>
-					</td>
-				</tr>
 				<tr><th><?php echo esc_html( 'فرم‌های فعال' ); ?></th><td><?php if ( empty( $default_forms ) ) : ?><?php echo esc_html( 'فرمی تعریف نشده است.' ); ?><?php else : ?><?php foreach ( $default_forms as $form_id => $default_form ) : ?><label style="display:block;margin-bottom:6px"><input type="checkbox" name="crpcrm_settings[enabled_forms][<?php echo esc_attr( CRPCRM_Default_Form_Definitions::SETTINGS_KEY ); ?>][]" value="<?php echo esc_attr( $form_id ); ?>" <?php checked( in_array( $form_id, $enabled_form_ids, true ) ); ?> /> <?php echo esc_html( $default_form['label'] ?? $default_form['title'] ?? $form_id ); ?></label><?php endforeach; ?><?php endif; ?></td></tr>
 				<tr><th><label for="portal_page_id"><?php echo esc_html( 'صفحه پرتال مشتری' ); ?></label></th><td><?php wp_dropdown_pages( array( 'name' => 'crpcrm_settings[portal_page_id]', 'id' => 'portal_page_id', 'selected' => $portal_page_id, 'show_option_none' => '— انتخاب کنید —', 'option_none_value' => 0 ) ); ?><p class="description"><?php echo esc_html( 'صفحه‌ای که shortcode پرتال در آن قرار دارد.' ); ?></p></td></tr>
 				<tr>
@@ -157,9 +147,6 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 				<tr><th><label for="requests_per_page"><?php echo esc_html( 'تعداد آیتم در هر صفحه لیست درخواست‌ها' ); ?></label></th><td><input name="crpcrm_settings[requests_per_page]" id="requests_per_page" type="number" min="5" max="100" value="<?php echo esc_attr( $settings['requests_per_page'] ); ?>" /></td></tr>
 				<tr><th><?php echo esc_html( 'اجازه اقدام مدیر روی درخواست بسته‌شده' ); ?></th><td><label><input name="crpcrm_settings[allow_manager_note_on_closed_request]" type="checkbox" value="yes" <?php checked( $settings['allow_manager_note_on_closed_request'], 'yes' ); ?> /> <?php echo esc_html( 'مدیر بتواند روی درخواست بسته‌شده فقط یادداشت داخلی ثبت کند.' ); ?></label></td></tr>
 			</tbody></table>
-		<?php elseif ( 'profile' === $active_tab ) : ?>
-			<h2><?php echo esc_html( 'تنظیمات اختصاصی پروفایل فعال' ); ?></h2>
-			<?php $profile_manager->render_active_profile_settings(); ?>
 		<?php elseif ( 'staff' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات پنل کارکنان' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>

@@ -57,12 +57,12 @@ class CRPCRM_Request_Repository {
 
 	public function get( $id ) {
 		global $wpdb;
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d AND business_profile = %s LIMIT 1", absint( $id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d AND business_profile = %s LIMIT 1", absint( $id ), CRPCRM_Request_Scope::get_legacy_partition() ), ARRAY_A );
 	}
 
 	public function get_by_code( $request_code ) {
 		global $wpdb;
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE request_code = %s AND business_profile = %s LIMIT 1", sanitize_text_field( $request_code ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE request_code = %s AND business_profile = %s LIMIT 1", sanitize_text_field( $request_code ), CRPCRM_Request_Scope::get_legacy_partition() ), ARRAY_A );
 	}
 
 	public function delete_permanently( $request_id ) {
@@ -104,7 +104,7 @@ class CRPCRM_Request_Repository {
 		$limit    = max( 1, min( 100, absint( $args['limit'] ) ) );
 		$offset   = absint( $args['offset'] );
 		$user_id  = absint( $args['user_id'] );
-		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$profile_id = CRPCRM_Request_Scope::get_legacy_partition();
 		$system_types = CRPCRM_System_Request_Types::get_type_ids();
 		$system_sql   = $system_types ? ' AND request_type NOT IN (' . implode( ', ', array_fill( 0, count( $system_types ), '%s' ) ) . ')' : '';
 
@@ -131,7 +131,7 @@ class CRPCRM_Request_Repository {
 
 	public function count_recent_for_customer_user( $customer_id, $user_id, $since_datetime ) {
 		global $wpdb;
-		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$profile_id = CRPCRM_Request_Scope::get_legacy_partition();
 		$system_types = CRPCRM_System_Request_Types::get_type_ids();
 		$system_sql   = $system_types ? ' AND request_type NOT IN (' . implode( ', ', array_fill( 0, count( $system_types ), '%s' ) ) . ')' : '';
 		$values       = array_merge( array( absint( $customer_id ), absint( $user_id ), $profile_id ), $system_types, array( sanitize_text_field( $since_datetime ) ) );
@@ -206,7 +206,7 @@ class CRPCRM_Request_Repository {
 				LEFT JOIN {$customers} c ON c.id = r.customer_id
 				WHERE r.id = %d AND r.business_profile = %s LIMIT 1",
 				absint( $request_id ),
-				CRPCRM_Business_Profile_Manager::get_locked_profile_id()
+				CRPCRM_Request_Scope::get_legacy_partition()
 			),
 			ARRAY_A
 		);
@@ -426,7 +426,7 @@ class CRPCRM_Request_Repository {
 
 	public function count_by_customer_grouped_by_type( $customer_id ) {
 		global $wpdb;
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT request_type, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d AND business_profile = %s GROUP BY request_type", absint( $customer_id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT request_type, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d AND business_profile = %s GROUP BY request_type", absint( $customer_id ), CRPCRM_Request_Scope::get_legacy_partition() ), ARRAY_A );
 		$counts = array();
 		foreach ( $rows as $row ) {
 			$counts[ $row['request_type'] ] = absint( $row['total'] );
@@ -436,7 +436,7 @@ class CRPCRM_Request_Repository {
 
 	public function count_by_customer_grouped_by_status( $customer_id ) {
 		global $wpdb;
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT status, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d AND business_profile = %s GROUP BY status", absint( $customer_id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT status, COUNT(*) AS total FROM {$this->table} WHERE customer_id = %d AND business_profile = %s GROUP BY status", absint( $customer_id ), CRPCRM_Request_Scope::get_legacy_partition() ), ARRAY_A );
 		$counts = array();
 		foreach ( $rows as $row ) {
 			$counts[ $row['status'] ] = absint( $row['total'] );
@@ -446,7 +446,7 @@ class CRPCRM_Request_Repository {
 
 	public function get_last_request_for_customer( $customer_id ) {
 		global $wpdb;
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE customer_id = %d AND business_profile = %s ORDER BY created_at DESC, id DESC LIMIT 1", absint( $customer_id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() ), ARRAY_A );
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE customer_id = %d AND business_profile = %s ORDER BY created_at DESC, id DESC LIMIT 1", absint( $customer_id ), CRPCRM_Request_Scope::get_legacy_partition() ), ARRAY_A );
 	}
 
 	public function get_last_activity_for_customer( $customer_id ) {
@@ -457,7 +457,7 @@ class CRPCRM_Request_Repository {
 			$wpdb->prepare(
 				"SELECT a.*, r.request_code FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND r.business_profile = %s ORDER BY a.created_at DESC, a.id DESC LIMIT 1",
 				absint( $customer_id ),
-				CRPCRM_Business_Profile_Manager::get_locked_profile_id()
+				CRPCRM_Request_Scope::get_legacy_partition()
 			),
 			ARRAY_A
 		);
@@ -472,7 +472,7 @@ class CRPCRM_Request_Repository {
 		$user_id = isset( $args['user_id'] ) ? absint( $args['user_id'] ) : get_current_user_id();
 		$where   = array( '1=1' );
 		$values  = array();
-		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$profile_id = CRPCRM_Request_Scope::get_legacy_partition();
 
 		if ( $profile_id ) {
 			$where[]  = 'r.business_profile = %s';
@@ -622,7 +622,7 @@ class CRPCRM_Request_Repository {
 		$request_data = is_array( $request_data ) ? $request_data : array();
 
 		if ( empty( $data['business_profile'] ) ) {
-			$data['business_profile'] = $request_data['business_profile'] ?? CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+			$data['business_profile'] = $request_data['business_profile'] ?? CRPCRM_Request_Scope::get_legacy_partition();
 		}
 		if ( empty( $data['form_id'] ) && ! empty( $request_data['form_id'] ) ) {
 			$data['form_id'] = $request_data['form_id'];

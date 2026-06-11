@@ -14,8 +14,6 @@ class CRPCRM_Settings {
 
 	public function register_hooks() {
 		add_action( 'admin_post_crpcrm_save_settings', array( $this, 'handle_save' ) );
-		add_action( 'admin_post_crpcrm_complete_setup', array( $this, 'handle_complete_setup' ) );
-		add_action( 'admin_post_crpcrm_reset_setup', array( $this, 'handle_reset_setup' ) );
 		add_action( 'admin_post_crpcrm_rebuild_roles', array( $this, 'handle_rebuild_roles' ) );
 	}
 
@@ -103,9 +101,6 @@ class CRPCRM_Settings {
 		if ( CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
 			$tabs['crm'] = 'تنظیمات درخواست‌ها و CRM';
 		}
-		if ( CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile() && CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile()->has_profile_settings() ) {
-			$tabs['profile'] = 'تنظیمات اختصاصی پروفایل فعال';
-		}
 		if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
 			$tabs['staff'] = 'تنظیمات پنل کارکنان';
 		}
@@ -142,9 +137,6 @@ class CRPCRM_Settings {
 		} elseif ( 'registration_fields' === $active_tab ) {
 			$field_settings = isset( $_POST['crpcrm_registration_fields'] ) && is_array( $_POST['crpcrm_registration_fields'] ) ? wp_unslash( $_POST['crpcrm_registration_fields'] ) : array();
 			CRPCRM_Customer_Registration_Fields::save_settings( $field_settings );
-		} elseif ( 'profile' === $active_tab ) {
-			$input = isset( $_POST['crpcrm_profile_settings'] ) && is_array( $_POST['crpcrm_profile_settings'] ) ? wp_unslash( $_POST['crpcrm_profile_settings'] ) : array();
-			CRPCRM_Business_Profile_Manager::get_instance()->save_active_profile_settings( $input );
 		} else {
 			$input    = isset( $_POST['crpcrm_settings'] ) && is_array( $_POST['crpcrm_settings'] ) ? wp_unslash( $_POST['crpcrm_settings'] ) : array();
 			$settings = $this->sanitize_settings( $input, $active_tab );
@@ -174,43 +166,6 @@ class CRPCRM_Settings {
 		CRPCRM_Logger::info( 'roles_rebuilt', 'roles_rebuilt', array( 'user_id' => get_current_user_id() ) );
 
 		wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-settings', 'tab' => 'roles', 'roles-rebuilt' => 'true' ), admin_url( 'admin.php' ) ) );
-		exit;
-	}
-
-	public function handle_complete_setup() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'شما اجازه راه‌اندازی اولیه افزونه را ندارید.', 'customer-request-portal-crm' ) );
-		}
-
-		check_admin_referer( 'crpcrm_complete_setup', 'crpcrm_setup_nonce' );
-		$profile_id = isset( $_POST['business_profile_id'] ) ? sanitize_key( wp_unslash( $_POST['business_profile_id'] ) ) : '';
-		$completed  = CRPCRM_Business_Profile_Manager::get_instance()->complete_setup( $profile_id );
-
-		if ( ! $completed ) {
-			wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-setup', 'setup-error' => 'invalid-profile' ), admin_url( 'admin.php' ) ) );
-			exit;
-		}
-
-		wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-settings', 'setup-completed' => 'true' ), admin_url( 'admin.php' ) ) );
-		exit;
-	}
-
-	public static function can_reset_setup() {
-		$debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
-		$reset_enabled = defined( 'CRPCRM_ALLOW_SETUP_RESET' ) && CRPCRM_ALLOW_SETUP_RESET;
-		return current_user_can( 'manage_options' ) && ( $debug_enabled || $reset_enabled );
-	}
-
-	public function handle_reset_setup() {
-		if ( ! self::can_reset_setup() ) {
-			wp_die( esc_html__( 'بازنشانی راه‌اندازی اولیه در این محیط مجاز نیست.', 'customer-request-portal-crm' ) );
-		}
-
-		check_admin_referer( 'crpcrm_reset_setup', 'crpcrm_reset_setup_nonce' );
-		update_option( CRPCRM_Business_Profile_Manager::PROFILE_OPTION, '' );
-		update_option( CRPCRM_Business_Profile_Manager::SETUP_COMPLETED_OPTION, 'no' );
-		update_option( CRPCRM_Business_Profile_Manager::SETUP_COMPLETED_AT_OPTION, '' );
-		wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-setup', 'setup-reset' => 'true' ), admin_url( 'admin.php' ) ) );
 		exit;
 	}
 

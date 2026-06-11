@@ -45,25 +45,6 @@ class CRPCRM_Admin_Pages {
 		$this->render( 'dashboard.php', array( 'cards' => $this->get_admin_dashboard_cards() ) );
 	}
 
-	public function setup() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			$this->render_message( 'شما اجازه راه‌اندازی اولیه افزونه را ندارید.' );
-			return;
-		}
-
-		if ( CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
-			wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-settings' ), admin_url( 'admin.php' ) ) );
-			exit;
-		}
-
-		$this->render(
-			'setup.php',
-			array(
-				'business_profiles' => CRPCRM_Business_Profile_Manager::get_instance()->get_profiles(),
-			)
-		);
-	}
-
 	public function requests() {
 		if ( ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
 			$this->render_message( CRPCRM_Feature_Manager::disabled_message() );
@@ -828,7 +809,7 @@ class CRPCRM_Admin_Pages {
 		}
 		$submitted_fields = $validated['data'];
 		$request_data     = $submitted_fields;
-		$request_data['business_profile'] = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$request_data['business_profile'] = CRPCRM_Request_Scope::get_legacy_partition();
 		$request_data['form_id']          = sanitize_key( $form['id'] );
 		$request_data['form_version']     = sanitize_text_field( $form['version'] ?? '' );
 		$request_data['fields']           = $submitted_fields;

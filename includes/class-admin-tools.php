@@ -112,7 +112,7 @@ class CRPCRM_Admin_Tools {
 		$where = array( '1=1' );
 		$vals  = array();
 		$where[] = 'r.business_profile = %s';
-		$vals[]  = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$vals[]  = CRPCRM_Request_Scope::get_legacy_partition();
 		$this->where_date_range( $where, $vals, 'r.created_at', $f['date_from'], $f['date_to'] );
 		$this->where_equal( $where, $vals, 'r.request_type', $f['request_type'] );
 		$this->where_equal( $where, $vals, 'r.status', $f['status'] );
@@ -141,7 +141,7 @@ class CRPCRM_Admin_Tools {
 		$this->where_equal( $where, $vals, 'c.last_source', $f['last_source'] );
 		if ( '' !== $f['profile_completed'] ) { $where[] = 'c.profile_completed = %d'; $vals[] = $f['profile_completed']; }
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile  = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
+		$profile  = CRPCRM_Request_Scope::get_legacy_partition();
 		$sql = "SELECT c.*, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s) AS total_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s AND r.status IN ('new','in_progress','no_answer','follow_up')) AS open_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s AND r.status IN ('won','lost','invalid','closed')) AS closed_requests FROM " . CRPCRM_DB::table( 'customers' ) . ' c WHERE ' . implode( ' AND ', $where ) . ' ORDER BY c.created_at DESC, c.id DESC';
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( $profile, $profile, $profile ), $vals ) ), ARRAY_A );
 		$out = array();

@@ -15,7 +15,7 @@ $created_value         = isset( $_GET['created'] ) ? sanitize_text_field( wp_uns
 $created_notice        = '1' === $created_value;
 $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['form_error'] : '';
 ?>
-<div class="crpcrm-portal crpcrm-portal-shell <?php echo esc_attr( $portal_profile_class ); ?>" style="<?php echo esc_attr( $portal_theme_style ); ?>" dir="rtl">
+<div class="crpcrm-portal crpcrm-portal-shell <?php echo esc_attr( $portal_theme_class ); ?>" style="<?php echo esc_attr( $portal_theme_style ); ?>" dir="rtl">
 	<aside class="crpcrm-portal-sidebar crpcrm-portal-nav" aria-label="<?php echo esc_attr( 'منوی پرتال' ); ?>">
 		<div class="crpcrm-portal-sidebar-title crpcrm-portal-header"><?php echo esc_html( 'پرتال درخواست‌ها' ); ?></div>
 		<nav class="crpcrm-portal-menu">

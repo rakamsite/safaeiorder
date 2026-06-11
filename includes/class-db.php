@@ -345,7 +345,7 @@ class CRPCRM_DB {
 		global $wpdb;
 
 		$table              = self::table( 'requests' );
-		$locked_profile_id  = sanitize_key( get_option( CRPCRM_Business_Profile_Manager::PROFILE_OPTION, '' ) );
+		$legacy_partition   = CRPCRM_Request_Scope::get_legacy_partition();
 		$last_id            = 0;
 
 		do {
@@ -367,7 +367,7 @@ class CRPCRM_DB {
 				$update       = array();
 
 				if ( empty( $row['business_profile'] ) ) {
-					$update['business_profile'] = sanitize_key( $request_data['business_profile'] ?? $locked_profile_id );
+					$update['business_profile'] = sanitize_key( $request_data['business_profile'] ?? $legacy_partition );
 				}
 				if ( empty( $row['form_id'] ) && ( ! empty( $request_data['form_id'] ) || ! empty( $system_data['form_id'] ) ) ) {
 					$update['form_id'] = sanitize_key( $request_data['form_id'] ?? $system_data['form_id'] );

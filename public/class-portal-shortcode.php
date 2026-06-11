@@ -74,10 +74,6 @@ class CRPCRM_Portal_Shortcode {
 			return '<div class="crpcrm-feature-disabled" dir="rtl">' . esc_html( CRPCRM_Feature_Manager::disabled_message() ) . '</div>';
 		}
 
-		if ( ! CRPCRM_Business_Profile_Manager::get_instance()->is_locked_profile_valid() ) {
-			return '<div class="crpcrm-setup-required" dir="rtl">' . esc_html( 'افزونه هنوز راه‌اندازی اولیه نشده است' ) . '</div>';
-		}
-
 		$this->enqueue_assets();
 		$notice = $this->get_notice();
 
@@ -328,7 +324,7 @@ class CRPCRM_Portal_Shortcode {
 		$submitted_fields = $validated['data'];
 		$request_data     = $submitted_fields;
 		$request_summary  = CRPCRM_Request_Forms::build_summary( $form, $request_data );
-		$request_data['business_profile'] = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
+		$request_data['business_profile'] = CRPCRM_Request_Scope::get_legacy_partition();
 		$request_data['form_id']          = sanitize_key( $form['id'] );
 		$request_data['form_version']     = sanitize_text_field( $form['version'] ?? '' );
 		$request_data['fields']           = $submitted_fields;
@@ -756,7 +752,7 @@ class CRPCRM_Portal_Shortcode {
 		$args = wp_parse_args(
 			$args,
 			array(
-				'portal_profile_class' => CRPCRM_Public_Theme::get_profile_class(),
+				'portal_theme_class'   => CRPCRM_Public_Theme::get_theme_class(),
 				'portal_theme_style'   => CRPCRM_Public_Theme::get_inline_style(),
 			)
 		);
