@@ -617,7 +617,7 @@ class CRPCRM_Admin_Pages {
 				$request['created_at'],
 				$request['customer_name'],
 				$request['customer_phone'],
-				CRPCRM_Helpers::get_request_type_label( $request['request_type'] ),
+				CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ),
 				$request['request_summary'],
 				CRPCRM_Helpers::get_source_label( $request['request_source'] ),
 				$request['request_campaign'],

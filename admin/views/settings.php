@@ -4,8 +4,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $sms_providers               = CRPCRM_SMS_Provider_Registry::get_instance()->get_providers();
-$default_forms               = CRPCRM_Form_Registry::get_forms();
-$enabled_form_ids            = array_keys( CRPCRM_Form_Registry::get_enabled_forms() );
 $portal_page_id              = absint( $settings['portal_page_id'] );
 $portal_warning              = '';
 if ( ! $portal_page_id ) {
@@ -27,9 +25,6 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 
 	<?php if ( isset( $_GET['settings-updated'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['settings-updated'] ) ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'تنظیمات با موفقیت ذخیره شد.' ); ?></p></div>
-	<?php endif; ?>
-	<?php if ( isset( $_GET['setup-completed'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['setup-completed'] ) ) ) : ?>
-		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'راه‌اندازی اولیه تکمیل و پروفایل کسب‌وکار قفل شد.' ); ?></p></div>
 	<?php endif; ?>
 	<?php if ( isset( $_GET['roles-rebuilt'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['roles-rebuilt'] ) ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'نقش‌ها و دسترسی‌ها با موفقیت بازسازی شدند.' ); ?></p></div>
@@ -88,7 +83,7 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 		<?php elseif ( 'portal' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات پرتال مشتری' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
-				<tr><th><?php echo esc_html( 'فرم‌های فعال' ); ?></th><td><?php if ( empty( $default_forms ) ) : ?><?php echo esc_html( 'فرمی تعریف نشده است.' ); ?><?php else : ?><?php foreach ( $default_forms as $form_id => $default_form ) : ?><label style="display:block;margin-bottom:6px"><input type="checkbox" name="crpcrm_settings[enabled_forms][<?php echo esc_attr( CRPCRM_Default_Form_Definitions::SETTINGS_KEY ); ?>][]" value="<?php echo esc_attr( $form_id ); ?>" <?php checked( in_array( $form_id, $enabled_form_ids, true ) ); ?> /> <?php echo esc_html( $default_form['label'] ?? $default_form['title'] ?? $form_id ); ?></label><?php endforeach; ?><?php endif; ?></td></tr>
+				<tr><th><?php echo esc_html( 'فرم‌های درخواست' ); ?></th><td><p class="description"><?php echo esc_html( 'فعال یا غیرفعال کردن فرم‌ها از منوی فرم‌ساز انجام می‌شود.' ); ?></p></td></tr>
 				<tr><th><label for="portal_page_id"><?php echo esc_html( 'صفحه پرتال مشتری' ); ?></label></th><td><?php wp_dropdown_pages( array( 'name' => 'crpcrm_settings[portal_page_id]', 'id' => 'portal_page_id', 'selected' => $portal_page_id, 'show_option_none' => '— انتخاب کنید —', 'option_none_value' => 0 ) ); ?><p class="description"><?php echo esc_html( 'صفحه‌ای که shortcode پرتال در آن قرار دارد.' ); ?></p></td></tr>
 				<tr>
 					<th><label for="portal_menu_id"><?php echo esc_html( 'فهرست منوی پرتال' ); ?></label></th>

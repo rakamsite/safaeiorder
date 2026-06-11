@@ -270,7 +270,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 						<td><strong><?php echo esc_html( $item['request_code'] ); ?></strong></td>
 						<td><?php echo esc_html( $item['customer_name'] ? $item['customer_name'] : '—' ); ?></td>
 						<td><?php echo esc_html( $item['customer_phone'] ? $item['customer_phone'] : $item['customer_phone_normalized'] ); ?></td>
-						<td><?php echo esc_html( CRPCRM_Helpers::get_request_type_label( $item['request_type'] ) ); ?></td>
+						<td><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $item['request_type'], $item ) ); ?></td>
 						<td><?php echo esc_html( wp_trim_words( crpcrm_admin_request_display_summary( $item ), 14, '…' ) ); ?></td>
 						<td><span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( sanitize_html_class( $item['status'] ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $item['status'] ) ); ?></span></td>
 						<td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $item['request_source'] ) ); ?></span></td>
@@ -318,7 +318,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		<div class="crpcrm-detail-grid">
 			<div class="crpcrm-card crpcrm-info-card"><h2><?php echo esc_html( 'اطلاعات اصلی درخواست' ); ?></h2><dl>
 				<dt><?php echo esc_html( 'کد پیگیری' ); ?></dt><dd><?php echo esc_html( $request['request_code'] ); ?></dd>
-				<dt><?php echo esc_html( 'نوع درخواست' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_request_type_label( $request['request_type'] ) ); ?></dd>
+				<dt><?php echo esc_html( 'نوع درخواست' ); ?></dt><dd><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?></dd>
 				<dt><?php echo esc_html( 'وضعیت داخلی' ); ?></dt><dd><span class="crpcrm-badge crpcrm-status-badge"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></dd>
 				<dt><?php echo esc_html( 'مسئول' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $request['owner_id'] ) ); ?></dd>
 				<dt><?php echo esc_html( 'پیگیری بعدی' ); ?></dt><dd><?php echo esc_html( ! empty( $request['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $request['next_follow_up_at'] ) : 'ثبت نشده' ); ?></dd>

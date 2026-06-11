@@ -89,7 +89,7 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 								<?php foreach ( $my_requests as $request ) : ?>
 									<tr>
 										<td><strong><?php echo esc_html( $request['request_code'] ); ?></strong></td>
-										<td><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'] ) ); ?></td>
+										<td><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'], $request ) ); ?></td>
 										<td><?php $request_data = CRPCRM_Request_Repository::get_merged_request_data( $request ); echo esc_html( wp_trim_words( CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] ), 18, '…' ) ); ?></td>
 										<td><span class="crpcrm-status-badge"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request['status'] ) ); ?></span></td>
 										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td>
@@ -167,7 +167,7 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 					<h2><?php echo esc_html( 'جزئیات درخواست' ); ?></h2>
 					<div class="crpcrm-detail-grid">
 						<div><span><?php echo esc_html( 'کد پیگیری' ); ?></span><strong><?php echo esc_html( $request_detail['request_code'] ); ?></strong></div>
-						<div><span><?php echo esc_html( 'نوع درخواست' ); ?></span><strong><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request_detail['request_type'] ) ); ?></strong></div>
+						<div><span><?php echo esc_html( 'نوع درخواست' ); ?></span><strong><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request_detail['request_type'], $request_detail ) ); ?></strong></div>
 						<div><span><?php echo esc_html( 'وضعیت' ); ?></span><strong><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request_detail['status'] ) ); ?></strong></div>
 						<div><span><?php echo esc_html( 'تاریخ ثبت' ); ?></span><strong><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request_detail['created_at'] ) ); ?></strong></div>
 						<div><span><?php echo esc_html( 'آخرین بروزرسانی' ); ?></span><strong><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request_detail['last_activity_at'] ) ? $request_detail['last_activity_at'] : $request_detail['updated_at'] ) ); ?></strong></div>
@@ -240,7 +240,7 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 						<?php foreach ( $latest_requests as $request ) : ?>
 							<a class="crpcrm-latest-request-item" href="<?php echo esc_url( add_query_arg( array( 'crpcrm_page' => 'request_detail', 'request_id' => absint( $request['id'] ), 'request_code' => $request['request_code'] ), $portal_urls['dashboard'] ) ); ?>">
 								<strong><?php echo esc_html( $request['request_code'] ); ?></strong>
-								<span><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'] ) ); ?></span>
+								<span><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'], $request ) ); ?></span>
 								<span class="crpcrm-status-badge"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request['status'] ) ); ?></span>
 								<time><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></time>
 							</a>
