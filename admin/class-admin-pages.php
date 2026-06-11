@@ -812,6 +812,7 @@ class CRPCRM_Admin_Pages {
 		$request_data     = $submitted_fields;
 		$form_id          = sanitize_key( $form['id'] );
 		$form_version     = sanitize_text_field( $form['version'] ?? '1' );
+		$request_data     = array_merge( $request_data, CRPCRM_Dynamic_Form_Renderer::get_submission_snapshot( $form ) );
 		if ( ! empty( $_POST['manual_details'] ) ) {
 			$request_data['manual_details'] = sanitize_textarea_field( wp_unslash( $_POST['manual_details'] ) );
 		}

@@ -8,7 +8,6 @@ $form    = $editing ? $form : array(
 	'form_id'      => '',
 	'title'        => '',
 	'description'  => '',
-	'request_type' => '',
 	'submit_label' => 'ثبت درخواست',
 	'enabled'      => true,
 	'sort_order'   => 0,
@@ -16,7 +15,8 @@ $form    = $editing ? $form : array(
 	'fields'       => array(),
 );
 $fields = $form['fields'];
-for ( $i = count( $fields ); $i < 10; $i++ ) {
+$empty_row_start = count( $fields );
+for ( $i = $empty_row_start; $i < $empty_row_start + 3; $i++ ) {
 	$fields[] = array( 'key' => '', 'label' => '', 'type' => 'text', 'required' => false, 'placeholder' => '', 'help_text' => '', 'options' => array(), 'enabled' => true, 'sort_order' => $i );
 }
 ?>
@@ -46,10 +46,9 @@ for ( $i = count( $fields ); $i < 10; $i++ ) {
 				<tr><th><label for="crpcrm-form-id"><?php echo esc_html( 'شناسه فرم' ); ?></label></th><td><input id="crpcrm-form-id" class="regular-text" name="crpcrm_form[form_id]" value="<?php echo esc_attr( $form['form_id'] ); ?>" <?php echo $editing ? 'readonly' : ''; ?>><p class="description"><?php echo esc_html( 'خالی بماند، از عنوان ساخته می‌شود.' ); ?></p></td></tr>
 				<tr><th><label for="crpcrm-form-title"><?php echo esc_html( 'عنوان' ); ?></label></th><td><input id="crpcrm-form-title" class="regular-text" name="crpcrm_form[title]" required value="<?php echo esc_attr( $form['title'] ); ?>"></td></tr>
 				<tr><th><?php echo esc_html( 'توضیح' ); ?></th><td><textarea class="large-text" rows="3" name="crpcrm_form[description]"><?php echo esc_textarea( $form['description'] ); ?></textarea></td></tr>
-				<tr><th><?php echo esc_html( 'نوع درخواست' ); ?></th><td><input class="regular-text" name="crpcrm_form[request_type]" required value="<?php echo esc_attr( $form['request_type'] ); ?>"></td></tr>
 				<tr><th><?php echo esc_html( 'متن دکمه ثبت' ); ?></th><td><input class="regular-text" name="crpcrm_form[submit_label]" value="<?php echo esc_attr( $form['submit_label'] ); ?>"></td></tr>
 				<tr><th><?php echo esc_html( 'نسخه / ترتیب' ); ?></th><td><input name="crpcrm_form[version]" value="<?php echo esc_attr( $form['version'] ); ?>"> <input type="number" name="crpcrm_form[sort_order]" value="<?php echo esc_attr( $form['sort_order'] ); ?>"></td></tr>
-				<tr><th><?php echo esc_html( 'فعال' ); ?></th><td><label><input type="checkbox" name="crpcrm_form[enabled]" value="1" <?php checked( $form['enabled'] ); ?>> <?php echo esc_html( 'فرم فعال باشد' ); ?></label></td></tr>
+				<tr><th><?php echo esc_html( 'فعال' ); ?></th><td><label><input type="hidden" name="crpcrm_form[enabled]" value="0"><input type="checkbox" name="crpcrm_form[enabled]" value="1" <?php checked( $form['enabled'] ); ?>> <?php echo esc_html( 'فرم فعال باشد' ); ?></label></td></tr>
 			</tbody></table>
 			<h3><?php echo esc_html( 'فیلدها' ); ?></h3>
 			<table class="widefat striped"><thead><tr><th><?php echo esc_html( 'کلید / عنوان' ); ?></th><th><?php echo esc_html( 'نوع' ); ?></th><th><?php echo esc_html( 'placeholder / راهنما' ); ?></th><th><?php echo esc_html( 'گزینه‌های select' ); ?></th><th><?php echo esc_html( 'وضعیت / ترتیب' ); ?></th></tr></thead><tbody>
@@ -58,7 +57,7 @@ for ( $i = count( $fields ); $i < 10; $i++ ) {
 				<td><select name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][type]"><?php foreach ( array( 'text' => 'متن', 'textarea' => 'متن چندخطی', 'select' => 'انتخابی' ) as $type => $label ) : ?><option value="<?php echo esc_attr( $type ); ?>" <?php selected( $field['type'], $type ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></td>
 				<td><input name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][placeholder]" placeholder="<?php echo esc_attr( 'متن راهنما' ); ?>" value="<?php echo esc_attr( $field['placeholder'] ); ?>"><br><textarea name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][help_text]" placeholder="<?php echo esc_attr( 'توضیح فیلد' ); ?>"><?php echo esc_textarea( $field['help_text'] ); ?></textarea></td>
 				<td><textarea name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][options]" placeholder="<?php echo esc_attr( 'هر گزینه در یک خط' ); ?>"><?php echo esc_textarea( implode( "\n", $field['options'] ) ); ?></textarea></td>
-				<td><label><input type="checkbox" name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][required]" value="1" <?php checked( $field['required'] ); ?>> <?php echo esc_html( 'اجباری' ); ?></label><br><label><input type="checkbox" name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( $field['enabled'] ); ?>> <?php echo esc_html( 'فعال' ); ?></label><br><input type="number" name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][sort_order]" value="<?php echo esc_attr( $field['sort_order'] ); ?>"></td>
+				<td><label><input type="checkbox" name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][required]" value="1" <?php checked( $field['required'] ); ?>> <?php echo esc_html( 'اجباری' ); ?></label><br><label><input type="hidden" name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][enabled]" value="0"><input type="checkbox" name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( $field['enabled'] ); ?>> <?php echo esc_html( 'فعال' ); ?></label><br><input type="number" name="crpcrm_form[fields][<?php echo esc_attr( $index ); ?>][sort_order]" value="<?php echo esc_attr( $field['sort_order'] ); ?>"></td>
 			</tr><?php endforeach; ?>
 			</tbody></table>
 			<?php submit_button( 'ذخیره فرم' ); ?>

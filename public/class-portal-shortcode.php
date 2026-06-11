@@ -328,6 +328,7 @@ class CRPCRM_Portal_Shortcode {
 		$form_version     = sanitize_text_field( $form['version'] ?? '1' );
 		$request_type     = sanitize_key( $form['request_type'] ?? '' );
 		$request_type     = $request_type ? $request_type : $form_id;
+		$request_data     = array_merge( $request_data, CRPCRM_Dynamic_Form_Renderer::get_submission_snapshot( $form ) );
 		$attribution      = $this->attribution_service->get_attribution_for_new_request();
 		$now             = CRPCRM_Helpers::current_datetime();
 

@@ -80,9 +80,23 @@ class CRPCRM_Dynamic_Form_Renderer {
 		return $labels;
 	}
 
+	public static function get_submission_snapshot( $form ) {
+		$form         = is_array( $form ) ? $form : array();
+		$form_id      = sanitize_key( $form['id'] ?? $form['form_id'] ?? '' );
+		$form_version = sanitize_text_field( $form['version'] ?? '1' );
+
+		return array(
+			'_submitted_form_title'    => sanitize_text_field( $form['title'] ?? '' ),
+			'_submitted_form_id'       => $form_id,
+			'_submitted_form_version'  => $form_version ? $form_version : '1',
+			'_submitted_field_labels'  => self::get_field_labels( $form ),
+		);
+	}
+
 	public static function get_display_items( $form, $request_data ) {
 		$request_data = is_array( $request_data ) ? $request_data : array();
 		$labels       = $form ? self::get_field_labels( $form ) : array();
+		$snapshot     = isset( $request_data['_submitted_field_labels'] ) && is_array( $request_data['_submitted_field_labels'] ) ? $request_data['_submitted_field_labels'] : array();
 		$items        = array();
 
 		foreach ( $labels as $key => $label ) {
@@ -93,10 +107,11 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		foreach ( $request_data as $key => $value ) {
 			$key = sanitize_key( $key );
-			if ( ! $key || isset( $items[ $key ] ) || in_array( $key, array( 'form_id', 'form_version', 'request_type', 'fields', 'submitted_fields' ), true ) || ! is_scalar( $value ) ) {
+			if ( ! $key || isset( $items[ $key ] ) || 0 === strpos( $key, '_submitted_' ) || in_array( $key, array( 'form_id', 'form_version', 'request_type', 'fields', 'submitted_fields' ), true ) || ! is_scalar( $value ) ) {
 				continue;
 			}
-			$items[ $key ] = array( 'label' => $key, 'value' => self::display_value( $value ) );
+			$label = isset( $snapshot[ $key ] ) ? sanitize_text_field( $snapshot[ $key ] ) : $key;
+			$items[ $key ] = array( 'label' => $label, 'value' => self::display_value( $value ) );
 		}
 
 		return $items;

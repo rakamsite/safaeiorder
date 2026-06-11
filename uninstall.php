@@ -47,6 +47,7 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 	delete_option( 'crpcrm_enabled_features' );
 	delete_option( 'crpcrm_customer_registration_fields' );
 	delete_option( 'crpcrm_custom_forms' );
+	delete_option( 'crpcrm_default_forms_seeded' );
 	// Cleanup for the pre-profile-settings test builds.
 	delete_option( 'crpcrm_safaei_catalog' );
 	$profile_settings_prefix = $wpdb->esc_like( 'crpcrm_profile_settings_' ) . '%';
