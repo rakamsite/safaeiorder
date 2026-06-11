@@ -281,3 +281,5 @@
 - referrer داخلی attribution جدید نمی‌سازد.
 - اگر هیچ UTM/referrer/session معتبری وجود نداشته باشد، direct ثبت می‌شود.
 > Before development or architecture changes, read and follow [docs/ARCHITECTURE_RULES.md](docs/ARCHITECTURE_RULES.md).
+
+> Business Profile در مسیر حذف شدن است. توسعه جدید باید بر اساس Feature Manager، Default Forms و Form Builder آینده انجام شود.

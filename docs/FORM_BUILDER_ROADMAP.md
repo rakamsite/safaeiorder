@@ -1,0 +1,10 @@
+# Form Builder Roadmap
+
+Form Builder ماژول آینده مدیریت فرم‌های درخواست از پنل افزونه است.
+
+- انواع فیلد اولیه: `text`، `textarea` و `select`.
+- این ماژول در آینده با feature به نام `form_builder` کنترل می‌شود.
+- feature `form_builder` فقط دسترسی به مدیریت فرم‌ها را کنترل می‌کند؛ خاموش بودن آن نباید نمایش فرم‌های فعال یا ثبت درخواست را متوقف کند.
+- فرم‌های فعلی ابتدا به Default Forms منتقل و سپس به‌عنوان seed اولیه Form Builder استفاده می‌شوند.
+- هر فرم باید `form_id`، `form_version`، `request_type`، فیلدها و گزینه‌های فیلدهای select را تعریف کند.
+- Form Builder نباید به Business Profile، Safaei، Ajax، خودرو یا سایت خاص وابسته باشد.
