@@ -18,16 +18,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'CRPCRM_VERSION', '0.1.5' );
-define( 'CRPCRM_DB_VERSION', '0.5.1' );
+define( 'CRPCRM_DB_VERSION', '0.6.0' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
-require_once CRPCRM_PLUGIN_DIR . 'includes/business-profiles/interface-business-profile.php';
-require_once CRPCRM_PLUGIN_DIR . 'includes/business-profiles/class-business-profile-manager.php';
-require_once CRPCRM_PLUGIN_DIR . 'includes/business-profiles/class-business-profile-loader.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-feature-manager.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-public-theme.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-default-form-definitions.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-form-builder-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-dynamic-form-renderer.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-form-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-request-type-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-system-request-types.php';
@@ -63,6 +63,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-sales-daily-stats-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-attribution-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-menu.php';
 require_once CRPCRM_PLUGIN_DIR . 'admin/class-admin-pages.php';
+require_once CRPCRM_PLUGIN_DIR . 'admin/class-form-builder-admin.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-request-forms.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-portal-shortcode.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-public.php';

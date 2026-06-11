@@ -45,25 +45,6 @@ class CRPCRM_Admin_Pages {
 		$this->render( 'dashboard.php', array( 'cards' => $this->get_admin_dashboard_cards() ) );
 	}
 
-	public function setup() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			$this->render_message( 'شما اجازه راه‌اندازی اولیه افزونه را ندارید.' );
-			return;
-		}
-
-		if ( CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
-			wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-settings' ), admin_url( 'admin.php' ) ) );
-			exit;
-		}
-
-		$this->render(
-			'setup.php',
-			array(
-				'business_profiles' => CRPCRM_Business_Profile_Manager::get_instance()->get_profiles(),
-			)
-		);
-	}
-
 	public function requests() {
 		if ( ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
 			$this->render_message( CRPCRM_Feature_Manager::disabled_message() );
@@ -809,6 +790,7 @@ class CRPCRM_Admin_Pages {
 			$this->redirect_to_manual_request_form( 'manual_form_invalid' );
 		}
 		$request_type = sanitize_key( $form['request_type'] ?? '' );
+		$request_type = $request_type ? $request_type : sanitize_key( $form['id'] ?? '' );
 		if ( ! CRPCRM_Request_Type_Registry::is_registered( $request_type ) ) {
 			$this->redirect_to_manual_request_form( 'manual_request_type_invalid' );
 		}
@@ -828,11 +810,8 @@ class CRPCRM_Admin_Pages {
 		}
 		$submitted_fields = $validated['data'];
 		$request_data     = $submitted_fields;
-		$request_data['business_profile'] = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
-		$request_data['form_id']          = sanitize_key( $form['id'] );
-		$request_data['form_version']     = sanitize_text_field( $form['version'] ?? '' );
-		$request_data['fields']           = $submitted_fields;
-		$request_data['submitted_fields'] = $submitted_fields;
+		$form_id          = sanitize_key( $form['id'] );
+		$form_version     = sanitize_text_field( $form['version'] ?? '1' );
 		if ( ! empty( $_POST['manual_details'] ) ) {
 			$request_data['manual_details'] = sanitize_textarea_field( wp_unslash( $_POST['manual_details'] ) );
 		}
@@ -842,9 +821,8 @@ class CRPCRM_Admin_Pages {
 				'customer_id'      => absint( $customer['id'] ),
 				'user_id'          => absint( $customer['user_id'] ),
 				'request_type'     => $request_type,
-				'business_profile' => $request_data['business_profile'],
-				'form_id'          => $request_data['form_id'],
-				'form_version'     => $request_data['form_version'],
+				'form_id'          => $form_id,
+				'form_version'     => $form_version ? $form_version : '1',
 				'status'           => $status,
 				'owner_id'         => $owner_id ? $owner_id : null,
 				'first_assigned_at' => $owner_id ? $now : null,

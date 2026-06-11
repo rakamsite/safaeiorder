@@ -1,6 +1,6 @@
 <?php
 /**
- * Profile-aware feature toggle manager.
+ * General feature toggle manager.
  *
  * @package CRPCRM
  */
@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Feature_Manager {
-	const OPTION_PREFIX = 'crpcrm_enabled_features_';
+	const OPTION_NAME = 'crpcrm_enabled_features';
 
 	public static function get_features() {
 		return array(
@@ -22,7 +22,7 @@ class CRPCRM_Feature_Manager {
 			'sms'                   => 'پیامک',
 			'tracking'              => 'رهگیری ورودی‌ها',
 			'lead_followup'         => 'پیگیری لیدها',
-			'vehicle_catalog'       => 'تنظیمات خودرو',
+			'form_builder'          => 'فرم‌ساز',
 			'admin_tools'           => 'ابزارهای مدیریتی',
 		);
 	}
@@ -31,25 +31,10 @@ class CRPCRM_Feature_Manager {
 		return array_fill_keys( array_keys( self::get_features() ), true );
 	}
 
-	public static function get_profile_default_features() {
-		$defaults = self::get_default_features();
-		$profile  = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile();
-		if ( $profile && method_exists( $profile, 'get_default_features' ) ) {
-			foreach ( (array) $profile->get_default_features() as $feature => $enabled ) {
-				$feature = sanitize_key( $feature );
-				if ( array_key_exists( $feature, $defaults ) ) {
-					$defaults[ $feature ] = (bool) $enabled;
-				}
-			}
-		}
-		return $defaults;
-	}
-
 	public static function get_enabled_features() {
-		$profile_id = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-		$stored     = $profile_id ? get_option( self::OPTION_PREFIX . $profile_id, array() ) : array();
+		$stored     = get_option( self::OPTION_NAME, array() );
 		$stored     = is_array( $stored ) ? $stored : array();
-		$features   = self::get_profile_default_features();
+		$features   = self::get_default_features();
 		foreach ( $features as $feature => $default ) {
 			if ( array_key_exists( $feature, $stored ) ) {
 				$features[ $feature ] = (bool) $stored[ $feature ];
@@ -75,15 +60,11 @@ class CRPCRM_Feature_Manager {
 	}
 
 	public static function save_features( $features ) {
-		$profile_id = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-		if ( ! $profile_id ) {
-			return false;
-		}
 		$clean = array();
 		foreach ( array_keys( self::get_features() ) as $feature ) {
 			$clean[ $feature ] = isset( $features[ $feature ] ) && in_array( $features[ $feature ], array( true, 1, '1', 'yes', 'on' ), true );
 		}
-		$saved = update_option( self::OPTION_PREFIX . $profile_id, $clean );
+		$saved = update_option( self::OPTION_NAME, $clean );
 		if ( class_exists( 'CRPCRM_Lead_Follow_Up_Service' ) ) {
 			$clean['lead_followup'] ? CRPCRM_Lead_Follow_Up_Service::schedule_cron() : CRPCRM_Lead_Follow_Up_Service::clear_cron();
 		}

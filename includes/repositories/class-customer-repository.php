@@ -67,11 +67,9 @@ class CRPCRM_Customer_Repository {
 	public function find_customers_without_requests( $registered_before, $limit = 100 ) {
 		global $wpdb;
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile  = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT c.* FROM {$this->table} c LEFT JOIN {$requests} r ON r.customer_id = c.id AND r.business_profile = %s WHERE c.created_at <= %s AND r.id IS NULL ORDER BY c.created_at ASC LIMIT %d",
-				$profile,
+				"SELECT c.* FROM {$this->table} c LEFT JOIN {$requests} r ON r.customer_id = c.id WHERE c.created_at <= %s AND r.id IS NULL ORDER BY c.created_at ASC LIMIT %d",
 				sanitize_text_field( $registered_before ),
 				max( 1, min( 500, absint( $limit ) ) )
 			),
@@ -218,21 +216,20 @@ class CRPCRM_Customer_Repository {
 		$limit  = max( 1, min( 100, absint( $args['limit'] ) ) );
 		$offset = absint( $args['offset'] );
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile  = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
 
 		$sql = "SELECT c.*,
 			COUNT(r.id) AS requests_count,
 			SUM(CASE WHEN r.status IN ('new','in_progress','no_answer','follow_up') THEN 1 ELSE 0 END) AS open_requests_count,
 			MAX(r.created_at) AS last_request_at,
-			(SELECT rr.request_code FROM {$requests} rr WHERE rr.customer_id = c.id AND rr.business_profile = %s ORDER BY rr.created_at DESC, rr.id DESC LIMIT 1) AS last_request_code,
-			(SELECT rr.id FROM {$requests} rr WHERE rr.customer_id = c.id AND rr.business_profile = %s ORDER BY rr.created_at DESC, rr.id DESC LIMIT 1) AS last_request_id
+			(SELECT rr.request_code FROM {$requests} rr WHERE rr.customer_id = c.id ORDER BY rr.created_at DESC, rr.id DESC LIMIT 1) AS last_request_code,
+			(SELECT rr.id FROM {$requests} rr WHERE rr.customer_id = c.id ORDER BY rr.created_at DESC, rr.id DESC LIMIT 1) AS last_request_id
 			FROM {$this->table} c
-			LEFT JOIN {$requests} r ON r.customer_id = c.id AND r.business_profile = %s
+			LEFT JOIN {$requests} r ON r.customer_id = c.id
 			{$where['sql']}
 			GROUP BY c.id
 			ORDER BY c.created_at DESC, c.id DESC
 			LIMIT %d OFFSET %d";
-		$where['values'] = array_merge( array( $profile, $profile, $profile ), $where['values'], array( $limit, $offset ) );
+		$where['values'] = array_merge( $where['values'], array( $limit, $offset ) );
 
 		return $wpdb->get_results( $wpdb->prepare( $sql, $where['values'] ), ARRAY_A );
 	}
@@ -241,9 +238,8 @@ class CRPCRM_Customer_Repository {
 		global $wpdb;
 		$args  = wp_parse_args( $args, array( 'user_id' => get_current_user_id(), 'first_source' => '', 'last_source' => '', 'province' => '', 'city' => '', 'open_filter' => '', 'search' => '' ) );
 		$where = $this->build_admin_where( $args );
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-		$sql   = "SELECT COUNT(DISTINCT c.id) FROM {$this->table} c LEFT JOIN " . CRPCRM_DB::table( 'requests' ) . " r ON r.customer_id = c.id AND r.business_profile = %s {$where['sql']}";
-		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( $profile ), $where['values'] ) ) );
+		$sql   = "SELECT COUNT(DISTINCT c.id) FROM {$this->table} c LEFT JOIN " . CRPCRM_DB::table( 'requests' ) . " r ON r.customer_id = c.id {$where['sql']}";
+		return (int) $wpdb->get_var( empty( $where['values'] ) ? $sql : $wpdb->prepare( $sql, $where['values'] ) );
 	}
 
 	public function get_customer_stats( $customer_id ) {
@@ -251,8 +247,6 @@ class CRPCRM_Customer_Repository {
 		$requests   = CRPCRM_DB::table( 'requests' );
 		$activities = CRPCRM_DB::table( 'request_activities' );
 		$customer_id = absint( $customer_id );
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT
@@ -265,19 +259,18 @@ class CRPCRM_Customer_Repository {
 				SUM(CASE WHEN status = 'follow_up' THEN 1 ELSE 0 END) AS open_followups,
 				MAX(created_at) AS last_request_at,
 				MAX(last_activity_at) AS last_activity_at
-				FROM {$requests} WHERE customer_id = %d AND business_profile = %s",
-				$customer_id,
-				$profile
+				FROM {$requests} WHERE customer_id = %d",
+				$customer_id
 			),
 			ARRAY_A
 		);
-		$activity_last = $wpdb->get_var( $wpdb->prepare( "SELECT MAX(a.created_at) FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND r.business_profile = %s", $customer_id, $profile ) );
+		$activity_last = $wpdb->get_var( $wpdb->prepare( "SELECT MAX(a.created_at) FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d", $customer_id ) );
 		if ( $activity_last && ( empty( $row['last_activity_at'] ) || strtotime( $activity_last ) > strtotime( $row['last_activity_at'] ) ) ) {
 			$row['last_activity_at'] = $activity_last;
 		}
 		$row                        = array_map( function( $value ) { return null === $value ? 0 : $value; }, $row ? $row : array() );
 		$row['request_type_counts'] = array();
-		$type_rows                  = $wpdb->get_results( $wpdb->prepare( "SELECT request_type, COUNT(*) AS total FROM {$requests} WHERE customer_id = %d AND business_profile = %s GROUP BY request_type ORDER BY total DESC", $customer_id, $profile ), ARRAY_A );
+		$type_rows                  = $wpdb->get_results( $wpdb->prepare( "SELECT request_type, COUNT(*) AS total FROM {$requests} WHERE customer_id = %d GROUP BY request_type ORDER BY total DESC", $customer_id ), ARRAY_A );
 		foreach ( $type_rows as $type_row ) {
 			$request_type = sanitize_key( $type_row['request_type'] );
 			if ( $request_type ) {
@@ -294,8 +287,8 @@ class CRPCRM_Customer_Repository {
 		$offset = absint( $args['offset'] );
 		$user_id = absint( $args['user_id'] );
 		$requests = CRPCRM_DB::table( 'requests' );
-		$where = array( 'r.customer_id = %d', 'r.business_profile = %s' );
-		$values = array( absint( $customer_id ), CRPCRM_Business_Profile_Manager::get_locked_profile_id() );
+		$where = array( 'r.customer_id = %d' );
+		$values = array( absint( $customer_id ) );
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 			$where[] = '(r.owner_id = %d OR r.owner_id IS NULL)';
 			$values[] = $user_id;
@@ -316,9 +309,8 @@ class CRPCRM_Customer_Repository {
 		$requests   = CRPCRM_DB::table( 'requests' );
 		$activities = CRPCRM_DB::table( 'request_activities' );
 		$customer_id = absint( $customer_id );
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-		$owner_rows = $wpdb->get_results( $wpdb->prepare( "SELECT owner_id AS user_id, COUNT(*) AS owner_requests FROM {$requests} WHERE customer_id = %d AND business_profile = %s AND owner_id IS NOT NULL GROUP BY owner_id", $customer_id, $profile ), ARRAY_A );
-		$activity_rows = $wpdb->get_results( $wpdb->prepare( "SELECT a.actor_user_id AS user_id, COUNT(*) AS activity_count, MAX(a.created_at) AS last_activity_at FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND r.business_profile = %s AND a.actor_user_id IS NOT NULL AND a.actor_type IN ('sales_agent','sales_manager','admin') GROUP BY a.actor_user_id", $customer_id, $profile ), ARRAY_A );
+		$owner_rows = $wpdb->get_results( $wpdb->prepare( "SELECT owner_id AS user_id, COUNT(*) AS owner_requests FROM {$requests} WHERE customer_id = %d AND owner_id IS NOT NULL GROUP BY owner_id", $customer_id ), ARRAY_A );
+		$activity_rows = $wpdb->get_results( $wpdb->prepare( "SELECT a.actor_user_id AS user_id, COUNT(*) AS activity_count, MAX(a.created_at) AS last_activity_at FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND a.actor_user_id IS NOT NULL AND a.actor_type IN ('sales_agent','sales_manager','admin') GROUP BY a.actor_user_id", $customer_id ), ARRAY_A );
 		$agents = array();
 		foreach ( $owner_rows as $row ) {
 			$user_id = absint( $row['user_id'] );
@@ -339,12 +331,10 @@ class CRPCRM_Customer_Repository {
 		global $wpdb;
 		$activities = CRPCRM_DB::table( 'request_activities' );
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT a.*, r.request_code FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND r.business_profile = %s AND a.is_internal = 1 ORDER BY a.created_at DESC, a.id DESC LIMIT %d",
+				"SELECT a.*, r.request_code FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d AND a.is_internal = 1 ORDER BY a.created_at DESC, a.id DESC LIMIT %d",
 				absint( $customer_id ),
-				$profile,
 				max( 1, min( 100, absint( $limit ) ) )
 			),
 			ARRAY_A
@@ -362,7 +352,7 @@ class CRPCRM_Customer_Repository {
 			return true;
 		}
 		$requests = CRPCRM_DB::table( 'requests' );
-		$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$requests} WHERE customer_id = %d AND business_profile = %s AND (owner_id = %d OR owner_id IS NULL)", $customer_id, CRPCRM_Business_Profile_Manager::get_locked_profile_id(), $user_id ) );
+		$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$requests} WHERE customer_id = %d AND (owner_id = %d OR owner_id IS NULL)", $customer_id, $user_id ) );
 		return $count > 0;
 	}
 
@@ -371,8 +361,6 @@ class CRPCRM_Customer_Repository {
 		$user_id = isset( $args['user_id'] ) ? absint( $args['user_id'] ) : get_current_user_id();
 		$where = array( '1=1' );
 		$values = array();
-		$profile = CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 			$where[] = '(r.owner_id = %d OR r.owner_id IS NULL)';
 			$values[] = $user_id;
@@ -395,11 +383,9 @@ class CRPCRM_Customer_Repository {
 		}
 		if ( ! empty( $args['open_filter'] ) ) {
 			if ( 'has_open' === $args['open_filter'] ) {
-				$where[] = "EXISTS (SELECT 1 FROM " . CRPCRM_DB::table( 'requests' ) . " ro WHERE ro.customer_id = c.id AND ro.business_profile = %s AND ro.status IN ('new','in_progress','no_answer','follow_up'))";
-				$values[] = $profile;
+				$where[] = "EXISTS (SELECT 1 FROM " . CRPCRM_DB::table( 'requests' ) . " ro WHERE ro.customer_id = c.id AND ro.status IN ('new','in_progress','no_answer','follow_up'))";
 			} elseif ( 'no_open' === $args['open_filter'] ) {
-				$where[] = "NOT EXISTS (SELECT 1 FROM " . CRPCRM_DB::table( 'requests' ) . " ro WHERE ro.customer_id = c.id AND ro.business_profile = %s AND ro.status IN ('new','in_progress','no_answer','follow_up'))";
-				$values[] = $profile;
+				$where[] = "NOT EXISTS (SELECT 1 FROM " . CRPCRM_DB::table( 'requests' ) . " ro WHERE ro.customer_id = c.id AND ro.status IN ('new','in_progress','no_answer','follow_up'))";
 			}
 		}
 		if ( ! empty( $args['search'] ) ) {

@@ -18,6 +18,7 @@ class CRPCRM_Plugin {
 	private $admin_tools;
 	private $lead_follow_up_service;
 	private $customer_deletion_service;
+	private $form_builder_admin;
 
 	public function __construct() {
 		$this->settings            = new CRPCRM_Settings();
@@ -28,17 +29,17 @@ class CRPCRM_Plugin {
 		$this->admin_tools          = new CRPCRM_Admin_Tools();
 		$this->lead_follow_up_service = new CRPCRM_Lead_Follow_Up_Service();
 		$this->customer_deletion_service = new CRPCRM_Customer_Deletion_Service();
+		$this->form_builder_admin         = new CRPCRM_Form_Builder_Admin();
 	}
 
 	public function run() {
 		CRPCRM_Roles::register_hooks();
-		CRPCRM_Business_Profile_Loader::register_hooks();
-		CRPCRM_Business_Profile_Manager::get_instance()->register_hooks();
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 		add_action( 'plugins_loaded', array( 'CRPCRM_DB', 'maybe_upgrade' ), 40 );
 		add_action( 'plugins_loaded', array( 'CRPCRM_Roles', 'add_roles_and_caps' ) );
 		$this->settings->register_hooks();
 		$this->admin_menu->register_hooks();
+		$this->form_builder_admin->register_hooks();
 		$this->public->register_hooks();
 		if ( CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
 			$this->attribution_service->register_hooks();

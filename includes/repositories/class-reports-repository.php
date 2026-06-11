@@ -41,7 +41,6 @@ class CRPCRM_Reports_Repository {
 			'status'          => isset( $input['status'] ) ? sanitize_key( wp_unslash( $input['status'] ) ) : '',
 			'owner_filter'    => isset( $input['owner_filter'] ) ? sanitize_text_field( wp_unslash( $input['owner_filter'] ) ) : 'all',
 			'workflow_filter' => isset( $input['workflow_filter'] ) ? sanitize_key( wp_unslash( $input['workflow_filter'] ) ) : '',
-			'business_profile' => CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id(),
 		);
 
 		$allowed_ranges = array( 'today', 'yesterday', 'last_7_days', 'last_30_days', 'current_month', 'last_month', 'custom' );
@@ -366,7 +365,7 @@ class CRPCRM_Reports_Repository {
 		$where  = $this->build_request_filters_where( $filters );
 		$limit  = isset( $pagination['limit'] ) ? max( 1, min( 1000, absint( $pagination['limit'] ) ) ) : 20;
 		$offset = isset( $pagination['offset'] ) ? absint( $pagination['offset'] ) : 0;
-		$sql    = "SELECT r.id, r.request_code, r.customer_id, r.request_type, r.business_profile, r.form_id, r.form_version, r.request_summary, r.request_source, r.request_campaign, r.request_content, r.status, r.owner_id, r.last_activity_at, r.created_at, c.full_name AS customer_name, c.phone AS customer_phone
+		$sql    = "SELECT r.id, r.request_code, r.customer_id, r.request_type, r.form_id, r.form_version, r.request_summary, r.request_source, r.request_campaign, r.request_content, r.status, r.owner_id, r.last_activity_at, r.created_at, c.full_name AS customer_name, c.phone AS customer_phone
 			FROM {$this->requests_table} r
 			LEFT JOIN {$this->customers_table} c ON c.id = r.customer_id
 			{$where['sql']}
@@ -389,11 +388,6 @@ class CRPCRM_Reports_Repository {
 		$values = array();
 		$p      = preg_replace( '/[^a-zA-Z0-9_]/', '', $alias );
 
-		$profile_id = ! empty( $filters['business_profile'] ) ? sanitize_key( $filters['business_profile'] ) : CRPCRM_Business_Profile_Manager::get_locked_profile_id();
-		if ( $profile_id ) {
-			$where[]  = "$p.business_profile = %s";
-			$values[] = $profile_id;
-		}
 		if ( ! empty( $filters['start_date'] ) ) {
 			$where[]  = "$p.$date_column >= %s";
 			$values[] = sanitize_text_field( $filters['start_date'] );

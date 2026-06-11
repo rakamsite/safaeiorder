@@ -1,175 +1,168 @@
 # قوانین توسعه و معماری افزونه
 
-این فایل باید **پیش از هر تغییر کد، افزودن Business Profile، توسعه قابلیت عمومی یا افزودن فیچر جدید** خوانده شود. هدف این قوانین، حفظ معماری ماژولار افزونه و جلوگیری از وابستگی core به پروژه‌های خاص است.
+این فایل باید پیش از هر تغییر کد، قابلیت عمومی، فرم یا refactor خوانده شود.
 
-## قانون ۱: Core نباید به Business Profile خاص وابسته باشد
+## وضعیت گذار معماری
 
-هسته افزونه نباید بداند صفایی، خودرو، Ajax یا هر پروژه خاص دیگری چیست.
+افزونه در حال گذار از معماری مبتنی بر `Business Profile` به معماری عمومی مبتنی بر `Default Forms` و `Form Builder` است.
+
+- `Business Profile` از flow اجرایی و دیتابیس درخواست‌ها حذف شده است.
+- توسعه جدید نباید Business Profile تازه بسازد یا وابستگی تازه‌ای به Business Profile موجود اضافه کند.
+- تا زمان تکمیل فازهای حذف، رفتار فعلی public request، admin request، settings، reports، feature toggle و shortcodeها باید حفظ شود.
+
+## معماری هدف
+
+### Core CRM
+
+هسته عمومی افزونه شامل مشتریان، درخواست‌ها، گزارش‌ها، امنیت، دیتابیس و تنظیمات پایه است. Core نباید سایت، پروژه یا صنعت خاصی را بشناسد.
+
+### Feature Manager
+
+`CRPCRM_Feature_Manager` مسئول خاموش/روشن کردن امکانات عمومی افزونه است و مستقل از حذف Business Profile باقی می‌ماند.
+
+### Default Forms
+
+منبع موقت فرم‌های فعلی تا پیش از آماده شدن Form Builder است. فرم‌ها و request typeهای موجود باید در فازهای بعدی از Business Profile به Default Forms منتقل شوند.
+
+### Form Builder
+
+ماژول مدیریت فرم‌های سفارشی از پنل مدیریت است. در فاز فعلی فرم‌ها را در `crpcrm_custom_forms` ذخیره می‌کند، اما تا فاز ۷ به ثبت درخواست متصل نیست.
+
+### Business Profile
+
+یک سازوکار حذف‌شده است و نباید دوباره به flow اجرایی، تنظیمات یا دیتابیس بازگردد.
+
+## قوانین الزامی
+
+### قانون ۱: Core عمومی است
+
+Core نباید به سایت یا پروژه خاصی مانند Safaei، Ajax، خودرو یا هر کسب‌وکار مشخص وابسته شود.
 
 ممنوع:
 
 ```php
-if ( 'safaei' === $profile ) {
+if ( 'safaei' === $site ) {
 	// ...
 }
 
-if ( 'ajax' === $profile ) {
+if ( 'ajax' === $site ) {
 	// ...
 }
 ```
 
-منطق اختصاصی هر کسب‌وکار، فرم‌ها، عنوان‌ها، گزینه‌ها و رفتارهای مخصوص آن باید داخل Business Profile همان کسب‌وکار قرار بگیرد.
+منطق عمومی باید با قراردادهای عمومی فرم، request، feature و settings پیاده‌سازی شود.
 
-## قانون ۲: کسب‌وکار جدید فقط از مسیر Business Profile اضافه می‌شود
+### قانون ۲: Business Profile جدید ممنوع است
 
-برای هر کسب‌وکار جدید، یک کلاس Business Profile مستقل بسازید؛ برای مثال:
+- توسعه جدید نباید Business Profile تازه اضافه کند.
+- فرم، request type، label یا تنظیم جدید نباید به Business Profile موجود متصل شود.
+- بازگرداندن Business Profile یا وابستگی جدید به آن ممنوع است.
 
-```text
-includes/business-profiles/class-ajax-business-profile.php
-```
+### قانون ۳: فرم‌ها باید به معماری فرم منتقل شوند
 
-کلاس جدید باید `CRPCRM_Business_Profile_Interface` را پیاده‌سازی کند. فرم‌ها، request typeها، labelها، تنظیمات اختصاصی و defaultهای پروژه باید داخل همان profile تعریف شوند.
+- فرم‌های آینده باید توسط Form Builder تعریف شوند.
+- تا پیش از آماده شدن Form Builder، فرم‌های فعلی باید به Default Forms منتقل شوند.
+- تعریف فرم جدید به‌صورت hardcoded داخل Business Profile ممنوع است.
+- Default Forms باید قابل seed شدن و مستقل از سایت خاص باشند.
 
-ثبت profile فقط با hook مرکزی انجام می‌شود:
+### قانون ۴: Feature Toggle مستقل باقی می‌ماند
 
-```php
-add_action( 'crpcrm_register_business_profiles', function ( $manager ) {
-	$manager->register_profile( new CRPCRM_Ajax_Business_Profile() );
-} );
-```
+- Feature Toggleها همچنان با `CRPCRM_Feature_Manager` کنترل می‌شوند.
+- حذف Business Profile نباید Feature Manager را حذف یا تضعیف کند.
+- feature آینده `form_builder` فقط امکان **مدیریت فرم‌ها** را خاموش/روشن می‌کند.
+- feature `form_builder` فقط منو و عملیات مدیریت فرم‌ها را کنترل می‌کند.
+- خاموش بودن `form_builder` نباید فرم‌های فعال، نمایش فرم‌ها یا ثبت درخواست را از کار بیندازد.
+- خاموش کردن هر feature نباید داده‌های ذخیره‌شده را حذف یا reset کند.
 
-`CRPCRM_Business_Profile_Manager` نباید هیچ Business Profile مشخصی را مستقیم `new` یا register کند.
+### قانون ۵: Requestها باید form-aware باشند
 
-## قانون ۳: Business Profile بعد از setup قفل است
-
-- profile فقط یک‌بار و با تأیید مدیر دارای `manage_options` در setup اولیه انتخاب می‌شود.
-- تنظیمات عمومی نباید امکان تغییر profile را فراهم کنند.
-- profile فعال نباید از `POST`، query string یا تنظیمات عمومی خوانده یا تغییر داده شود.
-- تغییر profile پس از setup فقط با ابزار توسعه‌ای محافظت‌شده و صریح مجاز است.
-
-## قانون ۴: تنظیمات اختصاصی هر profile باید namespaced باشد
-
-تنظیمات اختصاصی profile نباید وارد option تنظیمات عمومی CRM شوند.
-
-ساختار option:
+منبع اصلی تشخیص و نمایش request در معماری هدف:
 
 ```text
-crpcrm_profile_settings_{profile_id}
-```
-
-- تنظیمات هر پروژه فقط داخل Business Profile همان پروژه قرار می‌گیرد.
-- صفحه settings عمومی فقط API عمومی مانند `render_active_profile_settings()` را صدا می‌زند.
-- تنظیمات nested باید با merge بازگشتی امن ترکیب شوند و داده ذخیره‌شده کاربر را خراب نکنند.
-
-## قانون ۵: Requestها همیشه باید profile-aware باشند
-
-هر request جدید باید ستون‌های زیر را مستقیم پر کند:
-
-```text
-business_profile
 form_id
 form_version
+request_type
+request_data
 ```
 
-- queryهای requests باید هرجا منطقی است با `business_profile` قفل‌شده فیلتر شوند.
-- ستون‌های مستقل منبع اصلی metadata هستند.
-- برای نمایش داده request باید از `CRPCRM_Request_Repository::get_merged_request_data()` استفاده شود.
-- decode پراکنده `request_data` برای تعیین metadata ممنوع است.
+- درخواست جدید باید این metadata را به‌درستی ذخیره کند.
+- ستون و مفهوم `business_profile` نباید در request، query، report یا export استفاده شود.
+- نمایش metadata باید از helper/repository مرکزی انجام شود و decode پراکنده `request_data` ممنوع است.
+- request typeهای سیستمی باید از registry مرکزی خوانده شوند.
 
-## قانون ۶: Request typeهای سیستمی باید مرکزی باشند
+### قانون ۶: گزینه‌های فرم داخل تعریف فیلد هستند
 
-- request typeهایی مانند `lead_follow_up` نباید پراکنده hardcode شوند.
-- تمام system request typeها باید از `CRPCRM_System_Request_Types` خوانده شوند.
-- queryهای public/customer باید همه system typeهای registry مرکزی را حذف کنند.
-- جزئیات public نیز نباید system request typeها را نمایش دهد.
+- گزینه‌های فیلدهای `select` باید بخشی از تعریف یا داده فرم باشند.
+- خودرو یک مفهوم اختصاصی core یا Feature Manager نیست.
+- در فرم‌های پیش‌فرض فعلی، خودرو فقط یک فیلد `select` با `options` داخل تعریف همان فرم است.
+- تنظیمات مستقل خودرو یا سایت خاص نباید داخل core عمومی ساخته شوند.
 
-## قانون ۷: Featureهای عمومی نباید مخصوص profile خاص پیاده شوند
+### قانون ۷: هسته‌های اصلی خاموش‌شدنی یا سایت‌خاص نیستند
 
-ممنوع:
-
-```php
-if ( 'ajax' === $profile ) {
-	hide_staff();
-}
-```
-
-اگر Feature Toggle در آینده اضافه شد، استفاده باید عمومی باشد:
-
-```php
-if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
-	// ...
-}
-```
-
-- تصمیم‌های مشتق‌شده از چند feature باید داخل `CRPCRM_Feature_Manager` متمرکز شوند؛ برای مثال نمایش UI عملیاتی CRM باید با `CRPCRM_Feature_Manager::is_crm_ui_enabled()` کنترل شود، نه با تکرار لیست featureها در منوها، صفحات و viewها.
-- وقتی یک feature یا UI مشتق‌شده غیرفعال است، منو، تب تنظیمات، دسترسی مستقیم، query، cron و asset اختصاصی آن نیز باید متوقف شوند.
-- دسترسی مستقیم به صفحه غیرفعال باید پیام امن و واضح نمایش دهد و پیش از اجرای query متوقف شود.
-- خاموش کردن feature فقط رفتار و پردازش را متوقف می‌کند؛ نباید داده یا تنظیمات ذخیره‌شده را حذف یا reset کند.
-
-## قانون ۸: هسته‌های اصلی خاموش‌شدنی یا profile-specific نیستند
-
-موارد زیر core افزونه هستند و نباید به منطق اختصاصی profile تبدیل شوند:
+موارد زیر core هستند:
 
 - database
-- تنظیمات پایه
-- Business Profile Manager
+- settings پایه
 - customers پایه
 - requests پایه
 - security، nonce و capability
 
-core بودن `customers` و `requests` به معنی نمایش دائمی UI آن‌ها نیست. جدول‌ها، repositoryها و قراردادهای پایه همیشه باقی می‌مانند، اما اگر هیچ feature مصرف‌کننده‌ای فعال نباشد، UI عملیاتی CRM شامل داشبورد، منوی درخواست‌ها، منوی مشتریان و تب تنظیمات CRM باید با تصمیم مشتق‌شده مرکزی مخفی و دسترسی مستقیم آن متوقف شود.
+خاموش بودن UI یا feature نباید قراردادها، جدول‌ها یا داده‌های پایه را حذف کند.
 
-## قانون ۹: دیتابیس نباید با تغییر profile قاطی شود
+### قانون ۸: دیتابیس و migration امن باشند
 
-- profile قفل‌شده منبع اصلی سایت است.
-- هیچ فیچری نباید profile فعال را از `POST` یا تنظیمات عمومی تغییر دهد.
 - migrationها باید idempotent باشند.
-- داده‌های موجود نباید در migration معمولی حذف شوند.
 - حذف داده فقط در uninstall و با `delete_data_on_uninstall` مجاز است.
-- حذف تنظیمات profile در uninstall باید با prefix عمومی `crpcrm_profile_settings_` انجام شود.
+- تغییرات transitional نباید داده‌های تستی موجود را بی‌دلیل حذف کنند.
+- requestها باید فقط با metadata عمومی فرم و درخواست مدیریت شوند.
 
-## قانون ۱۰: امنیت وردپرس الزامی است
+### قانون ۹: امنیت وردپرس الزامی است
 
 - تمام actionهای admin باید capability check داشته باشند.
-- nonce check برای عملیات تغییردهنده داده الزامی است.
+- nonce برای عملیات تغییردهنده داده الزامی است.
 - ورودی‌ها sanitize و خروجی‌ها escape شوند.
 - queryهای دارای مقدار dynamic با `$wpdb->prepare()` نوشته شوند.
 
-## قانون ۱۱: توسعه نباید رفتار فعلی صفایی را بشکند
+### قانون ۱۰: رفتار فعلی تا پایان مهاجرت حفظ شود
 
-هر تغییر جدید باید موارد زیر را سالم نگه دارد:
+هر فاز refactor باید public request، admin request، settings، reports، feature toggle و shortcodeهای فعلی را سالم نگه دارد. انتقال معماری باید مرحله‌ای باشد و هر فاز به‌تنهایی قابل اجرا بماند.
 
-- فرم‌های صفایی
-- تنظیمات خودرو و vehicle catalog
-- ثبت درخواست public و admin
-- لیست‌ها، جزئیات درخواست و صفحه مشتریان
-- گزارش‌ها و آمارهای profile-aware
+## Business Profile Removal Plan
 
-## قانون ۱۲: پیش از پایان هر تغییر، تست الزامی است
+- **Phase 2:** انتقال فرم‌ها و request typeها از Business Profile به Default Forms.
+- **Phase 3:** حذف Business Profile و setup/lock مربوط به آن.
+- **Phase 4:** پاکسازی دیتابیس و queryها از `business_profile`، انجام‌شده.
+- **Phase 5:** حذف تنظیمات خودرو و تبدیل آن به field options فرم، انجام‌شده.
+- **Phase 6:** اضافه کردن ماژول سبک Form Builder، انجام‌شده.
+- **Phase 7:** اتصال Form Builder به ثبت درخواست و seed فرم‌های اولیه.
+- **Phase 8:** پاکسازی نهایی docs و code.
 
-- `php -l` روی همه فایل‌های PHP اجرا شود.
-- setup اولیه و قفل profile تست شوند.
-- ثبت درخواست public و admin تست شود.
-- تنظیمات اختصاصی profile فعال تست شود.
-- queryها و نمایش metadata درخواست بررسی شوند.
-- فایل‌های تغییرکرده و تست‌های اجراشده گزارش شوند.
+### Phase 7A Registry Rules
 
-## چک‌لیست افزودن Business Profile جدید
+- `CRPCRM_Form_Registry` must read stored Form Builder forms as its primary source.
+- Default Forms are seed/fallback definitions only and must never overwrite stored forms.
+- Initial seeding may run only when `crpcrm_custom_forms` is empty.
+- `form_builder` controls management access only; runtime registries must never gate stored forms behind this feature.
+- `CRPCRM_Request_Type_Registry` must derive normal request types and labels from enabled forms in `CRPCRM_Form_Registry`.
 
-- [ ] آیا core بدون تغییر وابسته به پروژه جدید مانده است؟
-- [ ] آیا profile با hook `crpcrm_register_business_profiles` ثبت شده است؟
-- [ ] آیا فرم‌ها و request typeها داخل profile هستند؟
-- [ ] آیا تنظیمات اختصاصی namespaced هستند؟
-- [ ] آیا هیچ شرط `if ( $profile === '...' )` در core اضافه نشده است؟
+## چک‌لیست قبل از توسعه فرم
 
-## چک‌لیست تغییر قابلیت عمومی
+- [ ] آیا فرم جدید از Form Builder یا در دوره گذار از Default Forms می‌آید؟
+- [ ] آیا Business Profile جدید یا وابستگی جدید به Business Profile اضافه نشده است؟
+- [ ] آیا field options داخل تعریف فرم قرار دارند؟
+- [ ] آیا ثبت درخواست بدون فعال بودن مدیریت Form Builder کار می‌کند؟
+- [ ] آیا request به `form_id`، `form_version`، `request_type` و `request_data` متکی است؟
 
-- [ ] آیا تغییر برای همه profileها عمومی است؟
-- [ ] آیا منطق اختصاصی به profile مربوط منتقل شده است؟
-- [ ] آیا queryها profile-aware هستند؟
-- [ ] آیا منو، تب تنظیمات، دسترسی مستقیم، query، cron و asset قابلیت در حالت خاموش متوقف می‌شوند؟
-- [ ] آیا تصمیم‌های وابسته به چند feature فقط در `CRPCRM_Feature_Manager` متمرکز شده‌اند؟
-- [ ] آیا خاموش کردن قابلیت بدون حذف یا reset داده‌ها و تنظیمات انجام می‌شود؟
-- [ ] آیا security رعایت شده است؟
-- [ ] آیا رفتار فعلی صفایی حفظ شده است؟
-- [ ] آیا تست‌ها و `php -l` انجام و گزارش شده‌اند؟
+## چک‌لیست قبل از تغییر قابلیت عمومی
+
+- [ ] آیا core بدون وابستگی به Safaei، Ajax، خودرو یا سایت خاص باقی مانده است؟
+- [ ] آیا Feature Manager تنها منبع تصمیم feature است؟
+- [ ] آیا تغییر، داده یا تنظیمات موجود را هنگام خاموش شدن feature حذف نمی‌کند؟
+- [ ] آیا امنیت، sanitize، escape و nonce رعایت شده‌اند؟
+- [ ] آیا رفتار public request، admin request، settings، reports و shortcodeها حفظ شده است؟
+
+## کنترل کیفیت
+
+- فایل‌های PHP تغییرکرده باید با `php -l` بررسی شوند.
+- تست‌ها باید متناسب با دامنه تغییر اجرا شوند.
+- فایل‌های تغییرکرده، تست‌های اجراشده و محدودیت‌های تست باید گزارش شوند.

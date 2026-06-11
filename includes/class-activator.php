@@ -11,15 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Activator {
 	public static function activate() {
-		$is_existing_install = false !== get_option( CRPCRM_Settings::OPTION_NAME, false );
-
 		CRPCRM_DB::create_tables();
 		CRPCRM_Roles::add_roles_and_caps();
 		CRPCRM_Settings::add_default_options();
-		if ( ! $is_existing_install ) {
-			add_option( CRPCRM_Business_Profile_Manager::PROFILE_OPTION, '' );
-			add_option( CRPCRM_Business_Profile_Manager::SETUP_COMPLETED_OPTION, 'no' );
-			add_option( CRPCRM_Business_Profile_Manager::SETUP_COMPLETED_AT_OPTION, '' );
+		if ( class_exists( 'CRPCRM_Form_Builder_Repository' ) ) {
+			$forms = new CRPCRM_Form_Builder_Repository();
+			$forms->seed_default_forms_if_empty();
 		}
 		if ( class_exists( 'CRPCRM_Admin_Tools' ) ) {
 			CRPCRM_Admin_Tools::schedule_cron();

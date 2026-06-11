@@ -28,20 +28,8 @@ class CRPCRM_Admin_Menu {
 		}
 
 		$page = sanitize_key( wp_unslash( $_GET['page'] ) );
-		if ( 0 !== strpos( $page, 'crpcrm-' ) || 'crpcrm-setup' === $page ) {
+		if ( 0 !== strpos( $page, 'crpcrm-' ) ) {
 			return;
-		}
-
-		$manager = CRPCRM_Business_Profile_Manager::get_instance();
-		if ( ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
-			if ( current_user_can( 'manage_options' ) ) {
-				wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-setup' ), admin_url( 'admin.php' ) ) );
-				exit;
-			}
-			wp_die( esc_html( 'افزونه هنوز راه‌اندازی اولیه نشده است.' ) );
-		}
-		if ( ! $manager->is_locked_profile_valid() ) {
-			wp_die( esc_html( 'پروفایل کسب‌وکار قفل‌شده معتبر نیست. لطفاً با مدیر سایت تماس بگیرید.' ) );
 		}
 
 		if ( in_array( $page, array( 'crpcrm-dashboard', 'crpcrm-requests', 'crpcrm-customers', 'crpcrm-customer-profile' ), true ) && ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
@@ -68,24 +56,6 @@ class CRPCRM_Admin_Menu {
 	}
 
 	public function register_menu() {
-		if ( ! CRPCRM_Business_Profile_Manager::is_setup_completed() ) {
-			if ( current_user_can( 'manage_options' ) ) {
-				add_menu_page(
-					'راه‌اندازی اولیه پرتال و CRM',
-					'راه‌اندازی پرتال و CRM',
-					'manage_options',
-					'crpcrm-setup',
-					array( $this->admin_pages, 'setup' ),
-					'dashicons-admin-settings',
-					26
-				);
-			}
-			return;
-		}
-		if ( ! CRPCRM_Business_Profile_Manager::get_instance()->is_locked_profile_valid() ) {
-			return;
-		}
-
 		$requests_capability = current_user_can( 'crpcrm_view_all_requests' ) ? 'crpcrm_view_all_requests' : 'crpcrm_view_assigned_requests';
 		$crm_ui_enabled      = CRPCRM_Feature_Manager::is_crm_ui_enabled();
 		$settings_capability = current_user_can( 'crpcrm_manage_settings' ) ? 'crpcrm_manage_settings' : ( current_user_can( 'crpcrm_manage_plugin' ) ? 'crpcrm_manage_plugin' : 'manage_options' );

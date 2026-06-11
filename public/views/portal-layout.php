@@ -15,7 +15,7 @@ $created_value         = isset( $_GET['created'] ) ? sanitize_text_field( wp_uns
 $created_notice        = '1' === $created_value;
 $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['form_error'] : '';
 ?>
-<div class="crpcrm-portal crpcrm-portal-shell <?php echo esc_attr( $portal_profile_class ); ?>" style="<?php echo esc_attr( $portal_theme_style ); ?>" dir="rtl">
+<div class="crpcrm-portal crpcrm-portal-shell <?php echo esc_attr( $portal_theme_class ); ?>" style="<?php echo esc_attr( $portal_theme_style ); ?>" dir="rtl">
 	<aside class="crpcrm-portal-sidebar crpcrm-portal-nav" aria-label="<?php echo esc_attr( 'منوی پرتال' ); ?>">
 		<div class="crpcrm-portal-sidebar-title crpcrm-portal-header"><?php echo esc_html( 'پرتال درخواست‌ها' ); ?></div>
 		<nav class="crpcrm-portal-menu">
@@ -178,11 +178,12 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 					<dl class="crpcrm-data-list">
 						<?php
 						$detail_form = CRPCRM_Request_Forms::get_form_for_request( $request_detail['request_type'], $request_data );
+						$detail_items = CRPCRM_Dynamic_Form_Renderer::get_display_items( $detail_form, $request_data );
 						?>
-						<?php if ( $detail_form && is_array( $request_data ) ) : ?>
-							<?php foreach ( $detail_form['fields'] as $field ) : ?>
-								<dt><?php echo esc_html( $field['label'] ); ?></dt>
-								<dd><?php $detail_value = isset( $request_data[ $field['name'] ] ) ? $request_data[ $field['name'] ] : ''; echo esc_html( is_array( $detail_value ) ? implode( '، ', $detail_value ) : $detail_value ); ?></dd>
+						<?php if ( $detail_items ) : ?>
+							<?php foreach ( $detail_items as $item ) : ?>
+								<dt><?php echo esc_html( $item['label'] ); ?></dt>
+								<dd><?php echo esc_html( $item['value'] ); ?></dd>
 							<?php endforeach; ?>
 						<?php endif; ?>
 					</dl>

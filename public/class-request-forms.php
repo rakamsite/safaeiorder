@@ -29,16 +29,7 @@ class CRPCRM_Request_Forms {
 
 	public static function get_field_labels_for_request_type( $request_type, $request_data = array() ) {
 		$form = self::get_form_for_request( $request_type, $request_data );
-		if ( ! $form ) {
-			return array();
-		}
-
-		$labels = array();
-		foreach ( $form['fields'] as $field ) {
-			$labels[ $field['name'] ] = $field['label'];
-		}
-
-		return $labels;
+		return $form ? CRPCRM_Dynamic_Form_Renderer::get_field_labels( $form ) : array();
 	}
 
 	public static function build_display_summary( $request_type, $request_data, $fallback = '' ) {
@@ -78,45 +69,11 @@ class CRPCRM_Request_Forms {
 	}
 
 	public static function get_field_options( $field ) {
-		$options    = isset( $field['options'] ) && is_array( $field['options'] ) ? $field['options'] : array();
-		$normalized = array();
-		foreach ( $options as $value => $label ) {
-			if ( is_int( $value ) ) {
-				$value = $label;
-			}
-			$normalized[ (string) $value ] = (string) $label;
-		}
-		return $normalized;
+		return CRPCRM_Dynamic_Form_Renderer::get_field_options( $field );
 	}
 
 	public static function sanitize_and_validate( $form, $posted ) {
-		$data   = array();
-		$errors = array();
-
-		foreach ( $form['fields'] as $field ) {
-			$name  = sanitize_key( $field['name'] );
-			$type  = isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text';
-			$value = isset( $posted[ $name ] ) ? wp_unslash( $posted[ $name ] ) : '';
-			$value = self::sanitize_field_value( $type, $value );
-
-			if ( ! empty( $field['required'] ) && self::is_empty_value( $value ) ) {
-				$errors[] = self::get_field_error( $field, 'این فیلد الزامی است.' );
-				continue;
-			}
-
-			if ( ! self::is_empty_value( $value ) && ! self::is_valid_field_value( $field, $value ) ) {
-				$errors[] = self::get_field_error( $field, 'مقدار واردشده معتبر نیست.' );
-				continue;
-			}
-
-			$data[ $name ] = $value;
-		}
-
-		if ( ! empty( $errors ) ) {
-			array_unshift( $errors, 'لطفاً فیلدهای الزامی را تکمیل کنید.' );
-		}
-
-		return array( 'data' => $data, 'errors' => array_values( array_unique( $errors ) ) );
+		return CRPCRM_Dynamic_Form_Renderer::sanitize_and_validate( $form, $posted );
 	}
 
 	public static function build_summary( $form, $data ) {
@@ -144,52 +101,7 @@ class CRPCRM_Request_Forms {
 		return implode( ' | ', $parts );
 	}
 
-	private static function sanitize_field_value( $type, $value ) {
-		if ( 'checkbox' === $type && is_array( $value ) ) {
-			return array_values( array_filter( array_map( 'sanitize_text_field', $value ), 'strlen' ) );
-		}
-		if ( is_array( $value ) ) {
-			return '';
-		}
-		if ( 'textarea' === $type ) {
-			return trim( sanitize_textarea_field( $value ) );
-		}
-		if ( 'email' === $type ) {
-			return sanitize_email( $value );
-		}
-		return trim( sanitize_text_field( $value ) );
-	}
-
-	private static function is_valid_field_value( $field, $value ) {
-		$type = isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text';
-		if ( in_array( $type, array( 'select', 'radio', 'checkbox' ), true ) && ! empty( $field['options'] ) ) {
-			$allowed = array_keys( self::get_field_options( $field ) );
-			$values  = is_array( $value ) ? $value : array( $value );
-			if ( array_diff( $values, $allowed ) ) {
-				return false;
-			}
-		}
-		if ( 'email' === $type ) {
-			return (bool) is_email( $value );
-		}
-		if ( 'number' === $type ) {
-			return is_numeric( $value );
-		}
-		if ( 'mobile' === $type ) {
-			return (bool) preg_match( '/^\+?[0-9]{10,15}$/', $value );
-		}
-		if ( 'date' === $type ) {
-			$date = date_parse_from_format( 'Y-m-d', $value );
-			return 0 === $date['warning_count'] && 0 === $date['error_count'];
-		}
-		return true;
-	}
-
 	private static function is_empty_value( $value ) {
 		return '' === $value || array() === $value;
-	}
-
-	private static function get_field_error( $field, $fallback ) {
-		return ! empty( $field['required_message'] ) ? sanitize_text_field( $field['required_message'] ) : $fallback;
 	}
 }
