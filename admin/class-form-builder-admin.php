@@ -54,6 +54,10 @@ class CRPCRM_Form_Builder_Admin {
 		$this->verify_action( 'crpcrm_save_custom_form', 'crpcrm_form_builder_nonce' );
 		$input       = isset( $_POST['crpcrm_form'] ) && is_array( $_POST['crpcrm_form'] ) ? wp_unslash( $_POST['crpcrm_form'] ) : array();
 		$original_id = isset( $_POST['original_form_id'] ) ? sanitize_key( wp_unslash( $_POST['original_form_id'] ) ) : '';
+		$raw_form_id = isset( $input['form_id'] ) ? trim( (string) $input['form_id'] ) : '';
+		if ( '' === $raw_form_id || ! preg_match( '/^[A-Za-z0-9_-]+$/', $raw_form_id ) ) {
+			$this->redirect( array( 'form_id' => $original_id, 'form-error' => 'invalid-form-id' ) );
+		}
 		$form        = $this->repository->sanitize_form( $input );
 		$existing    = $this->repository->get_form( $form['form_id'] );
 		if ( $existing && $original_id !== $form['form_id'] ) {
@@ -64,7 +68,7 @@ class CRPCRM_Form_Builder_Admin {
 		}
 		$result = $this->repository->save_form( $form, $original_id );
 		if ( is_wp_error( $result ) ) {
-			$this->redirect( array( 'form_id' => $original_id, 'form-error' => 'invalid-schema' ) );
+			$this->redirect( array( 'form_id' => $original_id, 'form-error' => 'invalid-schema', 'form-error-message' => $result->get_error_message() ) );
 		}
 		$this->redirect( array( 'form_id' => $form['form_id'], 'form-saved' => '1' ) );
 	}

@@ -365,7 +365,7 @@ class CRPCRM_Reports_Repository {
 		$where  = $this->build_request_filters_where( $filters );
 		$limit  = isset( $pagination['limit'] ) ? max( 1, min( 1000, absint( $pagination['limit'] ) ) ) : 20;
 		$offset = isset( $pagination['offset'] ) ? absint( $pagination['offset'] ) : 0;
-		$sql    = "SELECT r.id, r.request_code, r.customer_id, r.request_type, r.form_id, r.form_version, r.request_summary, r.request_source, r.request_campaign, r.request_content, r.status, r.owner_id, r.last_activity_at, r.created_at, c.full_name AS customer_name, c.phone AS customer_phone
+		$sql    = "SELECT r.id, r.request_code, r.customer_id, r.request_type, r.form_id, r.form_version, r.request_data, r.request_summary, r.request_source, r.request_campaign, r.request_content, r.status, r.owner_id, r.last_activity_at, r.created_at, c.full_name AS customer_name, c.phone AS customer_phone
 			FROM {$this->requests_table} r
 			LEFT JOIN {$this->customers_table} c ON c.id = r.customer_id
 			{$where['sql']}

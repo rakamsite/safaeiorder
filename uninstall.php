@@ -39,6 +39,7 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 	}
 
 	delete_option( 'crpcrm_settings' );
+	delete_option( 'crpcrm_enabled_forms' );
 	delete_option( 'crpcrm_db_version' );
 	delete_option( 'crpcrm_activation_redirect' );
 	delete_option( 'crpcrm_business_profile_id' );

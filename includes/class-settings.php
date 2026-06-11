@@ -20,7 +20,6 @@ class CRPCRM_Settings {
 	public static function defaults() {
 		$site_host = wp_parse_url( home_url(), PHP_URL_HOST );
 		return array(
-			'enabled_forms'                         => array(),
 			'portal_page_id'                       => 0,
 			'portal_menu_id'                       => 0,
 			'customer_registration_enabled'        => 'yes',
@@ -175,10 +174,6 @@ class CRPCRM_Settings {
 		$settings = $current;
 
 		if ( 'portal' === $active_tab ) {
-			$default_forms                        = CRPCRM_Form_Registry::get_forms();
-			$settings_key                         = CRPCRM_Default_Form_Definitions::SETTINGS_KEY;
-			$submitted_forms                      = isset( $input['enabled_forms'][ $settings_key ] ) && is_array( $input['enabled_forms'][ $settings_key ] ) ? array_map( 'sanitize_key', $input['enabled_forms'][ $settings_key ] ) : array();
-			$settings['enabled_forms'][ $settings_key ] = array_values( array_intersect( array_map( 'sanitize_key', array_keys( $default_forms ) ), $submitted_forms ) );
 			$settings['portal_page_id']                = isset( $input['portal_page_id'] ) ? absint( $input['portal_page_id'] ) : $defaults['portal_page_id'];
 			$settings['portal_menu_id']                = isset( $input['portal_menu_id'] ) ? absint( $input['portal_menu_id'] ) : $defaults['portal_menu_id'];
 			if ( CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) ) {

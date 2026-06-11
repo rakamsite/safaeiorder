@@ -2,6 +2,17 @@
 
 این فایل برای تست دستی/سناریویی قبل از استفاده واقعی افزونه است. پیشنهاد می‌شود تست‌ها روی یک وردپرس تمیز و سپس روی staging مشابه سایت اصلی اجرا شوند.
 
+## معماری فرم و درخواست
+
+- [ ] نصب اولیه Default Forms را فقط یک بار در Form Builder seed می‌کند.
+- [ ] حذف عمدی همه فرم‌ها باعث seed مجدد نمی‌شود.
+- [ ] فرم‌های public و ثبت دستی admin فقط فرم‌های فعال Form Builder را نمایش می‌دهند.
+- [ ] خاموش بودن feature `form_builder` فقط منوی مدیریت فرم‌ها را مخفی می‌کند و ثبت درخواست با فرم‌های فعال ادامه دارد.
+- [ ] هر درخواست `form_id`، `form_version`، `request_type = form_id` و `request_data` دارد.
+- [ ] `request_data` شامل snapshot سبک عنوان فرم و label فیلدهای زمان ثبت است.
+- [ ] label فرم غیرفعال از Form Registry و label فرم حذف‌شده از snapshot درخواست نمایش داده می‌شود.
+- [ ] فرم فعال بدون فیلد فعال و select فعال بدون options ذخیره نمی‌شود.
+
 ## نصب، فعال‌سازی و نگهداری
 
 - [ ] افزونه روی وردپرس تمیز بدون fatal error فعال می‌شود.
@@ -60,9 +71,9 @@
 
 - [ ] مشتری با پروفایل کامل هر سه فرم را می‌بیند.
 - [ ] requiredها در هر فرم اعتبارسنجی می‌شوند.
-- [ ] فرم ثبت‌نام خودرو `request_type=car_registration` می‌سازد.
-- [ ] فرم قطعات `request_type=parts_request` می‌سازد.
-- [ ] فرم تعمیرات `request_type=repair_booking` می‌سازد.
+- [ ] فرم ثبت‌نام خودرو `request_type=safaei_car_registration` و `form_id=safaei_car_registration` می‌سازد.
+- [ ] فرم قطعات `request_type=safaei_parts_request` و `form_id=safaei_parts_request` می‌سازد.
+- [ ] فرم تعمیرات `request_type=safaei_repair_booking` و `form_id=safaei_repair_booking` می‌سازد.
 - [ ] هر ارسال فرم یک request مستقل می‌سازد.
 - [ ] POST/Redirect/GET مانع ثبت تکراری با refresh می‌شود.
 - [ ] `request_code` ساخته می‌شود.

@@ -25,7 +25,10 @@ for ( $i = $empty_row_start; $i < $empty_row_start + 3; $i++ ) {
 	<p class="description"><?php echo esc_html( 'فرم‌های ذخیره‌شده منبع مرکزی فرم‌ها هستند. خاموش کردن قابلیت فرم‌ساز فقط دسترسی به مدیریت فرم‌ها را متوقف می‌کند.' ); ?></p>
 	<?php if ( isset( $_GET['form-saved'] ) ) : ?><div class="notice notice-success"><p><?php echo esc_html( 'فرم ذخیره شد.' ); ?></p></div><?php endif; ?>
 	<?php if ( isset( $_GET['form-deleted'] ) ) : ?><div class="notice notice-success"><p><?php echo esc_html( 'فرم حذف شد.' ); ?></p></div><?php endif; ?>
-	<?php if ( isset( $_GET['form-error'] ) ) : ?><div class="notice notice-error"><p><?php echo esc_html( 'ذخیره فرم انجام نشد. شناسه‌ها و فیلدهای فرم را بررسی کنید.' ); ?></p></div><?php endif; ?>
+	<?php if ( isset( $_GET['form-error'] ) ) : ?>
+		<?php $form_error_message = isset( $_GET['form-error-message'] ) ? sanitize_text_field( wp_unslash( $_GET['form-error-message'] ) ) : ( 'invalid-form-id' === sanitize_key( wp_unslash( $_GET['form-error'] ) ) ? 'شناسه فرم الزامی است و فقط می‌تواند شامل حروف انگلیسی، عدد، خط تیره و آندرلاین باشد.' : 'ذخیره فرم انجام نشد. شناسه‌ها و فیلدهای فرم را بررسی کنید.' ); ?>
+		<div class="notice notice-error"><p><?php echo esc_html( $form_error_message ); ?></p></div>
+	<?php endif; ?>
 
 	<div class="crpcrm-card">
 		<h2><?php echo esc_html( 'فرم‌های سفارشی' ); ?></h2>
@@ -43,7 +46,7 @@ for ( $i = $empty_row_start; $i < $empty_row_start + 3; $i++ ) {
 			<input type="hidden" name="original_form_id" value="<?php echo esc_attr( $editing ? $form['form_id'] : '' ); ?>">
 			<?php wp_nonce_field( 'crpcrm_save_custom_form', 'crpcrm_form_builder_nonce' ); ?>
 			<table class="form-table"><tbody>
-				<tr><th><label for="crpcrm-form-id"><?php echo esc_html( 'شناسه فرم' ); ?></label></th><td><input id="crpcrm-form-id" class="regular-text" name="crpcrm_form[form_id]" value="<?php echo esc_attr( $form['form_id'] ); ?>" <?php echo $editing ? 'readonly' : ''; ?>><p class="description"><?php echo esc_html( 'خالی بماند، از عنوان ساخته می‌شود.' ); ?></p></td></tr>
+				<tr><th><label for="crpcrm-form-id"><?php echo esc_html( 'شناسه فرم' ); ?></label></th><td><input id="crpcrm-form-id" class="regular-text" name="crpcrm_form[form_id]" required pattern="[A-Za-z0-9_-]+" value="<?php echo esc_attr( $form['form_id'] ); ?>" <?php echo $editing ? 'readonly' : ''; ?>><p class="description"><?php echo esc_html( 'الزامی؛ فقط حروف انگلیسی، عدد، خط تیره و آندرلاین وارد کنید.' ); ?></p></td></tr>
 				<tr><th><label for="crpcrm-form-title"><?php echo esc_html( 'عنوان' ); ?></label></th><td><input id="crpcrm-form-title" class="regular-text" name="crpcrm_form[title]" required value="<?php echo esc_attr( $form['title'] ); ?>"></td></tr>
 				<tr><th><?php echo esc_html( 'توضیح' ); ?></th><td><textarea class="large-text" rows="3" name="crpcrm_form[description]"><?php echo esc_textarea( $form['description'] ); ?></textarea></td></tr>
 				<tr><th><?php echo esc_html( 'متن دکمه ثبت' ); ?></th><td><input class="regular-text" name="crpcrm_form[submit_label]" value="<?php echo esc_attr( $form['submit_label'] ); ?>"></td></tr>

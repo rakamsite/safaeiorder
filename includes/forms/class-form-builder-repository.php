@@ -197,15 +197,29 @@ class CRPCRM_Form_Builder_Repository {
 			$errors[] = 'نوع درخواست الزامی است.';
 		}
 		$keys = array();
+		$enabled_field_count = 0;
 		foreach ( $form['fields'] as $field ) {
 			if ( empty( $field['key'] ) || empty( $field['label'] ) ) {
 				$errors[] = 'کلید و عنوان تمام فیلدها الزامی است.';
 				continue;
 			}
+			if ( ! empty( $field['enabled'] ) ) {
+				$field_is_valid = true;
+				if ( 'select' === $field['type'] && empty( $field['options'] ) ) {
+					$errors[] = 'فیلد انتخابی فعال باید حداقل یک گزینه داشته باشد: ' . $field['label'];
+					$field_is_valid = false;
+				}
+				if ( $field_is_valid ) {
+					$enabled_field_count++;
+				}
+			}
 			if ( isset( $keys[ $field['key'] ] ) ) {
 				$errors[] = 'کلید فیلد تکراری مجاز نیست: ' . $field['key'];
 			}
 			$keys[ $field['key'] ] = true;
+		}
+		if ( ! empty( $form['enabled'] ) && 0 === $enabled_field_count ) {
+			$errors[] = 'فرم فعال باید حداقل یک فیلد فعال و معتبر داشته باشد.';
 		}
 		return array_values( array_unique( $errors ) );
 	}

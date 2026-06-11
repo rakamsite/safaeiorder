@@ -51,8 +51,8 @@ class CRPCRM_Request_Forms {
 		return array_values( array_unique( array_filter( $pages ) ) );
 	}
 
-	public static function get_type_label( $request_type ) {
-		return CRPCRM_Request_Type_Registry::get_label( $request_type );
+	public static function get_type_label( $request_type, $request = null ) {
+		return CRPCRM_Request_Type_Registry::get_label( $request_type, $request );
 	}
 
 	public static function get_customer_status_label( $status ) {
