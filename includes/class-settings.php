@@ -220,11 +220,10 @@ class CRPCRM_Settings {
 		$settings = $current;
 
 		if ( 'portal' === $active_tab ) {
-			$profiles                          = CRPCRM_Business_Profile_Manager::get_instance()->get_profiles();
-			$active_profile_id                    = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
-			$profile_forms                        = isset( $profiles[ $active_profile_id ] ) ? $profiles[ $active_profile_id ]->get_forms() : array();
-			$submitted_forms                      = isset( $input['enabled_forms'][ $active_profile_id ] ) && is_array( $input['enabled_forms'][ $active_profile_id ] ) ? array_map( 'sanitize_key', $input['enabled_forms'][ $active_profile_id ] ) : array();
-			$settings['enabled_forms'][ $active_profile_id ] = array_values( array_intersect( array_map( 'sanitize_key', array_keys( $profile_forms ) ), $submitted_forms ) );
+			$default_forms                        = CRPCRM_Form_Registry::get_forms();
+			$settings_key                         = CRPCRM_Default_Form_Definitions::SETTINGS_KEY;
+			$submitted_forms                      = isset( $input['enabled_forms'][ $settings_key ] ) && is_array( $input['enabled_forms'][ $settings_key ] ) ? array_map( 'sanitize_key', $input['enabled_forms'][ $settings_key ] ) : array();
+			$settings['enabled_forms'][ $settings_key ] = array_values( array_intersect( array_map( 'sanitize_key', array_keys( $default_forms ) ), $submitted_forms ) );
 			$settings['portal_page_id']                = isset( $input['portal_page_id'] ) ? absint( $input['portal_page_id'] ) : $defaults['portal_page_id'];
 			$settings['portal_menu_id']                = isset( $input['portal_menu_id'] ) ? absint( $input['portal_menu_id'] ) : $defaults['portal_menu_id'];
 			if ( CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) ) {

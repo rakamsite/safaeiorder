@@ -1,6 +1,6 @@
 <?php
 /**
- * Registry for request types exposed by the active business profile.
+ * Registry for request types exposed by default forms and the system registry.
  *
  * @package CRPCRM
  */
@@ -11,10 +11,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Request_Type_Registry {
 	public static function get_request_types() {
-		return array_merge(
-			CRPCRM_Business_Profile_Manager::get_instance()->get_active_request_types(),
-			CRPCRM_System_Request_Types::get_types()
-		);
+		$types = array();
+		foreach ( CRPCRM_Form_Registry::get_forms() as $form ) {
+			$request_type = sanitize_key( $form['request_type'] ?? '' );
+			if ( $request_type ) {
+				$types[ $request_type ] = sanitize_text_field( $form['title'] ?? $form['label'] ?? $request_type );
+			}
+		}
+		return array_merge( $types, CRPCRM_System_Request_Types::get_types() );
+	}
+
+	public static function get_form_id_for_request_type( $request_type ) {
+		$form = CRPCRM_Form_Registry::get_form_by_request_type( $request_type );
+		return $form ? sanitize_key( $form['id'] ?? '' ) : '';
 	}
 
 	public static function get_request_type_ids() {

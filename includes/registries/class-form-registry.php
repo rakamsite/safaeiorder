@@ -1,17 +1,15 @@
 <?php
-/** Registry for forms exposed by the active business profile. @package CRPCRM */
+/** Registry for default forms used by request flows. @package CRPCRM */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class CRPCRM_Form_Registry {
 	public static function get_forms() {
-		return CRPCRM_Business_Profile_Manager::get_instance()->get_active_forms();
+		return CRPCRM_Default_Form_Definitions::get_forms();
 	}
 
 	public static function get_aliases() {
-		$profile = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile();
-		$aliases = $profile && method_exists( $profile, 'get_form_aliases' ) ? $profile->get_form_aliases() : array();
-		$clean   = array();
-		foreach ( is_array( $aliases ) ? $aliases : array() as $old_id => $new_id ) {
+		$clean = array();
+		foreach ( CRPCRM_Default_Form_Definitions::get_aliases() as $old_id => $new_id ) {
 			$clean[ sanitize_key( $old_id ) ] = sanitize_key( $new_id );
 		}
 		return array_filter( $clean );
@@ -44,15 +42,6 @@ class CRPCRM_Form_Registry {
 	public static function get_form_for_request( $request_type, $request_data ) {
 		$request_data = is_array( $request_data ) ? $request_data : array();
 		$form_id      = sanitize_key( $request_data['form_id'] ?? '' );
-		$profile_id   = sanitize_key( $request_data['business_profile'] ?? '' );
-		if ( $form_id && $profile_id ) {
-			$profiles = CRPCRM_Business_Profile_Manager::get_instance()->get_profiles();
-			$profile  = $profiles[ $profile_id ] ?? null;
-			$forms    = $profile ? $profile->get_forms() : array();
-			$aliases  = $profile && method_exists( $profile, 'get_form_aliases' ) ? $profile->get_form_aliases() : array();
-			$form_id  = isset( $aliases[ $form_id ] ) ? sanitize_key( $aliases[ $form_id ] ) : $form_id;
-			if ( isset( $forms[ $form_id ] ) && is_array( $forms[ $form_id ] ) ) { return $forms[ $form_id ]; }
-		}
 		if ( $form_id ) {
 			$form = self::get_form( $form_id );
 			if ( $form ) { return $form; }
@@ -60,11 +49,28 @@ class CRPCRM_Form_Registry {
 		return self::get_form_by_request_type( $request_type );
 	}
 
+	private static function get_enabled_override() {
+		$stored = CRPCRM_Settings::get( 'enabled_forms', null );
+		if ( ! is_array( $stored ) ) {
+			return null;
+		}
+
+		if ( array_key_exists( CRPCRM_Default_Form_Definitions::SETTINGS_KEY, $stored ) ) {
+			return array_map( array( __CLASS__, 'resolve_form_id' ), (array) $stored[ CRPCRM_Default_Form_Definitions::SETTINGS_KEY ] );
+		}
+
+		// Transitional fallback for the former profile-namespaced settings structure.
+		foreach ( $stored as $legacy_form_ids ) {
+			if ( is_array( $legacy_form_ids ) ) {
+				return array_map( array( __CLASS__, 'resolve_form_id' ), $legacy_form_ids );
+			}
+		}
+		return null;
+	}
+
 	public static function get_enabled_forms() {
-		$forms      = self::get_forms();
-		$profile_id = CRPCRM_Business_Profile_Manager::get_instance()->get_active_profile_id();
-		$stored     = CRPCRM_Settings::get( 'enabled_forms', null );
-		$override   = is_array( $stored ) && array_key_exists( $profile_id, $stored ) ? array_map( array( __CLASS__, 'resolve_form_id' ), (array) $stored[ $profile_id ] ) : null;
+		$forms    = self::get_forms();
+		$override = self::get_enabled_override();
 		return array_filter( $forms, function ( $form ) use ( $override ) {
 			if ( ! is_array( $form ) || ( isset( $form['enabled'] ) && empty( $form['enabled'] ) ) ) { return false; }
 			return null === $override || in_array( self::resolve_form_id( $form['id'] ?? '' ), $override, true );

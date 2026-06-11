@@ -28,6 +28,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/business-profiles/class-business-prof
 require_once CRPCRM_PLUGIN_DIR . 'includes/business-profiles/class-business-profile-loader.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-feature-manager.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-public-theme.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-default-form-definitions.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-form-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-request-type-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-system-request-types.php';
