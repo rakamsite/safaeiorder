@@ -89,7 +89,6 @@ class CRPCRM_Sales_Daily_Stats_Service {
 		$start = $range['start'];
 		$end   = $range['end'];
 		$now   = CRPCRM_Helpers::current_datetime();
-		$profile_id = CRPCRM_Request_Scope::get_legacy_partition();
 
 		$stats = $this->empty_stats( $user_id, $range['date'] );
 		$stats['claimed_today'] = $this->count_activities_by_types( $user_id, array( 'request_claimed' ), $start, $end );
@@ -100,13 +99,13 @@ class CRPCRM_Sales_Daily_Stats_Service {
 		$stats['whatsapp_sent_today'] = $this->count_activities_by_types( $user_id, array( 'whatsapp_sent' ), $start, $end );
 		$stats['internal_notes_today'] = $this->count_activities_by_types( $user_id, array( 'internal_note' ), $start, $end );
 		$stats['followups_scheduled_today'] = $this->count_activities_by_types( $user_id, array( 'follow_up_scheduled' ), $start, $end );
-		$stats['followups_due_today'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->requests_table} WHERE business_profile = %s AND owner_id = %d AND status = %s AND next_follow_up_at BETWEEN %s AND %s", $profile_id, $user_id, 'follow_up', $start, $end ) );
-		$stats['overdue_followups'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->requests_table} WHERE business_profile = %s AND owner_id = %d AND status = %s AND next_follow_up_at IS NOT NULL AND next_follow_up_at < %s", $profile_id, $user_id, 'follow_up', $now ) );
+		$stats['followups_due_today'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->requests_table} WHERE owner_id = %d AND status = %s AND next_follow_up_at BETWEEN %s AND %s", $user_id, 'follow_up', $start, $end ) );
+		$stats['overdue_followups'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->requests_table} WHERE owner_id = %d AND status = %s AND next_follow_up_at IS NOT NULL AND next_follow_up_at < %s", $user_id, 'follow_up', $now ) );
 		$stats['won_today'] = $this->count_activities_by_types( $user_id, array( 'request_won' ), $start, $end );
 		$stats['lost_today'] = $this->count_activities_by_types( $user_id, array( 'request_lost' ), $start, $end );
 		$stats['invalid_today'] = $this->count_activities_by_types( $user_id, array( 'request_invalid' ), $start, $end );
 		$stats['open_requests'] = $stats['current_owned_requests'];
-		$stats['closed_today'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->requests_table} WHERE business_profile = %s AND owner_id = %d AND status IN ('won','lost','invalid') AND closed_at BETWEEN %s AND %s", $profile_id, $user_id, $start, $end ) );
+		$stats['closed_today'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$this->requests_table} WHERE owner_id = %d AND status IN ('won','lost','invalid') AND closed_at BETWEEN %s AND %s", $user_id, $start, $end ) );
 
 		CRPCRM_Logger::info( 'sales_daily_stats_generated', 'sales_daily_stats_generated', array( 'user_id' => $user_id, 'date' => $range['date'] ) );
 		return $stats;
@@ -209,8 +208,8 @@ class CRPCRM_Sales_Daily_Stats_Service {
 			return 0;
 		}
 		$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
-		$sql = "SELECT COUNT(*) FROM {$this->requests_table} WHERE business_profile = %s AND owner_id = %d AND status IN ($placeholders)";
-		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( CRPCRM_Request_Scope::get_legacy_partition(), absint( $user_id ) ), $statuses ) ) );
+		$sql = "SELECT COUNT(*) FROM {$this->requests_table} WHERE owner_id = %d AND status IN ($placeholders)";
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( absint( $user_id ) ), $statuses ) ) );
 	}
 
 	private function count_activities_by_types( $user_id, $activity_types, $start, $end ) {
@@ -220,7 +219,7 @@ class CRPCRM_Sales_Daily_Stats_Service {
 			return 0;
 		}
 		$placeholders = implode( ',', array_fill( 0, count( $activity_types ), '%s' ) );
-		$sql = "SELECT COUNT(*) FROM {$this->activities_table} a INNER JOIN {$this->requests_table} r ON r.id = a.request_id WHERE r.business_profile = %s AND a.actor_user_id = %d AND a.activity_type IN ($placeholders) AND a.created_at BETWEEN %s AND %s";
-		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( CRPCRM_Request_Scope::get_legacy_partition(), absint( $user_id ) ), $activity_types, array( $start, $end ) ) ) );
+		$sql = "SELECT COUNT(*) FROM {$this->activities_table} a INNER JOIN {$this->requests_table} r ON r.id = a.request_id WHERE a.actor_user_id = %d AND a.activity_type IN ($placeholders) AND a.created_at BETWEEN %s AND %s";
+		return (int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( array( absint( $user_id ) ), $activity_types, array( $start, $end ) ) ) );
 	}
 }

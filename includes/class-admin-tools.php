@@ -111,8 +111,6 @@ class CRPCRM_Admin_Tools {
 		$f = $this->sanitize_filters( array( 'date_from' => 'date', 'date_to' => 'date', 'request_type' => 'key', 'status' => 'key', 'source' => 'key', 'campaign' => 'text', 'owner_id' => 'int' ) );
 		$where = array( '1=1' );
 		$vals  = array();
-		$where[] = 'r.business_profile = %s';
-		$vals[]  = CRPCRM_Request_Scope::get_legacy_partition();
 		$this->where_date_range( $where, $vals, 'r.created_at', $f['date_from'], $f['date_to'] );
 		$this->where_equal( $where, $vals, 'r.request_type', $f['request_type'] );
 		$this->where_equal( $where, $vals, 'r.status', $f['status'] );
@@ -141,9 +139,8 @@ class CRPCRM_Admin_Tools {
 		$this->where_equal( $where, $vals, 'c.last_source', $f['last_source'] );
 		if ( '' !== $f['profile_completed'] ) { $where[] = 'c.profile_completed = %d'; $vals[] = $f['profile_completed']; }
 		$requests = CRPCRM_DB::table( 'requests' );
-		$profile  = CRPCRM_Request_Scope::get_legacy_partition();
-		$sql = "SELECT c.*, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s) AS total_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s AND r.status IN ('new','in_progress','no_answer','follow_up')) AS open_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.business_profile = %s AND r.status IN ('won','lost','invalid','closed')) AS closed_requests FROM " . CRPCRM_DB::table( 'customers' ) . ' c WHERE ' . implode( ' AND ', $where ) . ' ORDER BY c.created_at DESC, c.id DESC';
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( $profile, $profile, $profile ), $vals ) ), ARRAY_A );
+		$sql = "SELECT c.*, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id) AS total_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.status IN ('new','in_progress','no_answer','follow_up')) AS open_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.status IN ('won','lost','invalid','closed')) AS closed_requests FROM " . CRPCRM_DB::table( 'customers' ) . ' c WHERE ' . implode( ' AND ', $where ) . ' ORDER BY c.created_at DESC, c.id DESC';
+		$rows = $vals ? $wpdb->get_results( $wpdb->prepare( $sql, $vals ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
 		$out = array();
 		foreach ( $rows as $r ) {
 			$out[] = array( $r['full_name'], $r['phone'], $r['province'], $r['city'], $this->csv->format_boolean( $r['profile_completed'] ), CRPCRM_Labels::get_source_label( $r['first_source'] ), $r['first_campaign'], $this->csv->format_datetime( $r['first_seen_at'] ), CRPCRM_Labels::get_source_label( $r['last_source'] ), $r['last_campaign'], $this->csv->format_datetime( $r['last_seen_at'] ), $r['total_requests'], $r['open_requests'], $r['closed_requests'], $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ) );

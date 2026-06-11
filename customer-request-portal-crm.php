@@ -18,14 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'CRPCRM_VERSION', '0.1.5' );
-define( 'CRPCRM_DB_VERSION', '0.5.1' );
+define( 'CRPCRM_DB_VERSION', '0.6.0' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-feature-manager.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-public-theme.php';
-require_once CRPCRM_PLUGIN_DIR . 'includes/class-request-scope.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-default-form-definitions.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-form-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-request-type-registry.php';

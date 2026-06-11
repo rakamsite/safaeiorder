@@ -809,7 +809,6 @@ class CRPCRM_Admin_Pages {
 		}
 		$submitted_fields = $validated['data'];
 		$request_data     = $submitted_fields;
-		$request_data['business_profile'] = CRPCRM_Request_Scope::get_legacy_partition();
 		$request_data['form_id']          = sanitize_key( $form['id'] );
 		$request_data['form_version']     = sanitize_text_field( $form['version'] ?? '' );
 		$request_data['fields']           = $submitted_fields;
@@ -823,7 +822,6 @@ class CRPCRM_Admin_Pages {
 				'customer_id'      => absint( $customer['id'] ),
 				'user_id'          => absint( $customer['user_id'] ),
 				'request_type'     => $request_type,
-				'business_profile' => $request_data['business_profile'],
 				'form_id'          => $request_data['form_id'],
 				'form_version'     => $request_data['form_version'],
 				'status'           => $status,

@@ -6,7 +6,7 @@
 
 افزونه در حال گذار از معماری مبتنی بر `Business Profile` به معماری عمومی مبتنی بر `Default Forms` و `Form Builder` است.
 
-- `Business Profile` فعلاً برای حفظ رفتار موجود باقی می‌ماند، اما **در حال حذف است**.
+- `Business Profile` از flow اجرایی و دیتابیس درخواست‌ها حذف شده است.
 - توسعه جدید نباید Business Profile تازه بسازد یا وابستگی تازه‌ای به Business Profile موجود اضافه کند.
 - تا زمان تکمیل فازهای حذف، رفتار فعلی public request، admin request، settings، reports، feature toggle و shortcodeها باید حفظ شود.
 
@@ -30,7 +30,7 @@
 
 ### Business Profile
 
-یک سازوکار legacy و در حال حذف است. فعلاً نباید حذف یا شکسته شود، اما توسعه جدید نیز نباید روی آن بنا شود.
+یک سازوکار حذف‌شده است و نباید دوباره به flow اجرایی، تنظیمات یا دیتابیس بازگردد.
 
 ## قوانین الزامی
 
@@ -56,7 +56,7 @@ if ( 'ajax' === $site ) {
 
 - توسعه جدید نباید Business Profile تازه اضافه کند.
 - فرم، request type، label یا تنظیم جدید نباید به Business Profile موجود متصل شود.
-- تغییرات ضروری Business Profile فقط برای حفظ سازگاری تا زمان حذف مجاز است.
+- بازگرداندن Business Profile یا وابستگی جدید به آن ممنوع است.
 
 ### قانون ۳: فرم‌ها باید به معماری فرم منتقل شوند
 
@@ -85,8 +85,7 @@ request_data
 ```
 
 - درخواست جدید باید این metadata را به‌درستی ذخیره کند.
-- `business_profile` یک وابستگی transitional است و در آینده حذف می‌شود.
-- منطق جدید نباید برای تشخیص request به `business_profile` وابسته شود.
+- ستون و مفهوم `business_profile` نباید در request، query، report یا export استفاده شود.
 - نمایش metadata باید از helper/repository مرکزی انجام شود و decode پراکنده `request_data` ممنوع است.
 - request typeهای سیستمی باید از registry مرکزی خوانده شوند.
 
@@ -113,7 +112,7 @@ request_data
 - migrationها باید idempotent باشند.
 - حذف داده فقط در uninstall و با `delete_data_on_uninstall` مجاز است.
 - تغییرات transitional نباید داده‌های تستی موجود را بی‌دلیل حذف کنند.
-- حذف `business_profile` از دیتابیس فقط در فاز اختصاصی پاکسازی انجام می‌شود.
+- requestها باید فقط با metadata عمومی فرم و درخواست مدیریت شوند.
 
 ### قانون ۹: امنیت وردپرس الزامی است
 
@@ -130,7 +129,7 @@ request_data
 
 - **Phase 2:** انتقال فرم‌ها و request typeها از Business Profile به Default Forms.
 - **Phase 3:** حذف Business Profile و setup/lock مربوط به آن.
-- **Phase 4:** پاکسازی دیتابیس و queryها از `business_profile`.
+- **Phase 4:** پاکسازی دیتابیس و queryها از `business_profile`، انجام‌شده.
 - **Phase 5:** حذف تنظیمات خودرو و تبدیل آن به field options فرم.
 - **Phase 6:** اضافه کردن ماژول سبک Form Builder.
 - **Phase 7:** اتصال Form Builder به ثبت درخواست و seed فرم‌های اولیه.
