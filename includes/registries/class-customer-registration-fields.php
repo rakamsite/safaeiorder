@@ -13,6 +13,17 @@ class CRPCRM_Customer_Registration_Fields {
 	const OPTION_NAME   = 'crpcrm_customer_registration_fields';
 	const META_PREFIX   = 'crpcrm_registration_';
 
+	public static function get_default_activity_options() {
+		return array(
+			'تولید کننده ماشین آلات سنگین',
+			'راه آهن و ریلی',
+			'نفت و پتروشیمی',
+			'کمپرسور و ژنراتور',
+			'معادن',
+			'سایر',
+		);
+	}
+
 	public static function get_fields() {
 		return array(
 			'full_name'      => array( 'label' => 'نام و نام خانوادگی', 'type' => 'text' ),
@@ -38,7 +49,7 @@ class CRPCRM_Customer_Registration_Fields {
 				'order'    => $order,
 			);
 			if ( 'activity_field' === $field ) {
-				$defaults[ $field ]['options'] = array();
+				$defaults[ $field ]['options'] = self::get_default_activity_options();
 			}
 		}
 		return $defaults;
@@ -59,6 +70,9 @@ class CRPCRM_Customer_Registration_Fields {
 				$settings[ $field ]['order']    = isset( $stored[ $field ]['order'] ) ? absint( $stored[ $field ]['order'] ) : $settings[ $field ]['order'];
 				if ( 'activity_field' === $field && isset( $stored[ $field ]['options'] ) && is_array( $stored[ $field ]['options'] ) ) {
 					$settings[ $field ]['options'] = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $stored[ $field ]['options'] ) ) ) );
+					if ( $settings[ $field ]['enabled'] && $settings[ $field ]['required'] && empty( $settings[ $field ]['options'] ) ) {
+						$settings[ $field ]['options'] = self::get_default_activity_options();
+					}
 				}
 			}
 		}
@@ -83,6 +97,9 @@ class CRPCRM_Customer_Registration_Fields {
 			if ( 'activity_field' === $field ) {
 				$options = isset( $settings[ $field ]['options'] ) ? preg_split( '/\r\n|\r|\n/', (string) $settings[ $field ]['options'] ) : array();
 				$clean[ $field ]['options'] = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $options ) ) ) );
+				if ( $clean[ $field ]['enabled'] && $clean[ $field ]['required'] && empty( $clean[ $field ]['options'] ) ) {
+					$clean[ $field ]['options'] = self::get_default_activity_options();
+				}
 			}
 		}
 		asort( $submitted_order, SORT_NUMERIC );

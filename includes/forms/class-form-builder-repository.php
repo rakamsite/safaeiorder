@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Form_Builder_Repository {
 	const OPTION_NAME = 'crpcrm_custom_forms';
+	const SEED_OPTION_NAME = 'crpcrm_default_forms_seeded';
 
 	public function get_forms() {
 		$forms = get_option( self::OPTION_NAME, array() );
@@ -47,6 +48,10 @@ class CRPCRM_Form_Builder_Repository {
 
 	public function seed_default_forms_if_empty() {
 		if ( $this->has_custom_forms() ) {
+			update_option( self::SEED_OPTION_NAME, 'yes' );
+			return false;
+		}
+		if ( 'yes' === get_option( self::SEED_OPTION_NAME, '' ) ) {
 			return false;
 		}
 
@@ -60,7 +65,11 @@ class CRPCRM_Form_Builder_Repository {
 			}
 		}
 
-		return ! empty( $seeded ) && update_option( self::OPTION_NAME, $seeded );
+		if ( empty( $seeded ) || ! update_option( self::OPTION_NAME, $seeded ) ) {
+			return false;
+		}
+		update_option( self::SEED_OPTION_NAME, 'yes' );
+		return true;
 	}
 
 	public function save_form( $form, $original_form_id = '' ) {
@@ -140,8 +149,7 @@ class CRPCRM_Form_Builder_Repository {
 		$title     = sanitize_text_field( $form['title'] ?? '' );
 		$form_id   = sanitize_key( $form['form_id'] ?? $form['id'] ?? '' );
 		$form_id   = $form_id ? $form_id : $this->generate_form_id( $title );
-		$request_type = sanitize_key( $form['request_type'] ?? '' );
-		$request_type = $request_type ? $request_type : $form_id;
+		$request_type = $form_id;
 		$fields    = array();
 
 		foreach ( isset( $form['fields'] ) && is_array( $form['fields'] ) ? $form['fields'] : array() as $index => $field ) {

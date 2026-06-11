@@ -33,8 +33,7 @@ class CRPCRM_Form_Registry {
 		} );
 
 		$form_id = sanitize_key( $form['form_id'] ?? '' );
-		$request_type = sanitize_key( $form['request_type'] ?? '' );
-		$request_type = $request_type ? $request_type : $form_id;
+		$request_type = $form_id;
 		return array(
 			'id'               => $form_id,
 			'form_id'          => $form_id,
@@ -58,7 +57,7 @@ class CRPCRM_Form_Registry {
 		$repository->seed_default_forms_if_empty();
 		$stored_forms = $repository->get_forms();
 
-		if ( empty( $stored_forms ) ) {
+		if ( empty( $stored_forms ) && 'yes' !== get_option( CRPCRM_Form_Builder_Repository::SEED_OPTION_NAME, '' ) ) {
 			$stored_forms = CRPCRM_Default_Form_Definitions::get_forms();
 		}
 
