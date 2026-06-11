@@ -324,10 +324,10 @@ class CRPCRM_Portal_Shortcode {
 		$submitted_fields = $validated['data'];
 		$request_data     = $submitted_fields;
 		$request_summary  = CRPCRM_Request_Forms::build_summary( $form, $request_data );
-		$request_data['form_id']          = sanitize_key( $form['id'] );
-		$request_data['form_version']     = sanitize_text_field( $form['version'] ?? '' );
-		$request_data['fields']           = $submitted_fields;
-		$request_data['submitted_fields'] = $submitted_fields;
+		$form_id          = sanitize_key( $form['id'] );
+		$form_version     = sanitize_text_field( $form['version'] ?? '1' );
+		$request_type     = sanitize_key( $form['request_type'] ?? '' );
+		$request_type     = $request_type ? $request_type : $form_id;
 		$attribution      = $this->attribution_service->get_attribution_for_new_request();
 		$now             = CRPCRM_Helpers::current_datetime();
 
@@ -335,9 +335,9 @@ class CRPCRM_Portal_Shortcode {
 			array(
 				'customer_id'          => $customer_id,
 				'user_id'              => $user_id,
-				'request_type'         => $form['request_type'],
-				'form_id'              => $request_data['form_id'],
-				'form_version'         => $request_data['form_version'],
+				'request_type'         => $request_type,
+				'form_id'              => $form_id,
+				'form_version'         => $form_version ? $form_version : '1',
 				'status'               => 'new',
 				'owner_id'             => null,
 				'request_title'        => $form['title'],
@@ -375,7 +375,7 @@ class CRPCRM_Portal_Shortcode {
 				'note'          => 'درخواست توسط مشتری ثبت شد.',
 				'is_internal'   => 0,
 				'meta'          => array(
-					'request_type' => $form['request_type'],
+					'request_type' => $request_type,
 					'request_code' => $request_code,
 					'source'       => $attribution['source'],
 					'campaign'     => $attribution['campaign'],
@@ -383,7 +383,7 @@ class CRPCRM_Portal_Shortcode {
 			)
 		);
 
-		CRPCRM_Logger::info( 'customer_request_created', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code, 'request_type' => $form['request_type'], 'source' => $attribution['source'], 'campaign' => $attribution['campaign'] ) );
+		CRPCRM_Logger::info( 'customer_request_created', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code, 'request_type' => $request_type, 'source' => $attribution['source'], 'campaign' => $attribution['campaign'] ) );
 
 		wp_safe_redirect(
 			$this->get_portal_url(

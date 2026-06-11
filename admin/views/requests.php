@@ -311,7 +311,8 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 	<?php else : ?>
 		<?php
 		$request_data = CRPCRM_Request_Repository::get_merged_request_data( $request );
-		$type_labels  = CRPCRM_Request_Forms::get_field_labels_for_request_type( $request['request_type'], $request_data );
+		$detail_form  = CRPCRM_Request_Forms::get_form_for_request( $request['request_type'], $request_data );
+		$detail_items = CRPCRM_Dynamic_Form_Renderer::get_display_items( $detail_form, $request_data );
 		?>
 		<p><a class="button" href="<?php echo esc_url( crpcrm_admin_requests_url() ); ?>"><?php echo esc_html( 'بازگشت به لیست درخواست‌ها' ); ?></a></p>
 		<div class="crpcrm-detail-grid">
@@ -339,8 +340,8 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		</div>
 
 		<div class="crpcrm-card"><h2><?php echo esc_html( 'اطلاعات فرم' ); ?></h2><dl class="crpcrm-form-data">
-			<?php foreach ( $type_labels as $key => $label ) : ?>
-				<dt><?php echo esc_html( $label ); ?></dt><dd><?php echo esc_html( isset( $request_data[ $key ] ) && '' !== $request_data[ $key ] ? $request_data[ $key ] : '—' ); ?></dd>
+			<?php foreach ( $detail_items as $item ) : ?>
+				<dt><?php echo esc_html( $item['label'] ); ?></dt><dd><?php echo esc_html( '' !== $item['value'] ? $item['value'] : '—' ); ?></dd>
 			<?php endforeach; ?>
 		</dl></div>
 

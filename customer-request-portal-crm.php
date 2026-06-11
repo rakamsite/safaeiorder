@@ -27,6 +27,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-feature-manager.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-public-theme.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-default-form-definitions.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-form-builder-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-dynamic-form-renderer.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-form-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-request-type-registry.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/registries/class-system-request-types.php';
