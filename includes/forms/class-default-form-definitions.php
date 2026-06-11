@@ -78,20 +78,6 @@ class CRPCRM_Default_Form_Definitions {
 			),
 		);
 
-		foreach ( $forms as $form_id => &$form ) {
-			foreach ( $form['fields'] as &$field ) {
-				$field['options'] = apply_filters(
-					'crpcrm_default_form_field_options',
-					$field['options'],
-					$form_id,
-					$field['name'],
-					$field
-				);
-			}
-			unset( $field );
-		}
-		unset( $form );
-
 		return apply_filters( 'crpcrm_default_forms', $forms );
 	}
 }

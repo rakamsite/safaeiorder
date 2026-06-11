@@ -22,7 +22,6 @@ class CRPCRM_Feature_Manager {
 			'sms'                   => 'پیامک',
 			'tracking'              => 'رهگیری ورودی‌ها',
 			'lead_followup'         => 'پیگیری لیدها',
-			'vehicle_catalog'       => 'تنظیمات خودرو',
 			'admin_tools'           => 'ابزارهای مدیریتی',
 		);
 	}
