@@ -1,10 +1,78 @@
 <?php
-/** Registry for default forms used by request flows. @package CRPCRM */
+/** Registry for stored forms used by request flows. @package CRPCRM */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class CRPCRM_Form_Registry {
+	private static function get_repository() {
+		return new CRPCRM_Form_Builder_Repository();
+	}
+
+	private static function to_runtime_form( $form ) {
+		$fields = array();
+		foreach ( (array) ( $form['fields'] ?? array() ) as $field ) {
+			if ( isset( $field['enabled'] ) && ! $field['enabled'] ) {
+				continue;
+			}
+			$fields[] = array(
+				'name'             => sanitize_key( $field['key'] ?? '' ),
+				'label'            => sanitize_text_field( $field['label'] ?? '' ),
+				'type'             => sanitize_key( $field['type'] ?? 'text' ),
+				'required'         => ! empty( $field['required'] ),
+				'required_message' => sanitize_text_field( $field['required_message'] ?? '' ),
+				'placeholder'      => sanitize_text_field( $field['placeholder'] ?? '' ),
+				'help'             => sanitize_textarea_field( $field['help_text'] ?? '' ),
+				'options'          => is_array( $field['options'] ?? null ) ? $field['options'] : array(),
+				'default'          => sanitize_text_field( $field['default'] ?? '' ),
+				'enabled'          => true,
+				'sort_order'       => absint( $field['sort_order'] ?? 0 ),
+			);
+		}
+
+		usort( $fields, function ( $a, $b ) {
+			return $a['sort_order'] <=> $b['sort_order'];
+		} );
+
+		$form_id = sanitize_key( $form['form_id'] ?? '' );
+		$request_type = sanitize_key( $form['request_type'] ?? '' );
+		$request_type = $request_type ? $request_type : $form_id;
+		return array(
+			'id'               => $form_id,
+			'form_id'          => $form_id,
+			'title'            => sanitize_text_field( $form['title'] ?? '' ),
+			'label'            => sanitize_text_field( $form['label'] ?? $form['title'] ?? '' ),
+			'page'             => sanitize_key( $form['page'] ?? $form_id ),
+			'icon'             => sanitize_key( $form['icon'] ?? '' ),
+			'description'      => sanitize_textarea_field( $form['description'] ?? '' ),
+			'request_type'     => $request_type,
+			'submit_label'     => sanitize_text_field( $form['submit_label'] ?? '' ),
+			'enabled'          => ! empty( $form['enabled'] ),
+			'sort_order'       => absint( $form['sort_order'] ?? 0 ),
+			'version'          => sanitize_text_field( $form['version'] ?? '1' ),
+			'summary_template' => sanitize_textarea_field( $form['summary_template'] ?? '' ),
+			'fields'           => $fields,
+		);
+	}
+
 	public static function get_forms() {
-		return CRPCRM_Default_Form_Definitions::get_forms();
+		$repository = self::get_repository();
+		$repository->seed_default_forms_if_empty();
+		$stored_forms = $repository->get_forms();
+
+		if ( empty( $stored_forms ) ) {
+			$stored_forms = CRPCRM_Default_Form_Definitions::get_forms();
+		}
+
+		$forms = array();
+		foreach ( $stored_forms as $form ) {
+			$runtime_form = self::to_runtime_form( $repository->normalize_form( $form ) );
+			if ( $runtime_form['id'] ) {
+				$forms[ $runtime_form['id'] ] = $runtime_form;
+			}
+		}
+		uasort( $forms, function ( $a, $b ) {
+			return $a['sort_order'] <=> $b['sort_order'];
+		} );
+		return $forms;
 	}
 
 	public static function get_aliases() {
@@ -49,31 +117,9 @@ class CRPCRM_Form_Registry {
 		return self::get_form_by_request_type( $request_type );
 	}
 
-	private static function get_enabled_override() {
-		$stored = CRPCRM_Settings::get( 'enabled_forms', null );
-		if ( ! is_array( $stored ) ) {
-			return null;
-		}
-
-		if ( array_key_exists( CRPCRM_Default_Form_Definitions::SETTINGS_KEY, $stored ) ) {
-			return array_map( array( __CLASS__, 'resolve_form_id' ), (array) $stored[ CRPCRM_Default_Form_Definitions::SETTINGS_KEY ] );
-		}
-
-		// Transitional fallback for the former profile-namespaced settings structure.
-		foreach ( $stored as $legacy_form_ids ) {
-			if ( is_array( $legacy_form_ids ) ) {
-				return array_map( array( __CLASS__, 'resolve_form_id' ), $legacy_form_ids );
-			}
-		}
-		return null;
-	}
-
 	public static function get_enabled_forms() {
-		$forms    = self::get_forms();
-		$override = self::get_enabled_override();
-		return array_filter( $forms, function ( $form ) use ( $override ) {
-			if ( ! is_array( $form ) || ( isset( $form['enabled'] ) && empty( $form['enabled'] ) ) ) { return false; }
-			return null === $override || in_array( self::resolve_form_id( $form['id'] ?? '' ), $override, true );
+		return array_filter( self::get_forms(), function ( $form ) {
+			return is_array( $form ) && ! empty( $form['enabled'] );
 		} );
 	}
 

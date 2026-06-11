@@ -11,4 +11,7 @@ Form Builder ماژول آینده مدیریت فرم‌های درخواست �
 - هر سایت در Form Builder آینده می‌تواند فیلدهای `select` و گزینه‌های خودش را بدون افزودن مفهوم اختصاصی به core بسازد.
 - Form Builder نباید به Business Profile، Safaei، Ajax، خودرو یا سایت خاص وابسته باشد.
 - نسخه اول فرم‌ساز فرم‌ها را در option عمومی `crpcrm_custom_forms` ذخیره می‌کند و CRUD پایه `text`، `textarea` و `select` را فراهم می‌کند.
-- تا فاز ۷، Form Registry و ثبت درخواست همچنان فقط از Default Forms استفاده می‌کنند.
+- در فاز ۷A، Default Forms فقط هنگام خالی بودن storage به‌عنوان seed اولیه استفاده می‌شوند.
+- Form Registry منبع اصلی خود را از فرم‌های ذخیره‌شده در `crpcrm_custom_forms` می‌گیرد و Request Type Registry نیز از فرم‌های فعال همان Registry تغذیه می‌شود.
+- خاموش بودن feature `form_builder` فقط UI مدیریت فرم‌ها را خاموش می‌کند و هیچ اثری روی خواندن یا استفاده از فرم‌های ذخیره‌شده ندارد.
+- بازنویسی نهایی rendering و submit processing عمومی/ادمین برای فاز ۷B باقی مانده است.

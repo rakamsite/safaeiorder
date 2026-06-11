@@ -137,6 +137,14 @@ request_data
 - **Phase 7:** اتصال Form Builder به ثبت درخواست و seed فرم‌های اولیه.
 - **Phase 8:** پاکسازی نهایی docs و code.
 
+### Phase 7A Registry Rules
+
+- `CRPCRM_Form_Registry` must read stored Form Builder forms as its primary source.
+- Default Forms are seed/fallback definitions only and must never overwrite stored forms.
+- Initial seeding may run only when `crpcrm_custom_forms` is empty.
+- `form_builder` controls management access only; runtime registries must never gate stored forms behind this feature.
+- `CRPCRM_Request_Type_Registry` must derive normal request types and labels from enabled forms in `CRPCRM_Form_Registry`.
+
 ## چک‌لیست قبل از توسعه فرم
 
 - [ ] آیا فرم جدید از Form Builder یا در دوره گذار از Default Forms می‌آید؟

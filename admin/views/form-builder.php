@@ -22,7 +22,7 @@ for ( $i = count( $fields ); $i < 10; $i++ ) {
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
 	<h1><?php echo esc_html( 'فرم‌ساز' ); ?></h1>
-	<p class="description"><?php echo esc_html( 'فرم‌های ساخته‌شده در این صفحه تا فاز اتصال نهایی فقط مدیریت و ذخیره می‌شوند و روی ثبت درخواست فعلی اثر ندارند.' ); ?></p>
+	<p class="description"><?php echo esc_html( 'فرم‌های ذخیره‌شده منبع مرکزی فرم‌ها هستند. خاموش کردن قابلیت فرم‌ساز فقط دسترسی به مدیریت فرم‌ها را متوقف می‌کند.' ); ?></p>
 	<?php if ( isset( $_GET['form-saved'] ) ) : ?><div class="notice notice-success"><p><?php echo esc_html( 'فرم ذخیره شد.' ); ?></p></div><?php endif; ?>
 	<?php if ( isset( $_GET['form-deleted'] ) ) : ?><div class="notice notice-success"><p><?php echo esc_html( 'فرم حذف شد.' ); ?></p></div><?php endif; ?>
 	<?php if ( isset( $_GET['form-error'] ) ) : ?><div class="notice notice-error"><p><?php echo esc_html( 'ذخیره فرم انجام نشد. شناسه‌ها و فیلدهای فرم را بررسی کنید.' ); ?></p></div><?php endif; ?>

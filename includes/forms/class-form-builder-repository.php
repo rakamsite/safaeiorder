@@ -15,10 +15,17 @@ class CRPCRM_Form_Builder_Repository {
 	public function get_forms() {
 		$forms = get_option( self::OPTION_NAME, array() );
 		$forms = is_array( $forms ) ? $forms : array();
-		uasort( $forms, function ( $a, $b ) {
+		$normalized_forms = array();
+		foreach ( $forms as $form ) {
+			$normalized = $this->normalize_form( $form );
+			if ( $normalized['form_id'] ) {
+				$normalized_forms[ $normalized['form_id'] ] = $normalized;
+			}
+		}
+		uasort( $normalized_forms, function ( $a, $b ) {
 			return absint( $a['sort_order'] ?? 0 ) <=> absint( $b['sort_order'] ?? 0 );
 		} );
-		return $forms;
+		return $normalized_forms;
 	}
 
 	public function get_enabled_forms() {
@@ -31,6 +38,29 @@ class CRPCRM_Form_Builder_Repository {
 		$forms   = $this->get_forms();
 		$form_id = sanitize_key( $form_id );
 		return isset( $forms[ $form_id ] ) ? $forms[ $form_id ] : null;
+	}
+
+	public function has_custom_forms() {
+		$forms = get_option( self::OPTION_NAME, array() );
+		return is_array( $forms ) && ! empty( $forms );
+	}
+
+	public function seed_default_forms_if_empty() {
+		if ( $this->has_custom_forms() ) {
+			return false;
+		}
+
+		$seeded = array();
+		foreach ( CRPCRM_Default_Form_Definitions::get_forms() as $form_id => $form ) {
+			$form['form_id'] = sanitize_key( $form['form_id'] ?? $form['id'] ?? $form_id );
+			$form['version'] = '1';
+			$normalized      = $this->normalize_form( $form );
+			if ( empty( $this->validate_form_schema( $normalized ) ) ) {
+				$seeded[ $normalized['form_id'] ] = $normalized;
+			}
+		}
+
+		return ! empty( $seeded ) && update_option( self::OPTION_NAME, $seeded );
 	}
 
 	public function save_form( $form, $original_form_id = '' ) {
@@ -76,36 +106,50 @@ class CRPCRM_Form_Builder_Repository {
 	}
 
 	public function sanitize_form( $form ) {
+		return $this->normalize_form( $form );
+	}
+
+	public function normalize_field( $field, $default_sort_order = 0 ) {
+		$field = is_array( $field ) ? $field : array();
+		$key   = sanitize_key( $field['key'] ?? $field['name'] ?? '' );
+		$label = sanitize_text_field( $field['label'] ?? '' );
+		$type  = sanitize_key( $field['type'] ?? 'text' );
+		$type  = in_array( $type, array( 'text', 'textarea', 'select' ), true ) ? $type : 'text';
+		$options = isset( $field['options'] ) && is_array( $field['options'] )
+			? $field['options']
+			: preg_split( '/\r\n|\r|\n/', (string) ( $field['options'] ?? '' ) );
+		$options = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $options ), 'strlen' ) ) );
+
+		return array(
+			'key'              => $key,
+			'label'            => $label,
+			'type'             => $type,
+			'required'         => ! empty( $field['required'] ),
+			'required_message' => sanitize_text_field( $field['required_message'] ?? '' ),
+			'placeholder'      => sanitize_text_field( $field['placeholder'] ?? '' ),
+			'help_text'        => sanitize_textarea_field( $field['help_text'] ?? $field['help'] ?? '' ),
+			'options'          => 'select' === $type ? $options : array(),
+			'default'          => sanitize_text_field( $field['default'] ?? '' ),
+			'enabled'          => array_key_exists( 'enabled', $field ) ? ! empty( $field['enabled'] ) : true,
+			'sort_order'       => absint( $field['sort_order'] ?? $default_sort_order ),
+		);
+	}
+
+	public function normalize_form( $form ) {
 		$form      = is_array( $form ) ? $form : array();
 		$title     = sanitize_text_field( $form['title'] ?? '' );
-		$form_id   = sanitize_key( $form['form_id'] ?? '' );
+		$form_id   = sanitize_key( $form['form_id'] ?? $form['id'] ?? '' );
 		$form_id   = $form_id ? $form_id : $this->generate_form_id( $title );
+		$request_type = sanitize_key( $form['request_type'] ?? '' );
+		$request_type = $request_type ? $request_type : $form_id;
 		$fields    = array();
 
-		foreach ( isset( $form['fields'] ) && is_array( $form['fields'] ) ? $form['fields'] : array() as $field ) {
-			$field = is_array( $field ) ? $field : array();
-			$key   = sanitize_key( $field['key'] ?? '' );
-			$label = sanitize_text_field( $field['label'] ?? '' );
-			if ( '' === $key && '' === $label ) {
+		foreach ( isset( $form['fields'] ) && is_array( $form['fields'] ) ? $form['fields'] : array() as $index => $field ) {
+			$field = $this->normalize_field( $field, $index );
+			if ( '' === $field['key'] && '' === $field['label'] ) {
 				continue;
 			}
-			$type = sanitize_key( $field['type'] ?? 'text' );
-			$type = in_array( $type, array( 'text', 'textarea', 'select' ), true ) ? $type : 'text';
-			$options = isset( $field['options'] ) && is_array( $field['options'] )
-				? $field['options']
-				: preg_split( '/\r\n|\r|\n/', (string) ( $field['options'] ?? '' ) );
-			$options = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $options ), 'strlen' ) ) );
-			$fields[] = array(
-				'key'         => $key,
-				'label'       => $label,
-				'type'        => $type,
-				'required'    => ! empty( $field['required'] ),
-				'placeholder' => sanitize_text_field( $field['placeholder'] ?? '' ),
-				'help_text'   => sanitize_textarea_field( $field['help_text'] ?? '' ),
-				'options'     => 'select' === $type ? $options : array(),
-				'enabled'     => ! empty( $field['enabled'] ),
-				'sort_order'  => absint( $field['sort_order'] ?? 0 ),
-			);
+			$fields[] = $field;
 		}
 		usort( $fields, function ( $a, $b ) {
 			return $a['sort_order'] <=> $b['sort_order'];
@@ -114,18 +158,23 @@ class CRPCRM_Form_Builder_Repository {
 		return array(
 			'form_id'       => $form_id,
 			'title'         => $title,
+			'label'         => sanitize_text_field( $form['label'] ?? $title ),
+			'page'          => sanitize_key( $form['page'] ?? $form_id ),
+			'icon'          => sanitize_key( $form['icon'] ?? '' ),
 			'description'   => sanitize_textarea_field( $form['description'] ?? '' ),
-			'request_type'  => sanitize_key( $form['request_type'] ?? $form_id ),
+			'request_type'  => $request_type,
 			'submit_label'  => sanitize_text_field( $form['submit_label'] ?? 'ثبت درخواست' ),
-			'enabled'       => ! empty( $form['enabled'] ),
+			'summary_template' => sanitize_textarea_field( $form['summary_template'] ?? '' ),
+			'enabled'       => array_key_exists( 'enabled', $form ) ? ! empty( $form['enabled'] ) : true,
 			'sort_order'    => absint( $form['sort_order'] ?? 0 ),
 			'version'       => sanitize_text_field( $form['version'] ?? '1.0.0' ),
 			'fields'        => $fields,
 		);
 	}
 
-	public function normalize_form( $form ) {
-		return $this->sanitize_form( $form );
+	public function get_form_version( $form_id ) {
+		$form = $this->get_form( $form_id );
+		return $form ? sanitize_text_field( $form['version'] ?? '' ) : '';
 	}
 
 	public function validate_form_schema( $form ) {
