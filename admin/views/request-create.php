@@ -24,7 +24,7 @@ $sources = array( 'direct', 'instagram', 'whatsapp', 'telegram', 'google', 'bing
 		<?php if ( '' !== $customer_search && empty( $customer_results ) ) : ?><p><?php echo esc_html( 'کاربری پیدا نشد؛ می‌توانید در فرم زیر کاربر جدید بسازید.' ); ?></p><?php endif; ?>
 	</div>
 
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-card crpcrm-manual-request-form">
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-card crpcrm-manual-request-form" enctype="multipart/form-data">
 		<input type="hidden" name="action" value="crpcrm_create_manual_request"><?php wp_nonce_field( 'crpcrm_create_manual_request' ); ?>
 		<h2><?php echo esc_html( '۱. انتخاب یا ساخت مشتری' ); ?></h2>
 		<div class="crpcrm-radio-row"><label><input type="radio" name="customer_mode" value="existing" checked> <?php echo esc_html( 'انتخاب کاربر ثبت‌شده' ); ?></label><label><input type="radio" name="customer_mode" value="new"> <?php echo esc_html( 'ساخت کاربر جدید بدون OTP' ); ?></label></div>

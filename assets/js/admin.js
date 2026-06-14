@@ -325,11 +325,288 @@
 		});
 	}
 
+	function getAdminConfig() {
+		return window.crpcrmAdmin || {};
+	}
+
+	function createProductChip(container, hidden, product, labels) {
+		var chip = document.createElement('span');
+		chip.className = 'crpcrm-product-chip';
+		chip.setAttribute('data-product-id', String(product.id));
+
+		if (product.thumbnail) {
+			var image = document.createElement('img');
+			image.src = product.thumbnail;
+			image.alt = product.name;
+			chip.appendChild(image);
+		}
+
+		var text = document.createElement('span');
+		text.textContent = product.name;
+		chip.appendChild(text);
+
+		var remove = document.createElement('button');
+		remove.type = 'button';
+		remove.className = 'crpcrm-product-chip-remove';
+		remove.setAttribute('aria-label', labels.productRemoveLabel || 'حذف محصول');
+		remove.textContent = '×';
+		remove.addEventListener('click', function () {
+			chip.remove();
+			syncProductHiddenValue(container, hidden);
+		});
+		chip.appendChild(remove);
+
+		container.appendChild(chip);
+		syncProductHiddenValue(container, hidden);
+	}
+
+	function syncProductHiddenValue(container, hidden) {
+		var ids = Array.prototype.map.call(container.querySelectorAll('.crpcrm-product-chip'), function (chip) {
+			return chip.getAttribute('data-product-id');
+		});
+		hidden.value = ids.join(',');
+	}
+
+	function initProductSearch(scope, labels) {
+		scope.querySelectorAll('.crpcrm-product-search').forEach(function (wrapper) {
+			if (wrapper.dataset.initialized === '1') {
+				return;
+			}
+			wrapper.dataset.initialized = '1';
+
+			var hidden = wrapper.querySelector('.crpcrm-product-search-value');
+			var input = wrapper.querySelector('.crpcrm-product-search-input');
+			var results = wrapper.querySelector('.crpcrm-product-search-results');
+			var selected = wrapper.querySelector('.crpcrm-product-search-selected');
+			var abortController = null;
+
+			function renderResults(items) {
+				results.innerHTML = '';
+				if (!items.length) {
+					var empty = document.createElement('div');
+					empty.className = 'crpcrm-product-search-empty';
+					empty.textContent = labels.productSearchEmpty || 'محصولی پیدا نشد.';
+					results.appendChild(empty);
+					results.hidden = false;
+					return;
+				}
+
+				items.forEach(function (product) {
+					if (selected.querySelector('[data-product-id="' + product.id + '"]')) {
+						return;
+					}
+					var button = document.createElement('button');
+					button.type = 'button';
+					button.className = 'crpcrm-product-search-result';
+					if (product.thumbnail) {
+						var image = document.createElement('img');
+						image.src = product.thumbnail;
+						image.alt = product.name;
+						button.appendChild(image);
+					}
+					var name = document.createElement('span');
+					name.textContent = product.name;
+					button.appendChild(name);
+					button.addEventListener('click', function () {
+						createProductChip(selected, hidden, product, labels);
+						input.value = '';
+						results.hidden = true;
+						results.innerHTML = '';
+						input.focus();
+					});
+					results.appendChild(button);
+				});
+
+				results.hidden = !results.children.length;
+			}
+
+			input.addEventListener('input', function () {
+				var term = input.value.trim();
+				if (term.length < (labels.productSearchMin || 2)) {
+					results.hidden = true;
+					results.innerHTML = '';
+					return;
+				}
+
+				results.hidden = false;
+				results.innerHTML = '<div class="crpcrm-product-search-empty">' + (labels.productSearchLoading || 'در حال جستجو...') + '</div>';
+
+				if (abortController) {
+					abortController.abort();
+				}
+				abortController = new AbortController();
+
+				var params = new URLSearchParams({
+					action: 'crpcrm_search_products',
+					nonce: labels.productSearchNonce || '',
+					term: term
+				});
+
+				fetch((labels.ajaxUrl || '') + '?' + params.toString(), {
+					credentials: 'same-origin',
+					signal: abortController.signal
+				})
+					.then(function (response) { return response.json(); })
+					.then(function (payload) {
+						renderResults(payload && payload.success && Array.isArray(payload.data) ? payload.data : []);
+					})
+					.catch(function (error) {
+						if (error && error.name === 'AbortError') {
+							return;
+						}
+						results.hidden = true;
+					});
+			});
+
+			document.addEventListener('click', function (event) {
+				if (!wrapper.contains(event.target)) {
+					results.hidden = true;
+				}
+			});
+		});
+	}
+
+	function createUploadRow(name, required) {
+		var row = document.createElement('div');
+		row.className = 'crpcrm-file-upload-row';
+
+		var input = document.createElement('input');
+		input.type = 'file';
+		input.name = name + '[]';
+		input.accept = '.jpg,.jpeg,.png,.webp,.gif,.pdf';
+		if (required) {
+			input.setAttribute('data-required', '1');
+		}
+		row.appendChild(input);
+
+		var remove = document.createElement('button');
+		remove.type = 'button';
+		remove.className = 'crpcrm-file-upload-remove';
+		remove.textContent = '×';
+		remove.addEventListener('click', function () {
+			row.remove();
+		});
+		row.appendChild(remove);
+
+		return row;
+	}
+
+	function initFileUploads(scope) {
+		scope.querySelectorAll('.crpcrm-file-upload').forEach(function (wrapper) {
+			if (wrapper.dataset.initialized === '1') {
+				return;
+			}
+			wrapper.dataset.initialized = '1';
+
+			var name = wrapper.getAttribute('data-field-name');
+			var list = wrapper.querySelector('.crpcrm-file-upload-list');
+			var add = wrapper.querySelector('.crpcrm-file-upload-add');
+			if (!name || !list || !add) {
+				return;
+			}
+
+			add.addEventListener('click', function () {
+				var required = !!list.querySelector('[data-required="1"]');
+				list.appendChild(createUploadRow(name, required));
+			});
+
+			list.addEventListener('click', function (event) {
+				if (event.target.classList.contains('crpcrm-file-upload-remove') && list.children.length > 1) {
+					event.preventDefault();
+					event.target.closest('.crpcrm-file-upload-row').remove();
+				}
+			});
+		});
+	}
+
+	function syncFieldCardType(card) {
+		var typeSelect = card.querySelector('.crpcrm-form-builder-field-type');
+		if (!typeSelect) {
+			return;
+		}
+		var type = typeSelect.value;
+		var options = card.querySelector('.crpcrm-field-type-options');
+		var content = card.querySelector('.crpcrm-field-type-content');
+		if (options) {
+			options.classList.toggle('is-hidden', type !== 'select');
+		}
+		if (content) {
+			content.classList.toggle('is-hidden', type !== 'display_html');
+		}
+	}
+
+	function renumberFieldCards(container) {
+		container.querySelectorAll('.crpcrm-form-builder-field-card').forEach(function (card, index) {
+			var label = card.querySelector('.crpcrm-field-order-label');
+			var orderInput = card.querySelector('.crpcrm-field-sort-order');
+			if (label) {
+				label.textContent = String(index + 1);
+			}
+			if (orderInput) {
+				orderInput.value = index;
+			}
+		});
+	}
+
+	function initFormBuilder() {
+		document.querySelectorAll('.crpcrm-form-builder-fields').forEach(function (builder) {
+			var addButton = builder.querySelector('.crpcrm-add-field-button');
+			var list = builder.querySelector('.crpcrm-form-builder-field-list');
+			var template = document.getElementById('tmpl-crpcrm-form-builder-field');
+			var count = parseInt(builder.getAttribute('data-field-count'), 10) || 0;
+
+			if (!addButton || !list || !template) {
+				return;
+			}
+
+			list.querySelectorAll('.crpcrm-form-builder-field-card').forEach(syncFieldCardType);
+			renumberFieldCards(list);
+
+			addButton.addEventListener('click', function () {
+				var html = template.innerHTML
+					.replace(/__INDEX__/g, String(count))
+					.replace(/__ORDER__/g, String(count + 1));
+				var frame = document.createElement('div');
+				frame.innerHTML = html;
+				var card = frame.firstElementChild;
+				list.appendChild(card);
+				syncFieldCardType(card);
+				count += 1;
+			});
+
+			list.addEventListener('change', function (event) {
+				var card = event.target.closest('.crpcrm-form-builder-field-card');
+				if (!card) {
+					return;
+				}
+				if (event.target.classList.contains('crpcrm-form-builder-field-type')) {
+					syncFieldCardType(card);
+				}
+			});
+
+			list.addEventListener('click', function (event) {
+				if (!event.target.classList.contains('crpcrm-remove-field-button')) {
+					return;
+				}
+				event.preventDefault();
+				var card = event.target.closest('.crpcrm-form-builder-field-card');
+				if (card && list.children.length > 1) {
+					card.remove();
+					renumberFieldCards(list);
+				}
+			});
+		});
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
+		var config = getAdminConfig();
 		initJalaliDatePickers();
 		initRegistrationFieldSorting();
+		initFormBuilder();
 		document.querySelectorAll('.crpcrm-manual-request-form').forEach(function (form) {
 			updateManualCustomerFields(form);
+			initProductSearch(form, config);
+			initFileUploads(form);
 			form.querySelectorAll('input[name="customer_mode"]').forEach(function (radio) {
 				radio.addEventListener('change', function () { updateManualCustomerFields(form); });
 			});

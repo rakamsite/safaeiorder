@@ -72,8 +72,8 @@ class CRPCRM_Request_Forms {
 		return CRPCRM_Dynamic_Form_Renderer::get_field_options( $field );
 	}
 
-	public static function sanitize_and_validate( $form, $posted ) {
-		return CRPCRM_Dynamic_Form_Renderer::sanitize_and_validate( $form, $posted );
+	public static function sanitize_and_validate( $form, $posted, $files = array() ) {
+		return CRPCRM_Dynamic_Form_Renderer::sanitize_and_validate( $form, $posted, $files );
 	}
 
 	public static function build_summary( $form, $data ) {
@@ -92,13 +92,34 @@ class CRPCRM_Request_Forms {
 
 		$parts = array();
 		foreach ( $form['fields'] as $field ) {
-			$name = $field['name'];
+			$name = $field['name'] ?? $field['key'] ?? '';
+			if ( 'display_html' === ( $field['type'] ?? '' ) ) {
+				continue;
+			}
 			if ( isset( $data[ $name ] ) && ! self::is_empty_value( $data[ $name ] ) ) {
-				$parts[] = $field['label'] . ': ' . ( is_array( $data[ $name ] ) ? implode( '، ', $data[ $name ] ) : $data[ $name ] );
+				$parts[] = ( $field['label'] ?? $name ) . ': ' . self::summarize_field_value( $data[ $name ] );
 			}
 		}
 
 		return implode( ' | ', $parts );
+	}
+
+	private static function summarize_field_value( $value ) {
+		if ( is_array( $value ) ) {
+			$parts = array();
+			foreach ( $value as $item ) {
+				if ( is_array( $item ) ) {
+					if ( ! empty( $item['name'] ) ) {
+						$parts[] = $item['name'];
+					}
+				} elseif ( is_scalar( $item ) ) {
+					$parts[] = (string) $item;
+				}
+			}
+			return implode( '، ', $parts );
+		}
+
+		return (string) $value;
 	}
 
 	private static function is_empty_value( $value ) {

@@ -22,6 +22,8 @@ class CRPCRM_Form_Registry {
 				'placeholder'      => sanitize_text_field( $field['placeholder'] ?? '' ),
 				'help'             => sanitize_textarea_field( $field['help_text'] ?? '' ),
 				'options'          => is_array( $field['options'] ?? null ) ? $field['options'] : array(),
+				'content'          => wp_kses_post( $field['content'] ?? '' ),
+				'width'            => sanitize_text_field( $field['width'] ?? '100' ),
 				'default'          => sanitize_text_field( $field['default'] ?? '' ),
 				'enabled'          => true,
 				'sort_order'       => absint( $field['sort_order'] ?? 0 ),

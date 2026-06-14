@@ -25,6 +25,7 @@ define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-feature-manager.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-public-theme.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-form-icon-pack.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-default-form-definitions.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-form-builder-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/forms/class-dynamic-form-renderer.php';
