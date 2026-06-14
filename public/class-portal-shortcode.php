@@ -15,6 +15,7 @@ class CRPCRM_Portal_Shortcode {
 	private $request_repository;
 	private $activity_repository;
 	private $attribution_service;
+	private $notification_service;
 
 	public function __construct( CRPCRM_OTP_Service $otp_service = null ) {
 		$this->otp_service           = $otp_service ? $otp_service : new CRPCRM_OTP_Service();
@@ -22,6 +23,7 @@ class CRPCRM_Portal_Shortcode {
 		$this->request_repository   = new CRPCRM_Request_Repository();
 		$this->activity_repository  = new CRPCRM_Activity_Repository();
 		$this->attribution_service  = new CRPCRM_Attribution_Service();
+		$this->notification_service = new CRPCRM_Notification_Service();
 	}
 
 	public function register_hooks() {
@@ -385,6 +387,7 @@ class CRPCRM_Portal_Shortcode {
 		);
 
 		CRPCRM_Logger::info( 'customer_request_created', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code, 'request_type' => $request_type, 'source' => $attribution['source'], 'campaign' => $attribution['campaign'] ) );
+		$this->notify_sales_team_about_request( $request_id, $form['title'] );
 
 		wp_safe_redirect(
 			$this->get_portal_url(
@@ -855,5 +858,29 @@ class CRPCRM_Portal_Shortcode {
 		}
 
 		return $phone_normalized;
+	}
+
+	private function notify_sales_team_about_request( $request_id, $request_title ) {
+		if ( ! CRPCRM_Notification_Service::is_enabled() ) {
+			return;
+		}
+
+		$users    = get_users(
+			array(
+				'role__in' => array( 'sales_agent', 'sales_manager' ),
+				'fields'   => array( 'ID' ),
+			)
+		);
+		$user_ids = array_map( 'absint', wp_list_pluck( $users, 'ID' ) );
+
+		$this->notification_service->create_for_users(
+			$user_ids,
+			'request_created',
+			'درخواست جدید ثبت شد',
+			sanitize_text_field( $request_title ),
+			admin_url( 'admin.php?page=crpcrm-requests&request_id=' . absint( $request_id ) ),
+			'request',
+			$request_id
+		);
 	}
 }

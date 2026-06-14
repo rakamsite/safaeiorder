@@ -19,6 +19,7 @@ class CRPCRM_Settings {
 
 	public static function defaults() {
 		$site_host = wp_parse_url( home_url(), PHP_URL_HOST );
+
 		return array(
 			'portal_page_id'                       => 0,
 			'portal_menu_id'                       => 0,
@@ -51,6 +52,7 @@ class CRPCRM_Settings {
 			'daily_report_required'                => 'no',
 			'daily_report_reminder_time'           => '',
 			'staff_items_per_page'                 => 20,
+			'notifications_toast_enabled'          => 'yes',
 			'delete_data_on_uninstall'             => 'no',
 			'log_retention_days'                   => 90,
 			'log_level'                            => 'info',
@@ -103,6 +105,9 @@ class CRPCRM_Settings {
 		if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
 			$tabs['staff'] = 'تنظیمات پنل کارکنان';
 		}
+		if ( CRPCRM_Feature_Manager::is_enabled( 'notifications' ) ) {
+			$tabs['notifications'] = 'تنظیمات اعلانات';
+		}
 		$tabs['roles']       = 'تنظیمات نقش‌ها و دسترسی‌ها';
 		$tabs['maintenance'] = 'تنظیمات نگهداری داده‌ها';
 		if ( CRPCRM_Feature_Manager::is_enabled( 'admin_tools' ) ) {
@@ -141,6 +146,7 @@ class CRPCRM_Settings {
 			$settings = $this->sanitize_settings( $input, $active_tab );
 			update_option( self::OPTION_NAME, $settings );
 		}
+
 		CRPCRM_Logger::info( 'settings_updated', 'settings_updated', array( 'user_id' => get_current_user_id(), 'tab' => $active_tab ) );
 
 		$redirect_url = add_query_arg(
@@ -174,12 +180,12 @@ class CRPCRM_Settings {
 		$settings = $current;
 
 		if ( 'portal' === $active_tab ) {
-			$settings['portal_page_id']                = isset( $input['portal_page_id'] ) ? absint( $input['portal_page_id'] ) : $defaults['portal_page_id'];
-			$settings['portal_menu_id']                = isset( $input['portal_menu_id'] ) ? absint( $input['portal_menu_id'] ) : $defaults['portal_menu_id'];
+			$settings['portal_page_id']          = isset( $input['portal_page_id'] ) ? absint( $input['portal_page_id'] ) : $defaults['portal_page_id'];
+			$settings['portal_menu_id']          = isset( $input['portal_menu_id'] ) ? absint( $input['portal_menu_id'] ) : $defaults['portal_menu_id'];
 			if ( CRPCRM_Feature_Manager::is_enabled( 'customer_registration' ) ) {
 				$settings['customer_registration_enabled'] = $this->checkbox( $input, 'customer_registration_enabled' );
 			}
-			$settings['request_success_message']       = isset( $input['request_success_message'] ) && '' !== trim( (string) $input['request_success_message'] ) ? sanitize_textarea_field( $input['request_success_message'] ) : $defaults['request_success_message'];
+			$settings['request_success_message'] = isset( $input['request_success_message'] ) && '' !== trim( (string) $input['request_success_message'] ) ? sanitize_textarea_field( $input['request_success_message'] ) : $defaults['request_success_message'];
 		} elseif ( 'otp' === $active_tab ) {
 			if ( CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) {
 				$settings['otp_expiration_minutes'] = $this->bounded_absint( $input, 'otp_expiration_minutes', 1, 60, $defaults['otp_expiration_minutes'] );
@@ -188,16 +194,16 @@ class CRPCRM_Settings {
 				$settings['otp_debug_mode']         = $this->checkbox( $input, 'otp_debug_mode' );
 			}
 			if ( CRPCRM_Feature_Manager::is_enabled( 'sms' ) ) {
-				$provider_id = isset( $input['otp_provider'] ) ? sanitize_key( $input['otp_provider'] ) : $defaults['otp_provider'];
-				$settings['otp_provider']                      = CRPCRM_SMS_Provider_Registry::get_instance()->get_provider( $provider_id ) ? $provider_id : $defaults['otp_provider'];
-				$settings['melipayamak_username']              = isset( $input['melipayamak_username'] ) ? sanitize_text_field( $input['melipayamak_username'] ) : '';
-				$settings['melipayamak_api_key']               = isset( $input['melipayamak_api_key'] ) && '' !== trim( (string) $input['melipayamak_api_key'] ) ? sanitize_text_field( $input['melipayamak_api_key'] ) : $current['melipayamak_api_key'];
-				$settings['melipayamak_password']              = isset( $input['melipayamak_password'] ) && '' !== trim( (string) $input['melipayamak_password'] ) ? sanitize_text_field( $input['melipayamak_password'] ) : $current['melipayamak_password'];
-				$settings['melipayamak_pattern_code']          = isset( $input['melipayamak_pattern_code'] ) ? sanitize_text_field( $input['melipayamak_pattern_code'] ) : '';
-				$settings['melipayamak_sender']                = isset( $input['melipayamak_sender'] ) ? sanitize_text_field( $input['melipayamak_sender'] ) : '';
-				$settings['sms_ir_api_key']                    = isset( $input['sms_ir_api_key'] ) && '' !== trim( (string) $input['sms_ir_api_key'] ) ? sanitize_text_field( $input['sms_ir_api_key'] ) : $current['sms_ir_api_key'];
-				$settings['sms_ir_line_number']                = isset( $input['sms_ir_line_number'] ) ? sanitize_text_field( $input['sms_ir_line_number'] ) : '';
-				$settings['sms_ir_template_id_otp']            = isset( $input['sms_ir_template_id_otp'] ) ? sanitize_text_field( $input['sms_ir_template_id_otp'] ) : '';
+				$provider_id                                  = isset( $input['otp_provider'] ) ? sanitize_key( $input['otp_provider'] ) : $defaults['otp_provider'];
+				$settings['otp_provider']                     = CRPCRM_SMS_Provider_Registry::get_instance()->get_provider( $provider_id ) ? $provider_id : $defaults['otp_provider'];
+				$settings['melipayamak_username']             = isset( $input['melipayamak_username'] ) ? sanitize_text_field( $input['melipayamak_username'] ) : '';
+				$settings['melipayamak_api_key']              = isset( $input['melipayamak_api_key'] ) && '' !== trim( (string) $input['melipayamak_api_key'] ) ? sanitize_text_field( $input['melipayamak_api_key'] ) : $current['melipayamak_api_key'];
+				$settings['melipayamak_password']             = isset( $input['melipayamak_password'] ) && '' !== trim( (string) $input['melipayamak_password'] ) ? sanitize_text_field( $input['melipayamak_password'] ) : $current['melipayamak_password'];
+				$settings['melipayamak_pattern_code']         = isset( $input['melipayamak_pattern_code'] ) ? sanitize_text_field( $input['melipayamak_pattern_code'] ) : '';
+				$settings['melipayamak_sender']               = isset( $input['melipayamak_sender'] ) ? sanitize_text_field( $input['melipayamak_sender'] ) : '';
+				$settings['sms_ir_api_key']                   = isset( $input['sms_ir_api_key'] ) && '' !== trim( (string) $input['sms_ir_api_key'] ) ? sanitize_text_field( $input['sms_ir_api_key'] ) : $current['sms_ir_api_key'];
+				$settings['sms_ir_line_number']               = isset( $input['sms_ir_line_number'] ) ? sanitize_text_field( $input['sms_ir_line_number'] ) : '';
+				$settings['sms_ir_template_id_otp']           = isset( $input['sms_ir_template_id_otp'] ) ? sanitize_text_field( $input['sms_ir_template_id_otp'] ) : '';
 				$settings['sms_ir_template_id_request_created'] = isset( $input['sms_ir_template_id_request_created'] ) ? sanitize_text_field( $input['sms_ir_template_id_request_created'] ) : '';
 			}
 		} elseif ( 'attribution' === $active_tab ) {
@@ -221,6 +227,8 @@ class CRPCRM_Settings {
 			$settings['daily_report_required']      = $this->checkbox( $input, 'daily_report_required' );
 			$settings['daily_report_reminder_time'] = $time;
 			$settings['staff_items_per_page']       = $this->bounded_absint( $input, 'staff_items_per_page', 5, 100, $defaults['staff_items_per_page'] );
+		} elseif ( 'notifications' === $active_tab ) {
+			$settings['notifications_toast_enabled'] = $this->checkbox( $input, 'notifications_toast_enabled' );
 		} elseif ( 'maintenance' === $active_tab ) {
 			$log_level = isset( $input['log_level'] ) ? sanitize_key( $input['log_level'] ) : $defaults['log_level'];
 			if ( ! in_array( $log_level, array( 'debug', 'info', 'warning', 'error' ), true ) ) {

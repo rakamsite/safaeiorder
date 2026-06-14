@@ -19,6 +19,7 @@ class CRPCRM_Public {
 	public function register_hooks() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_crpcrm_search_products', array( $this, 'handle_search_products' ) );
+		add_action( 'wp_ajax_crpcrm_upload_request_file', array( $this, 'handle_upload_request_file' ) );
 		$this->portal_shortcode->register_hooks();
 	}
 
@@ -37,10 +38,14 @@ class CRPCRM_Public {
 			array(
 				'ajaxUrl'              => admin_url( 'admin-ajax.php' ),
 				'productSearchNonce'   => wp_create_nonce( 'crpcrm_search_products' ),
+				'fileUploadNonce'      => wp_create_nonce( 'crpcrm_upload_request_file' ),
 				'productSearchMin'     => 2,
 				'productSearchEmpty'   => 'محصولی پیدا نشد.',
 				'productSearchLoading' => 'در حال جستجو...',
 				'productRemoveLabel'   => 'حذف محصول',
+				'fileUploadLoading'    => 'Uploading...',
+				'fileUploadError'      => 'Upload failed.',
+				'fileUploadedLabel'    => 'Uploaded',
 			)
 		);
 	}
@@ -52,7 +57,7 @@ class CRPCRM_Public {
 			wp_send_json_error( array( 'message' => 'unauthorized' ), 403 );
 		}
 
-		$term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
+		$term        = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
 		$term_length = function_exists( 'mb_strlen' ) ? mb_strlen( $term ) : strlen( $term );
 		if ( $term_length < 2 || ! post_type_exists( 'product' ) ) {
 			wp_send_json_success( array() );
@@ -84,5 +89,24 @@ class CRPCRM_Public {
 		}
 
 		wp_send_json_success( $results );
+	}
+
+	public function handle_upload_request_file() {
+		check_ajax_referer( 'crpcrm_upload_request_file', 'nonce' );
+
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => 'unauthorized' ), 403 );
+		}
+
+		if ( empty( $_FILES['file'] ) || ! is_array( $_FILES['file'] ) ) {
+			wp_send_json_error( array( 'message' => 'missing_file' ), 400 );
+		}
+
+		$file = CRPCRM_Dynamic_Form_Renderer::handle_async_upload( $_FILES['file'] );
+		if ( is_wp_error( $file ) ) {
+			wp_send_json_error( array( 'message' => $file->get_error_message() ), 400 );
+		}
+
+		wp_send_json_success( $file );
 	}
 }

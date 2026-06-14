@@ -21,7 +21,7 @@ $portal_menu_id  = absint( $settings['portal_menu_id'] ?? 0 );
 $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( array( 'hide_empty' => false ) ) : array();
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
-	<h1><?php echo esc_html( 'تنظیمات پرتال و CRM' ); ?></h1>
+	<h1><?php echo esc_html( 'تنظیمات دیجیتال مارکتینگ' ); ?></h1>
 
 	<?php if ( isset( $_GET['settings-updated'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['settings-updated'] ) ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'تنظیمات با موفقیت ذخیره شد.' ); ?></p></div>
@@ -149,6 +149,11 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 				<tr><th><?php echo esc_html( 'اجبار گزارش روزانه' ); ?></th><td><label><input name="crpcrm_settings[daily_report_required]" type="checkbox" value="yes" <?php checked( $settings['daily_report_required'], 'yes' ); ?> /> <?php echo esc_html( 'فعلاً فقط هشدار داشبورد کارکنان نمایش داده شود.' ); ?></label></td></tr>
 				<tr><th><label for="daily_report_reminder_time"><?php echo esc_html( 'ساعت یادآوری گزارش روزانه' ); ?></label></th><td><input name="crpcrm_settings[daily_report_reminder_time]" id="daily_report_reminder_time" type="time" value="<?php echo esc_attr( $settings['daily_report_reminder_time'] ); ?>" /></td></tr>
 				<tr><th><label for="staff_items_per_page"><?php echo esc_html( 'تعداد آیتم در لیست‌های کارکنان' ); ?></label></th><td><input name="crpcrm_settings[staff_items_per_page]" id="staff_items_per_page" type="number" min="5" max="100" value="<?php echo esc_attr( $settings['staff_items_per_page'] ); ?>" /></td></tr>
+			</tbody></table>
+		<?php elseif ( 'notifications' === $active_tab ) : ?>
+			<h2><?php echo esc_html( 'تنظیمات اعلانات' ); ?></h2>
+			<table class="form-table" role="presentation"><tbody>
+				<tr><th><?php echo esc_html( 'باکس گوشه صفحه' ); ?></th><td><label><input name="crpcrm_settings[notifications_toast_enabled]" type="checkbox" value="yes" <?php checked( $settings['notifications_toast_enabled'], 'yes' ); ?> /> <?php echo esc_html( 'هنگام وجود اعلان جدید، باکس اطلاع‌رسانی در صفحات افزونه نمایش داده شود.' ); ?></label></td></tr>
 			</tbody></table>
 		<?php elseif ( 'maintenance' === $active_tab ) : ?>
 			<h2><?php echo esc_html( 'تنظیمات نگهداری داده‌ها' ); ?></h2>

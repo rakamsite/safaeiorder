@@ -23,6 +23,7 @@ class CRPCRM_Feature_Manager {
 			'tracking'              => 'رهگیری ورودی‌ها',
 			'lead_followup'         => 'پیگیری لیدها',
 			'form_builder'          => 'فرم‌ساز',
+			'notifications'         => 'اعلانات مرکزی',
 			'admin_tools'           => 'ابزارهای مدیریتی',
 		);
 	}
@@ -32,14 +33,16 @@ class CRPCRM_Feature_Manager {
 	}
 
 	public static function get_enabled_features() {
-		$stored     = get_option( self::OPTION_NAME, array() );
-		$stored     = is_array( $stored ) ? $stored : array();
-		$features   = self::get_default_features();
+		$stored   = get_option( self::OPTION_NAME, array() );
+		$stored   = is_array( $stored ) ? $stored : array();
+		$features = self::get_default_features();
+
 		foreach ( $features as $feature => $default ) {
 			if ( array_key_exists( $feature, $stored ) ) {
 				$features[ $feature ] = (bool) $stored[ $feature ];
 			}
 		}
+
 		return $features;
 	}
 
@@ -50,7 +53,7 @@ class CRPCRM_Feature_Manager {
 	}
 
 	public static function is_crm_ui_enabled() {
-		foreach ( array( 'portal', 'customer_registration', 'staff', 'reports', 'otp', 'tracking', 'lead_followup', 'admin_tools' ) as $feature ) {
+		foreach ( array( 'portal', 'customer_registration', 'reports', 'otp', 'tracking', 'lead_followup', 'admin_tools', 'notifications' ) as $feature ) {
 			if ( self::is_enabled( $feature ) ) {
 				return true;
 			}
@@ -64,13 +67,17 @@ class CRPCRM_Feature_Manager {
 		foreach ( array_keys( self::get_features() ) as $feature ) {
 			$clean[ $feature ] = isset( $features[ $feature ] ) && in_array( $features[ $feature ], array( true, 1, '1', 'yes', 'on' ), true );
 		}
+
 		$saved = update_option( self::OPTION_NAME, $clean );
+
 		if ( class_exists( 'CRPCRM_Lead_Follow_Up_Service' ) ) {
 			$clean['lead_followup'] ? CRPCRM_Lead_Follow_Up_Service::schedule_cron() : CRPCRM_Lead_Follow_Up_Service::clear_cron();
 		}
+
 		if ( class_exists( 'CRPCRM_Admin_Tools' ) ) {
 			$clean['admin_tools'] ? CRPCRM_Admin_Tools::schedule_cron() : CRPCRM_Admin_Tools::clear_cron();
 		}
+
 		return $saved;
 	}
 

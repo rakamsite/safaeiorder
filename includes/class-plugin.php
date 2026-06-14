@@ -19,6 +19,7 @@ class CRPCRM_Plugin {
 	private $lead_follow_up_service;
 	private $customer_deletion_service;
 	private $form_builder_admin;
+	private $notification_service;
 
 	public function __construct() {
 		$this->settings            = new CRPCRM_Settings();
@@ -30,6 +31,7 @@ class CRPCRM_Plugin {
 		$this->lead_follow_up_service = new CRPCRM_Lead_Follow_Up_Service();
 		$this->customer_deletion_service = new CRPCRM_Customer_Deletion_Service();
 		$this->form_builder_admin         = new CRPCRM_Form_Builder_Admin();
+		$this->notification_service       = new CRPCRM_Notification_Service();
 	}
 
 	public function run() {
@@ -46,6 +48,9 @@ class CRPCRM_Plugin {
 		}
 		if ( CRPCRM_Feature_Manager::is_enabled( 'admin_tools' ) ) {
 			$this->admin_tools->register_hooks();
+		}
+		if ( CRPCRM_Notification_Service::is_enabled() ) {
+			$this->notification_service->register_hooks();
 		}
 		if ( CRPCRM_Feature_Manager::is_enabled( 'lead_followup' ) ) {
 			$this->lead_follow_up_service->register_hooks();

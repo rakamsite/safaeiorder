@@ -30,6 +30,7 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 		'staff_tasks',
 		'manager_announcements',
 		'announcement_reads',
+		'notifications',
 		'plugin_logs',
 	);
 
