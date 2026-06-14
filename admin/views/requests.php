@@ -346,12 +346,14 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		</dl></div>
 
 		<div class="crpcrm-card"><h2><?php echo esc_html( 'عملیات' ); ?></h2>
-			<?php if ( $can_claim ) : ?><?php crpcrm_admin_claim_form( $request['id'] ); ?><?php endif; ?>
-			<?php if ( $can_manage ) : ?>
-				<?php crpcrm_admin_owner_form( $request['id'], $request['owner_id'], $assignable_users ); ?>
-				<?php if ( ! empty( $request['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $request['id'] ); ?><?php endif; ?>
-			<?php endif; ?>
-			<?php if ( $can_delete ) : ?><?php crpcrm_admin_delete_form( $request['id'] ); ?><?php endif; ?>
+			<div class="crpcrm-request-actions">
+				<?php if ( $can_claim ) : ?><?php crpcrm_admin_claim_form( $request['id'] ); ?><?php endif; ?>
+				<?php if ( $can_manage ) : ?>
+					<?php crpcrm_admin_owner_form( $request['id'], $request['owner_id'], $assignable_users ); ?>
+					<?php if ( ! empty( $request['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $request['id'] ); ?><?php endif; ?>
+				<?php endif; ?>
+				<?php if ( $can_delete ) : ?><?php crpcrm_admin_delete_form( $request['id'] ); ?><?php endif; ?>
+			</div>
 		</div>
 
 		<div class="crpcrm-card crpcrm-sales-action-card"><h2><?php echo esc_html( 'ثبت اقدام' ); ?></h2>

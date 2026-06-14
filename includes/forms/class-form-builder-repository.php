@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CRPCRM_Form_Builder_Repository {
 	const OPTION_NAME = 'crpcrm_custom_forms';
 	const SEED_OPTION_NAME = 'crpcrm_default_forms_seeded';
+	const FIELD_WIDTHS = array( '25', '33', '50', '100' );
 
 	public function get_forms() {
 		$forms = get_option( self::OPTION_NAME, array() );
@@ -123,23 +124,27 @@ class CRPCRM_Form_Builder_Repository {
 		$key   = sanitize_key( $field['key'] ?? $field['name'] ?? '' );
 		$label = sanitize_text_field( $field['label'] ?? '' );
 		$type  = sanitize_key( $field['type'] ?? 'text' );
-		$type  = in_array( $type, array( 'text', 'textarea', 'select' ), true ) ? $type : 'text';
+		$type  = in_array( $type, array( 'text', 'textarea', 'select', 'product_search', 'file_upload', 'display_html' ), true ) ? $type : 'text';
 		$options = isset( $field['options'] ) && is_array( $field['options'] )
 			? $field['options']
 			: preg_split( '/\r\n|\r|\n/', (string) ( $field['options'] ?? '' ) );
 		$options = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $options ), 'strlen' ) ) );
+		$width = (string) ( $field['width'] ?? '100' );
+		$width = in_array( $width, self::FIELD_WIDTHS, true ) ? $width : '100';
 
 		return array(
 			'key'              => $key,
 			'label'            => $label,
 			'type'             => $type,
-			'required'         => ! empty( $field['required'] ),
+			'required'         => $this->normalize_flag( $field['required'] ?? false, false ),
 			'required_message' => sanitize_text_field( $field['required_message'] ?? '' ),
 			'placeholder'      => sanitize_text_field( $field['placeholder'] ?? '' ),
 			'help_text'        => sanitize_textarea_field( $field['help_text'] ?? $field['help'] ?? '' ),
 			'options'          => 'select' === $type ? $options : array(),
+			'content'          => wp_kses_post( $field['content'] ?? '' ),
+			'width'            => $width,
 			'default'          => sanitize_text_field( $field['default'] ?? '' ),
-			'enabled'          => array_key_exists( 'enabled', $field ) ? ! empty( $field['enabled'] ) : true,
+			'enabled'          => $this->normalize_flag( $field['enabled'] ?? null, true ),
 			'sort_order'       => absint( $field['sort_order'] ?? $default_sort_order ),
 		);
 	}
@@ -151,10 +156,11 @@ class CRPCRM_Form_Builder_Repository {
 		$form_id   = $form_id ? $form_id : $this->generate_form_id( $title );
 		$request_type = $form_id;
 		$fields    = array();
+		$icon_key  = CRPCRM_Form_Icon_Pack::sanitize_icon_key( $form['icon'] ?? '' );
 
 		foreach ( isset( $form['fields'] ) && is_array( $form['fields'] ) ? $form['fields'] : array() as $index => $field ) {
 			$field = $this->normalize_field( $field, $index );
-			if ( '' === $field['key'] && '' === $field['label'] ) {
+			if ( '' === $field['key'] && '' === $field['label'] && '' === trim( wp_strip_all_tags( $field['content'] ?? '' ) ) ) {
 				continue;
 			}
 			$fields[] = $field;
@@ -168,12 +174,12 @@ class CRPCRM_Form_Builder_Repository {
 			'title'         => $title,
 			'label'         => sanitize_text_field( $form['label'] ?? $title ),
 			'page'          => sanitize_key( $form['page'] ?? $form_id ),
-			'icon'          => sanitize_key( $form['icon'] ?? '' ),
+			'icon'          => $icon_key,
 			'description'   => sanitize_textarea_field( $form['description'] ?? '' ),
 			'request_type'  => $request_type,
 			'submit_label'  => sanitize_text_field( $form['submit_label'] ?? 'ثبت درخواست' ),
 			'summary_template' => sanitize_textarea_field( $form['summary_template'] ?? '' ),
-			'enabled'       => array_key_exists( 'enabled', $form ) ? ! empty( $form['enabled'] ) : true,
+			'enabled'       => $this->normalize_flag( $form['enabled'] ?? null, true ),
 			'sort_order'    => absint( $form['sort_order'] ?? 0 ),
 			'version'       => sanitize_text_field( $form['version'] ?? '1.0.0' ),
 			'fields'        => $fields,
@@ -199,7 +205,12 @@ class CRPCRM_Form_Builder_Repository {
 		$keys = array();
 		$enabled_field_count = 0;
 		foreach ( $form['fields'] as $field ) {
-			if ( empty( $field['key'] ) || empty( $field['label'] ) ) {
+			if ( 'display_html' === $field['type'] ) {
+				if ( empty( $field['key'] ) || empty( trim( wp_strip_all_tags( $field['content'] ) ) ) ) {
+					$errors[] = 'ÙÛŒÙ„Ø¯ Ù†Ù…Ø§ÛŒØ´ÛŒ Ø¨Ø§ÛŒØ¯ Ú©Ù„ÛŒØ¯ Ùˆ Ù…Ø­ØªÙˆØ§ Ø¯Ø§Ø´ØªÙ‡ Ø¨Ø§Ø´Ø¯.';
+					continue;
+				}
+			} elseif ( empty( $field['key'] ) || empty( $field['label'] ) ) {
 				$errors[] = 'کلید و عنوان تمام فیلدها الزامی است.';
 				continue;
 			}
@@ -222,5 +233,22 @@ class CRPCRM_Form_Builder_Repository {
 			$errors[] = 'فرم فعال باید حداقل یک فیلد فعال و معتبر داشته باشد.';
 		}
 		return array_values( array_unique( $errors ) );
+	}
+
+	private function normalize_flag( $value, $default = false ) {
+		if ( null === $value ) {
+			return (bool) $default;
+		}
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+		if ( is_numeric( $value ) ) {
+			return absint( $value ) > 0;
+		}
+		$value = strtolower( trim( (string) $value ) );
+		if ( in_array( $value, array( '', '0', 'false', 'off', 'no' ), true ) ) {
+			return false;
+		}
+		return true;
 	}
 }

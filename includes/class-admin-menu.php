@@ -99,5 +99,17 @@ class CRPCRM_Admin_Menu {
 		$admin_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/admin.js';
 		wp_enqueue_style( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/css/admin.css', array(), file_exists( $admin_css_path ) ? filemtime( $admin_css_path ) : CRPCRM_VERSION );
 		wp_enqueue_script( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'jquery-ui-sortable' ), file_exists( $admin_js_path ) ? filemtime( $admin_js_path ) : CRPCRM_VERSION, true );
+		wp_localize_script(
+			'crpcrm-admin',
+			'crpcrmAdmin',
+			array(
+				'ajaxUrl'              => admin_url( 'admin-ajax.php' ),
+				'productSearchNonce'   => wp_create_nonce( 'crpcrm_search_products' ),
+				'productSearchMin'     => 2,
+				'productSearchEmpty'   => 'محصولی پیدا نشد.',
+				'productSearchLoading' => 'در حال جستجو...',
+				'productRemoveLabel'   => 'حذف محصول',
+			)
+		);
 	}
 }

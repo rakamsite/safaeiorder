@@ -207,14 +207,10 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 				<h2><?php echo esc_html( 'سلام ' . $customer_name ); ?></h2>
 				<p><?php echo esc_html( 'از این داشبورد می‌توانید درخواست‌های خود را ثبت و پیگیری کنید.' ); ?></p>
 				<?php if ( empty( $request_forms ) ) : ?><p><?php echo esc_html( 'در حال حاضر فرم فعالی برای ثبت درخواست وجود ندارد.' ); ?></p><?php endif; ?>
-				<div class="crpcrm-portal-actions crpcrm-grid crpcrm-grid-3">
-					<?php foreach ( $request_forms as $request_form ) : ?>
-						<a class="crpcrm-action-card crpcrm-form-card crpcrm-open-request-form" href="<?php echo esc_url( add_query_arg( 'form_id', sanitize_key( $request_form['id'] ), $portal_urls['new_request'] ) ); ?>" data-crpcrm-open-form="<?php echo esc_attr( $request_form['page'] ); ?>">
-							<span class="crpcrm-action-icon" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false">
-								<?php if ( 'car' === ( $request_form['icon'] ?? '' ) ) : ?><path d="M3.5 12.5h14v12h-14z" /><path d="M17.5 15.5h5l4.5 5v4.5h-3" /><path d="M17.5 24.5h-6" /><path d="M3.5 24.5h2" /><path d="M21.5 18.5v3h5" /><circle cx="8.5" cy="24.5" r="3" /><circle cx="24.5" cy="24.5" r="3" />
-								<?php elseif ( 'parts' === ( $request_form['icon'] ?? '' ) ) : ?><circle cx="16" cy="16" r="4" /><path d="M16 4.5v4" /><path d="M16 23.5v4" /><path d="M4.5 16h4" /><path d="M23.5 16h4" /><path d="M7.9 7.9l2.8 2.8" /><path d="M21.3 21.3l2.8 2.8" /><path d="M24.1 7.9l-2.8 2.8" /><path d="M10.7 21.3l-2.8 2.8" />
-								<?php else : ?><path d="M21.5 5.5a6.2 6.2 0 0 0-6.6 8.2L6.2 22.4a2.8 2.8 0 0 0 4 4l8.7-8.7a6.2 6.2 0 0 0 7.6-7.7l-4.1 4.1-3.5-3.5 4.1-4.1a6.1 6.1 0 0 0-1.5-1Z" /><path d="M8.2 24.4h.1" /><?php endif; ?>
-							</svg></span>
+					<div class="crpcrm-portal-actions crpcrm-grid crpcrm-grid-3">
+						<?php foreach ( $request_forms as $request_form ) : ?>
+							<a class="crpcrm-action-card crpcrm-form-card crpcrm-open-request-form" href="<?php echo esc_url( add_query_arg( 'form_id', sanitize_key( $request_form['id'] ), $portal_urls['new_request'] ) ); ?>" data-crpcrm-open-form="<?php echo esc_attr( $request_form['page'] ); ?>">
+							<span class="crpcrm-action-icon" aria-hidden="true"><?php echo CRPCRM_Form_Icon_Pack::get_icon_markup( $request_form['icon'] ?? '' ); ?></span>
 							<strong class="crpcrm-form-card-title"><?php echo esc_html( $request_form['title'] ); ?></strong>
 							<?php if ( ! empty( $request_form['description'] ) ) : ?><span class="crpcrm-form-card-description"><?php echo esc_html( $request_form['description'] ); ?></span><?php endif; ?>
 							<span class="crpcrm-form-card-action"><?php echo esc_html( 'ثبت درخواست' ); ?></span>

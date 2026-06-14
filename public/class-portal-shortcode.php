@@ -315,7 +315,7 @@ class CRPCRM_Portal_Shortcode {
 			$this->redirect_with_notice( $redirect_to, 'error', 'تعداد درخواست‌های ثبت‌شده زیاد است. لطفاً کمی بعد دوباره تلاش کنید.' );
 		}
 
-		$validated = CRPCRM_Request_Forms::sanitize_and_validate( $form, $_POST );
+		$validated = CRPCRM_Request_Forms::sanitize_and_validate( $form, $_POST, $_FILES );
 		if ( ! empty( $validated['errors'] ) ) {
 			CRPCRM_Logger::info( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'page' => $page, 'error_count' => count( $validated['errors'] ) ) );
 			$this->redirect_with_notice( $redirect_to, 'error', implode( ' ', $validated['errors'] ) );

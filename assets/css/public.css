@@ -418,12 +418,44 @@
 	margin-top: 20px;
 }
 
+.crpcrm-request-form-grid {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
 .crpcrm-field {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 	font-weight: 700;
 	color: #1f2937;
+}
+
+.crpcrm-width-25 {
+	grid-column: span 3;
+}
+
+.crpcrm-width-33 {
+	grid-column: span 4;
+}
+
+.crpcrm-width-50 {
+	grid-column: span 6;
+}
+
+.crpcrm-width-100 {
+	grid-column: 1 / -1;
+}
+
+.crpcrm-display-content {
+	background: #f8fafc;
+	border: 1px dashed #cbd5e1;
+	border-radius: 12px;
+	color: #334155;
+	font-weight: 500;
+	line-height: 1.8;
+	padding: 14px 16px;
 }
 
 .crpcrm-request-form input,
@@ -443,6 +475,83 @@
 .crpcrm-request-form textarea {
 	min-height: 120px;
 	resize: vertical;
+}
+
+.crpcrm-product-search,
+.crpcrm-file-upload {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.crpcrm-product-search-results,
+.crpcrm-product-search-selected,
+.crpcrm-file-upload-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.crpcrm-product-search-result {
+	align-items: center;
+	background: #fff;
+	border: 1px solid #d1d5db;
+	border-radius: 12px;
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	padding: 10px 12px;
+	text-align: right;
+}
+
+.crpcrm-product-search-result img,
+.crpcrm-product-chip img {
+	border-radius: 8px;
+	height: 40px;
+	object-fit: cover;
+	width: 40px;
+}
+
+.crpcrm-product-search-empty {
+	color: #64748b;
+	font-size: 0.94rem;
+	padding: 6px 2px;
+}
+
+.crpcrm-product-chip {
+	align-items: center;
+	background: #eff6ff;
+	border: 1px solid #bfdbfe;
+	border-radius: 999px;
+	display: inline-flex;
+	gap: 10px;
+	padding: 6px 10px 6px 6px;
+	width: fit-content;
+}
+
+.crpcrm-product-chip-remove,
+.crpcrm-file-upload-remove,
+.crpcrm-file-upload-add {
+	align-items: center;
+	background: #fff;
+	border: 1px solid #cbd5e1;
+	border-radius: 999px;
+	cursor: pointer;
+	display: inline-flex;
+	height: 30px;
+	justify-content: center;
+	width: 30px;
+}
+
+.crpcrm-file-upload-row {
+	align-items: center;
+	display: flex;
+	gap: 10px;
+}
+
+.crpcrm-file-upload-row input[type="file"] {
+	background: #fff;
+	flex: 1;
 }
 
 .crpcrm-request-form input:focus,
@@ -1177,6 +1286,17 @@
 }
 
 @media (max-width: 768px) {
+	.crpcrm-request-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.crpcrm-width-25,
+	.crpcrm-width-33,
+	.crpcrm-width-50,
+	.crpcrm-width-100 {
+		grid-column: 1 / -1;
+	}
+
 	.crpcrm-grid,
 	.crpcrm-grid-2,
 	.crpcrm-grid-3 {

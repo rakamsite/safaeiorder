@@ -794,7 +794,7 @@ class CRPCRM_Admin_Pages {
 		if ( ! CRPCRM_Request_Type_Registry::is_registered( $request_type ) ) {
 			$this->redirect_to_manual_request_form( 'manual_request_type_invalid' );
 		}
-		$validated = CRPCRM_Request_Forms::sanitize_and_validate( $form, $_POST );
+		$validated = CRPCRM_Request_Forms::sanitize_and_validate( $form, $_POST, $_FILES );
 		if ( ! empty( $validated['errors'] ) ) {
 			$this->redirect_to_manual_request_form( 'manual_form_invalid' );
 		}

@@ -60,6 +60,249 @@
 	vertical-align: middle;
 }
 
+.crpcrm-form-icon-preview,
+.crpcrm-icon-option-preview {
+	align-items: center;
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 999px;
+	color: #3c434a;
+	display: inline-flex;
+	justify-content: center;
+}
+
+.crpcrm-form-icon-preview {
+	height: 36px;
+	width: 36px;
+}
+
+.crpcrm-form-icon-preview svg,
+.crpcrm-icon-option-preview svg {
+	fill: none;
+	height: 20px;
+	stroke: currentColor;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: 2;
+	width: 20px;
+}
+
+.crpcrm-icon-picker {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 10px;
+}
+
+.crpcrm-icon-option {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.crpcrm-icon-option:hover {
+	border-color: #8c8f94;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+	transform: translateY(-1px);
+}
+
+.crpcrm-icon-option input {
+	margin: 0;
+}
+
+.crpcrm-icon-option-preview {
+	height: 46px;
+	width: 46px;
+}
+
+.crpcrm-icon-option-label {
+	color: #1d2327;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+.crpcrm-icon-option:has(input:checked) {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+}
+
+.crpcrm-form-builder-fields {
+	margin-top: 24px;
+}
+
+.crpcrm-form-builder-fields-header {
+	align-items: center;
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 14px;
+}
+
+.crpcrm-form-builder-field-list {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.crpcrm-form-builder-field-card {
+	background: #f8fafc;
+	border: 1px solid #dcdcde;
+	border-radius: 12px;
+	padding: 14px;
+}
+
+.crpcrm-form-builder-field-card-header,
+.crpcrm-form-builder-field-flags {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+	justify-content: space-between;
+}
+
+.crpcrm-form-builder-field-grid {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	margin: 14px 0;
+}
+
+.crpcrm-form-builder-field-grid label,
+.crpcrm-form-builder-field-flags label {
+	display: flex;
+	flex-direction: column;
+	font-weight: 600;
+	gap: 6px;
+}
+
+.crpcrm-form-builder-field-grid input,
+.crpcrm-form-builder-field-grid select,
+.crpcrm-form-builder-field-grid textarea {
+	width: 100%;
+}
+
+.crpcrm-field-type-options,
+.crpcrm-field-type-content {
+	grid-column: 1 / -1;
+}
+
+.is-hidden {
+	display: none !important;
+}
+
+.crpcrm-product-search,
+.crpcrm-file-upload {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.crpcrm-product-search-results,
+.crpcrm-product-search-selected,
+.crpcrm-file-upload-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.crpcrm-product-search-result {
+	align-items: center;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+	cursor: pointer;
+	display: flex;
+	gap: 10px;
+	padding: 10px 12px;
+	text-align: right;
+}
+
+.crpcrm-product-search-result img,
+.crpcrm-product-chip img {
+	border-radius: 8px;
+	height: 38px;
+	object-fit: cover;
+	width: 38px;
+}
+
+.crpcrm-product-chip {
+	align-items: center;
+	background: #eef4ff;
+	border: 1px solid #c7d8ff;
+	border-radius: 999px;
+	display: inline-flex;
+	gap: 10px;
+	padding: 6px 10px 6px 6px;
+	width: fit-content;
+}
+
+.crpcrm-product-chip-remove,
+.crpcrm-file-upload-remove,
+.crpcrm-file-upload-add {
+	align-items: center;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 999px;
+	cursor: pointer;
+	display: inline-flex;
+	height: 30px;
+	justify-content: center;
+	width: 30px;
+}
+
+.crpcrm-file-upload-row {
+	align-items: center;
+	display: flex;
+	gap: 10px;
+}
+
+.crpcrm-display-content {
+	background: #fff;
+	border: 1px dashed #c3c4c7;
+	border-radius: 10px;
+	line-height: 1.8;
+	padding: 12px 14px;
+}
+
+.crpcrm-request-actions {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.crpcrm-request-actions .crpcrm-inline-form {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0;
+	width: 100%;
+}
+
+.crpcrm-request-actions .button {
+	background: #f0f0f1 !important;
+	border-color: #c3c4c7 !important;
+	box-shadow: none !important;
+	color: #3c434a !important;
+	width: 100%;
+}
+
+.crpcrm-request-actions .button:hover,
+.crpcrm-request-actions .button:focus {
+	background: #e2e4e7 !important;
+	border-color: #8c8f94 !important;
+	color: #1d2327 !important;
+}
+
+.crpcrm-request-actions .crpcrm-danger-button {
+	background: #f0f0f1 !important;
+	border-color: #c3c4c7 !important;
+	color: #3c434a !important;
+}
+
 .crpcrm-actions .crpcrm-inline-form {
 	display: flex;
 	flex-wrap: wrap;
@@ -255,6 +498,10 @@
 }
 
 @media (max-width: 782px) {
+	.crpcrm-request-actions {
+		grid-template-columns: 1fr;
+	}
+
 	.crpcrm-sales-action-form {
 		grid-template-columns: 1fr;
 	}
@@ -615,8 +862,25 @@
 .crpcrm-manual-search { display: flex; gap: 8px; }
 .crpcrm-manual-search input { min-width: min(420px, 100%); }
 .crpcrm-radio-row { display: flex; flex-wrap: wrap; gap: 20px; margin: 12px 0; }
-.crpcrm-form-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.crpcrm-form-grid { display: grid; gap: 14px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
 .crpcrm-form-grid label, .crpcrm-existing-customer-fields label { display: flex; flex-direction: column; font-weight: 600; gap: 6px; }
 .crpcrm-form-grid input, .crpcrm-form-grid select, .crpcrm-form-grid textarea, .crpcrm-existing-customer-fields select { width: 100%; }
 .crpcrm-form-grid .crpcrm-full-field { grid-column: 1 / -1; }
+.crpcrm-form-grid .crpcrm-width-25 { grid-column: span 3; }
+.crpcrm-form-grid .crpcrm-width-33 { grid-column: span 4; }
+.crpcrm-form-grid .crpcrm-width-50 { grid-column: span 6; }
+.crpcrm-form-grid .crpcrm-width-100 { grid-column: 1 / -1; }
 .crpcrm-new-customer-fields { display: none; background: #f6f7f7; border-radius: 8px; margin: 14px 0; padding: 14px; }
+@media (max-width: 782px) {
+	.crpcrm-form-builder-field-grid,
+	.crpcrm-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.crpcrm-form-grid .crpcrm-width-25,
+	.crpcrm-form-grid .crpcrm-width-33,
+	.crpcrm-form-grid .crpcrm-width-50,
+	.crpcrm-form-grid .crpcrm-width-100 {
+		grid-column: 1 / -1;
+	}
+}
