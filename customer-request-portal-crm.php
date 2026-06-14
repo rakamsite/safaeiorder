@@ -1,10 +1,11 @@
 <?php
 /**
- * Plugin Name: پرتال درخواست و CRM مشتریان
- * Plugin URI: https://example.com/
- * Description: اسکلت پایه پرتال مشتریان، ثبت درخواست، CRM فروش و پنل داخلی کارکنان.
- * Version: 0.1.5
- * Author: Safaei
+ * Plugin Name: دیجیتال مارکتینگ راکام
+ * Plugin URI: https://rakam.me/
+ * Description: افزونه جامع دیجیتال مارکتینگ برای پیگیری سرنخ ها و فروش ها و گزارشات جامع
+ * Version: 1
+ * Author: sajad torabi
+ * Author URI: https://rakam.me/
  * Text Domain: customer-request-portal-crm
  * Domain Path: /languages
  * Requires at least: 6.0
@@ -17,8 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CRPCRM_VERSION', '0.1.5' );
-define( 'CRPCRM_DB_VERSION', '0.6.0' );
+define( 'CRPCRM_VERSION', '1' );
+define( 'CRPCRM_DB_VERSION', '1.0.0' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -49,6 +50,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-csv-exporter.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-health-check-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-maintenance-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-tools.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-notification-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-customer-deletion-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-otp-repository.php';

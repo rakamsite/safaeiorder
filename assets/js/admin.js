@@ -164,10 +164,15 @@
 		for (var blank = 0; blank < weekdayForJalali(year, month, 1); blank++) {
 			grid.appendChild(document.createElement('span'));
 		}
+		var todayDate = new Date();
+		var todayJalali = gregorianToJalali(todayDate.getFullYear(), todayDate.getMonth() + 1, todayDate.getDate());
 		for (var dayNumber = 1; dayNumber <= daysInJalaliMonth(year, month); dayNumber++) {
 			var button = document.createElement('button');
 			button.type = 'button';
 			button.textContent = toPersian(dayNumber);
+			if (todayJalali[0] === year && todayJalali[1] === month && todayJalali[2] === dayNumber) {
+				button.classList.add('is-today');
+			}
 			button.addEventListener('click', (function (selectedDay) {
 				return function () {
 					input.value = toPersian(year + '/' + pad(month) + '/' + pad(selectedDay));
@@ -466,7 +471,131 @@
 		});
 	}
 
-	function createUploadRow(name, required) {
+	function syncUploadedStore(wrapper) {
+		var store = wrapper.querySelector('.crpcrm-uploaded-files-store');
+		if (!store) {
+			return;
+		}
+
+		var files = Array.prototype.map.call(wrapper.querySelectorAll('.crpcrm-file-upload-row[data-uploaded]'), function (row) {
+			try {
+				return JSON.parse(row.getAttribute('data-uploaded'));
+			} catch (error) {
+				return null;
+			}
+		}).filter(function (item) {
+			return !!item;
+		});
+
+		store.value = JSON.stringify(files);
+	}
+
+	function setPreviewContent(preview, file) {
+		preview.innerHTML = '';
+		if (!file) {
+			return;
+		}
+
+		if (String(file.type || '').indexOf('image/') === 0) {
+			var button = document.createElement('button');
+			button.type = 'button';
+			button.className = 'crpcrm-file-thumb';
+			var image = document.createElement('img');
+			image.src = file.url || file.previewUrl || '';
+			image.alt = file.name || '';
+			button.appendChild(image);
+			button.addEventListener('click', function () {
+				var modal = ensureFilePreviewModal();
+				modal.querySelector('img').src = image.src;
+				modal.querySelector('.crpcrm-file-preview-name').textContent = file.name || '';
+				modal.classList.add('is-open');
+			});
+			preview.appendChild(button);
+		} else {
+			var label = document.createElement('span');
+			label.className = 'crpcrm-file-upload-name';
+			label.textContent = file.name || '';
+			preview.appendChild(label);
+		}
+	}
+
+	function uploadSelectedFile(input, preview, wrapper, config) {
+		if (!input.files || !input.files[0] || !config || !config.ajaxUrl || !config.fileUploadNonce) {
+			return;
+		}
+
+		var row = input.closest('.crpcrm-file-upload-row');
+		var file = input.files[0];
+		var formData = new FormData();
+		formData.append('action', 'crpcrm_upload_request_file');
+		formData.append('nonce', config.fileUploadNonce);
+		formData.append('file', file);
+
+		preview.innerHTML = '<span class="crpcrm-file-upload-name">' + (config.fileUploadLoading || 'Uploading...') + '</span>';
+		row.classList.add('is-uploading');
+
+		fetch(config.ajaxUrl, {
+			method: 'POST',
+			body: formData,
+			credentials: 'same-origin'
+		})
+			.then(function (response) {
+				return response.json();
+			})
+			.then(function (payload) {
+				if (!payload || !payload.success || !payload.data) {
+					throw new Error((payload && payload.data && payload.data.message) || config.fileUploadError || 'Upload failed');
+				}
+
+				var uploaded = payload.data;
+				if (String(uploaded.type || '').indexOf('image/') === 0 && !uploaded.previewUrl) {
+					uploaded.previewUrl = URL.createObjectURL(file);
+				}
+
+				row.setAttribute('data-uploaded', JSON.stringify(uploaded));
+				input.value = '';
+				input.removeAttribute('name');
+				input.disabled = true;
+				input.removeAttribute('data-required');
+				setPreviewContent(preview, uploaded);
+				syncUploadedStore(wrapper);
+			})
+			.catch(function (error) {
+				preview.innerHTML = '<span class="crpcrm-file-upload-name">' + ((error && error.message) || config.fileUploadError || 'Upload failed') + '</span>';
+				row.removeAttribute('data-uploaded');
+				syncUploadedStore(wrapper);
+			})
+			.finally(function () {
+				row.classList.remove('is-uploading');
+			});
+	}
+
+	function bindUploadRow(row, wrapper, config) {
+		var input = row.querySelector('input[type="file"]');
+		var preview = row.querySelector('.crpcrm-file-upload-preview');
+		if (!preview) {
+			preview = document.createElement('div');
+			preview.className = 'crpcrm-file-upload-preview';
+			if (input && input.nextSibling) {
+				row.insertBefore(preview, input.nextSibling);
+			} else {
+				row.appendChild(preview);
+			}
+		}
+
+		if (row.dataset.boundUpload === '1') {
+			return;
+		}
+		row.dataset.boundUpload = '1';
+
+		if (input) {
+			input.addEventListener('change', function () {
+				uploadSelectedFile(input, preview, wrapper, config);
+			});
+		}
+	}
+
+	function createUploadRow(name, required, wrapper, config) {
 		var row = document.createElement('div');
 		row.className = 'crpcrm-file-upload-row';
 
@@ -478,6 +607,14 @@
 			input.setAttribute('data-required', '1');
 		}
 		row.appendChild(input);
+
+		var preview = document.createElement('div');
+		preview.className = 'crpcrm-file-upload-preview';
+		row.appendChild(preview);
+
+		input.addEventListener('change', function () {
+			uploadSelectedFile(input, preview, wrapper, config);
+		});
 
 		var remove = document.createElement('button');
 		remove.type = 'button';
@@ -491,7 +628,25 @@
 		return row;
 	}
 
-	function initFileUploads(scope) {
+	function ensureFilePreviewModal() {
+		var modal = document.querySelector('.crpcrm-file-preview-modal');
+		if (modal) {
+			return modal;
+		}
+
+		modal = document.createElement('div');
+		modal.className = 'crpcrm-file-preview-modal';
+		modal.innerHTML = '<button type="button" class="crpcrm-file-preview-close">×</button><img alt=""><div class="crpcrm-file-preview-name"></div>';
+		document.body.appendChild(modal);
+		modal.addEventListener('click', function (event) {
+			if (event.target === modal || event.target.classList.contains('crpcrm-file-preview-close')) {
+				modal.classList.remove('is-open');
+			}
+		});
+		return modal;
+	}
+
+	function initFileUploads(scope, config) {
 		scope.querySelectorAll('.crpcrm-file-upload').forEach(function (wrapper) {
 			if (wrapper.dataset.initialized === '1') {
 				return;
@@ -505,16 +660,33 @@
 				return;
 			}
 
+			list.querySelectorAll('.crpcrm-file-upload-row').forEach(function (row) {
+				bindUploadRow(row, wrapper, config);
+			});
+			syncUploadedStore(wrapper);
+
 			add.addEventListener('click', function () {
 				var required = !!list.querySelector('[data-required="1"]');
-				list.appendChild(createUploadRow(name, required));
+				list.appendChild(createUploadRow(name, required, wrapper, config));
 			});
 
 			list.addEventListener('click', function (event) {
-				if (event.target.classList.contains('crpcrm-file-upload-remove') && list.children.length > 1) {
-					event.preventDefault();
-					event.target.closest('.crpcrm-file-upload-row').remove();
+				if (!event.target.classList.contains('crpcrm-file-upload-remove')) {
+					return;
 				}
+
+				event.preventDefault();
+				var row = event.target.closest('.crpcrm-file-upload-row');
+				if (!row) {
+					return;
+				}
+
+				if (list.children.length > 1) {
+					row.remove();
+				} else {
+					row.replaceWith(createUploadRow(name, !!list.querySelector('[data-required="1"]'), wrapper, config));
+				}
+				syncUploadedStore(wrapper);
 			});
 		});
 	}
@@ -598,15 +770,51 @@
 		});
 	}
 
+	function cleanupRequestList() {
+		var table = document.querySelector('.crpcrm-requests-table');
+		if (!table) {
+			return;
+		}
+
+		[7, 4, 2].forEach(function (index) {
+			table.querySelectorAll('tr').forEach(function (row) {
+				if (row.children[index]) {
+					row.children[index].remove();
+				}
+			});
+		});
+
+		table.querySelectorAll('tbody tr').forEach(function (row) {
+			var ownerCell = row.children[5];
+			if (ownerCell) {
+				ownerCell.textContent = ownerCell.textContent.replace(/^در حال پیگیری توسط:\s*/u, '').trim();
+			}
+		});
+	}
+
+	function showNotificationsToast(config) {
+		if (!config || !config.notificationsToast || !config.unreadNotifications || !config.notificationsPageUrl) {
+			return;
+		}
+
+		var toast = document.createElement('a');
+		toast.className = 'crpcrm-notifications-toast';
+		toast.href = config.notificationsPageUrl;
+		toast.innerHTML = '<strong>اعلان جدید دارید</strong><span>' + config.unreadNotifications + ' مورد خوانده‌نشده</span>';
+		document.body.appendChild(toast);
+	}
+
 	document.addEventListener('DOMContentLoaded', function () {
 		var config = getAdminConfig();
 		initJalaliDatePickers();
 		initRegistrationFieldSorting();
 		initFormBuilder();
+		cleanupRequestList();
+		showNotificationsToast(config);
 		document.querySelectorAll('.crpcrm-manual-request-form').forEach(function (form) {
 			updateManualCustomerFields(form);
 			initProductSearch(form, config);
-			initFileUploads(form);
+			initFileUploads(form, config);
 			form.querySelectorAll('input[name="customer_mode"]').forEach(function (radio) {
 				radio.addEventListener('change', function () { updateManualCustomerFields(form); });
 			});

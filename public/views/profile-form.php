@@ -45,8 +45,10 @@ $is_embedded = ! empty( $is_embedded );
 								</select>
 							<?php elseif ( 'textarea' === $field['type'] ) : ?>
 								<textarea class="crpcrm-input" id="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>" name="crpcrm_registration[<?php echo esc_attr( $field_id ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>><?php echo esc_textarea( $field_value ); ?></textarea>
+							<?php elseif ( 'date' === $field['type'] ) : ?>
+								<?php echo CRPCRM_Helpers::jalali_date_input( 'crpcrm_registration[' . $field_id . ']', $field_value, array( 'required' => ! empty( $field['required'] ), 'id' => 'crpcrm-registration-' . $field_id ) ); ?>
 							<?php else : ?>
-								<input class="crpcrm-input" id="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>" name="crpcrm_registration[<?php echo esc_attr( $field_id ); ?>]" type="<?php echo esc_attr( in_array( $field['type'], array( 'email', 'date' ), true ) ? $field['type'] : 'text' ); ?>" value="<?php echo esc_attr( $field_value ); ?>" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?> />
+								<input class="crpcrm-input" id="crpcrm-registration-<?php echo esc_attr( $field_id ); ?>" name="crpcrm_registration[<?php echo esc_attr( $field_id ); ?>]" type="<?php echo esc_attr( 'email' === $field['type'] ? 'email' : 'text' ); ?>" value="<?php echo esc_attr( $field_value ); ?>" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?> />
 							<?php endif; ?>
 						</div>
 					</div>

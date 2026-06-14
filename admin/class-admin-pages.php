@@ -16,6 +16,7 @@ class CRPCRM_Admin_Pages {
 	private $reports_repository;
 	private $staff_repository;
 	private $sales_daily_stats_service;
+	private $notification_service;
 
 	public function __construct() {
 		$this->request_repository = new CRPCRM_Request_Repository();
@@ -24,6 +25,7 @@ class CRPCRM_Admin_Pages {
 		$this->reports_repository = new CRPCRM_Reports_Repository();
 		$this->staff_repository = new CRPCRM_Staff_Repository();
 		$this->sales_daily_stats_service = new CRPCRM_Sales_Daily_Stats_Service( $this->staff_repository );
+		$this->notification_service = new CRPCRM_Notification_Service();
 		add_action( 'admin_post_crpcrm_claim_request', array( $this, 'handle_claim_request' ) );
 		add_action( 'admin_post_crpcrm_change_owner', array( $this, 'handle_change_owner' ) );
 		add_action( 'admin_post_crpcrm_release_owner', array( $this, 'handle_release_owner' ) );
@@ -295,6 +297,39 @@ class CRPCRM_Admin_Pages {
 		);
 	}
 
+	public function notifications() {
+		if ( ! CRPCRM_Notification_Service::is_enabled() ) {
+			$this->render_message( CRPCRM_Feature_Manager::disabled_message() );
+			return;
+		}
+
+		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) ) {
+			$this->render_message( 'شما اجازه دسترسی به این بخش را ندارید.' );
+			return;
+		}
+
+		$user_id       = get_current_user_id();
+		$page          = isset( $_GET['paged'] ) ? max( 1, absint( $_GET['paged'] ) ) : 1;
+		$per_page      = 20;
+		$notifications = $this->notification_service->list_for_user(
+			$user_id,
+			array(
+				'limit'  => $per_page,
+				'offset' => ( $page - 1 ) * $per_page,
+			)
+		);
+
+		$this->render(
+			'notifications.php',
+			array(
+				'notifications'  => $notifications,
+				'unread_count'   => $this->notification_service->count_unread_for_user( $user_id ),
+				'page'           => $page,
+				'per_page'       => $per_page,
+			)
+		);
+	}
+
 	public function settings() {
 		$settings            = CRPCRM_Settings::get();
 		$active_tab          = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'portal';
@@ -494,6 +529,7 @@ class CRPCRM_Admin_Pages {
 			if ( 'seen' === $manager_action ) { $this->staff_repository->mark_report_seen( $report_id, $user_id ); }
 			elseif ( 'closed' === $manager_action ) { $this->staff_repository->close_report( $report_id, $user_id ); }
 			elseif ( 'responded' === $manager_action ) { $this->staff_repository->respond_to_report( $report_id, $user_id, wp_unslash( $_POST['manager_response'] ?? '' ) ); }
+			$this->notify_about_daily_report_update( $report_id, $manager_action );
 			CRPCRM_Logger::info( 'staff_daily_report_responded', 'staff_daily_report_responded', array( 'user_id' => $user_id, 'report_id' => $report_id, 'manager_action' => $manager_action ) );
 		} elseif ( 'save_staff_request' === $action && ! $can_manage ) {
 			$tab = 'requests';
@@ -506,6 +542,7 @@ class CRPCRM_Admin_Pages {
 		} elseif ( 'manage_staff_request' === $action && $can_manage ) {
 			$tab = 'requests'; $id = absint( $_POST['request_id'] ?? 0 );
 			$this->staff_repository->update_staff_request_status( $id, sanitize_key( wp_unslash( $_POST['status'] ?? 'seen' ) ), wp_unslash( $_POST['manager_response'] ?? '' ) );
+			$this->notify_about_staff_request_update( $id );
 			CRPCRM_Logger::info( 'staff_request_status_changed', 'staff_request_status_changed', array( 'user_id' => $user_id, 'request_id' => $id ) );
 		} elseif ( 'save_issue' === $action && ! $can_manage ) {
 			$tab = 'issues'; $id = absint( $_POST['issue_id'] ?? 0 ); $row = $id ? $this->staff_repository->get_issue( $id ) : null;
@@ -516,6 +553,7 @@ class CRPCRM_Admin_Pages {
 		} elseif ( 'manage_issue' === $action && $can_manage ) {
 			$tab = 'issues'; $id = absint( $_POST['issue_id'] ?? 0 );
 			$this->staff_repository->update_issue_status( $id, sanitize_key( wp_unslash( $_POST['status'] ?? 'seen' ) ), wp_unslash( $_POST['manager_response'] ?? '' ) );
+			$this->notify_about_issue_update( $id );
 			CRPCRM_Logger::info( 'staff_issue_status_changed', 'staff_issue_status_changed', array( 'user_id' => $user_id, 'issue_id' => $id ) );
 		} elseif ( 'save_task' === $action && $can_manage ) {
 			$tab = 'tasks'; $id = absint( $_POST['task_id'] ?? 0 );
@@ -524,6 +562,7 @@ class CRPCRM_Admin_Pages {
 			$data = array( 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'description' => sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) ), 'assigned_to' => $assigned_to, 'due_date' => CRPCRM_Helpers::normalize_date_input( wp_unslash( $_POST['due_date'] ?? '' ) ), 'priority' => sanitize_key( wp_unslash( $_POST['priority'] ?? 'normal' ) ), 'status' => sanitize_key( wp_unslash( $_POST['status'] ?? 'new' ) ), 'manager_note' => sanitize_textarea_field( wp_unslash( $_POST['manager_note'] ?? '' ) ), 'created_by' => $user_id );
 			if ( $id ) { unset( $data['created_by'] ); $this->staff_repository->update_task( $id, $data ); CRPCRM_Logger::info( 'staff_task_updated', 'staff_task_updated', array( 'user_id' => $user_id, 'task_id' => $id ) ); }
 			else { $id = $this->staff_repository->create_task( $data ); CRPCRM_Logger::info( 'staff_task_created', 'staff_task_created', array( 'user_id' => $user_id, 'task_id' => $id ) ); }
+			$this->notify_about_task_assignment( $id, 0 === absint( $_POST['task_id'] ?? 0 ) );
 		} elseif ( 'update_task_status' === $action ) {
 			$tab = 'tasks'; $id = absint( $_POST['task_id'] ?? 0 ); $task = $this->staff_repository->get_task( $id );
 			if ( ! $task || ( ! $can_manage && absint( $task['assigned_to'] ) !== $user_id ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
@@ -553,6 +592,7 @@ class CRPCRM_Admin_Pages {
 				$id = $this->staff_repository->create_announcement( $data );
 				CRPCRM_Logger::info( 'staff_announcement_created', 'staff_announcement_created', array( 'user_id' => $user_id, 'announcement_id' => $id ) );
 			}
+			$this->notify_about_announcement( $id );
 		} elseif ( 'delete_announcement' === $action && $can_manage ) {
 			$tab = 'announcements';
 			$id = absint( $_POST['announcement_id'] ?? 0 );
@@ -802,7 +842,7 @@ class CRPCRM_Admin_Pages {
 			$status = 'new';
 		}
 
-		$owner_id = CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? get_current_user_id() : 0;
+		$owner_id = get_current_user_id();
 		if ( CRPCRM_Request_Access_Service::can_manage_request() && isset( $_POST['owner_id'] ) ) {
 			$requested_owner_id = absint( $_POST['owner_id'] );
 			$assignable_ids     = wp_list_pluck( $this->get_assignable_users(), 'ID' );
@@ -850,6 +890,7 @@ class CRPCRM_Admin_Pages {
 
 		CRPCRM_Activity::add( $request_id, 'manual_request_created', array( 'customer_id' => absint( $customer['id'] ), 'actor_user_id' => get_current_user_id(), 'actor_type' => CRPCRM_Request_Access_Service::can_manage_request() ? 'sales_manager' : 'sales_agent', 'new_status' => $status, 'note' => 'درخواست به صورت دستی توسط کارشناس فروش ثبت شد.', 'is_internal' => 1 ) );
 		CRPCRM_Logger::info( 'manual_request_created', 'request', array( 'request_id' => $request_id, 'customer_id' => absint( $customer['id'] ), 'actor_user_id' => get_current_user_id() ) );
+		$this->notify_sales_team_about_request( $request_id, $request_args['request_title'] );
 		$this->redirect_to_request( $request_id, 'manual_request_created' );
 	}
 
@@ -887,8 +928,7 @@ class CRPCRM_Admin_Pages {
 		$forms         = CRPCRM_Form_Registry::get_enabled_forms();
 		$selected_id   = isset( $_GET['form_id'] ) ? sanitize_key( wp_unslash( $_GET['form_id'] ) ) : ( $forms ? sanitize_key( array_key_first( $forms ) ) : '' );
 		$selected_form = CRPCRM_Form_Registry::get_enabled_form( $selected_id );
-		$staff_enabled = CRPCRM_Feature_Manager::is_enabled( 'staff' );
-		$this->render( 'request-create.php', array( 'customer_search' => $search, 'customer_results' => $this->customer_repository->search_for_manual_request( $search ), 'assignable_users' => $staff_enabled && CRPCRM_Request_Access_Service::can_manage_request() ? $this->get_assignable_users() : array(), 'can_manage' => $staff_enabled && CRPCRM_Request_Access_Service::can_manage_request(), 'forms' => $forms, 'selected_form' => $selected_form ) );
+		$this->render( 'request-create.php', array( 'customer_search' => $search, 'customer_results' => $this->customer_repository->search_for_manual_request( $search ), 'assignable_users' => CRPCRM_Request_Access_Service::can_manage_request() ? $this->get_assignable_users() : array(), 'can_manage' => CRPCRM_Request_Access_Service::can_manage_request(), 'forms' => $forms, 'selected_form' => $selected_form ) );
 	}
 
 	private function redirect_to_manual_request_form( $notice ) {
@@ -918,8 +958,8 @@ class CRPCRM_Admin_Pages {
 				'per_page'      => $per_page,
 				'total'         => $total,
 				'total_pages'   => max( 1, (int) ceil( $total / $per_page ) ),
-				'assignable_users' => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->get_assignable_users() : array(),
-				'can_manage'    => CRPCRM_Feature_Manager::is_enabled( 'staff' ) && CRPCRM_Request_Access_Service::can_manage_request(),
+				'assignable_users' => $this->get_assignable_users(),
+				'can_manage'    => CRPCRM_Request_Access_Service::can_manage_request(),
 				'can_delete'    => CRPCRM_Request_Access_Service::can_delete_request(),
 				'summary'       => $summary,
 				'stale_hours'   => $stale_hours,
@@ -949,7 +989,7 @@ class CRPCRM_Admin_Pages {
 				'mode'          => 'detail',
 				'request'       => $request,
 				'activities'    => $activities,
-				'assignable_users' => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->get_assignable_users() : array(),
+				'assignable_users' => $this->get_assignable_users(),
 				'can_manage'    => CRPCRM_Request_Access_Service::can_manage_request( $request ),
 				'can_delete'    => CRPCRM_Request_Access_Service::can_delete_request(),
 				'can_claim'     => CRPCRM_Request_Access_Service::can_claim_request( $request ),
@@ -985,6 +1025,108 @@ class CRPCRM_Admin_Pages {
 		);
 	}
 
+	private function notify_about_daily_report_update( $report_id, $manager_action ) {
+		$report = $this->staff_repository->get_daily_report( $report_id );
+		if ( ! $report || empty( $report['user_id'] ) ) {
+			return;
+		}
+
+		$this->notification_service->create_for_user(
+			absint( $report['user_id'] ),
+			'daily_report_update',
+			'گزارش روزانه شما به‌روزرسانی شد',
+			'مدیر وضعیت یا پاسخ گزارش روزانه شما را تغییر داد.',
+			admin_url( 'admin.php?page=crpcrm-staff&staff_tab=daily_reports&staff_item_id=' . absint( $report_id ) ),
+			'daily_report',
+			$report_id
+		);
+	}
+
+	private function notify_about_staff_request_update( $request_id ) {
+		$request = $this->staff_repository->get_staff_request( $request_id );
+		if ( ! $request || empty( $request['user_id'] ) ) {
+			return;
+		}
+
+		$this->notification_service->create_for_user(
+			absint( $request['user_id'] ),
+			'staff_request_update',
+			'درخواست شما از مدیریت به‌روزرسانی شد',
+			'مدیر برای درخواست شما پاسخ یا تغییر جدید ثبت کرد.',
+			admin_url( 'admin.php?page=crpcrm-staff&staff_tab=requests&staff_item_id=' . absint( $request_id ) ),
+			'staff_request',
+			$request_id
+		);
+	}
+
+	private function notify_about_issue_update( $issue_id ) {
+		$issue = $this->staff_repository->get_issue( $issue_id );
+		if ( ! $issue || empty( $issue['user_id'] ) ) {
+			return;
+		}
+
+		$this->notification_service->create_for_user(
+			absint( $issue['user_id'] ),
+			'issue_update',
+			'مشکل یا مانع شما به‌روزرسانی شد',
+			'مدیر برای مورد ثبت‌شده شما پاسخ یا تغییر جدید ثبت کرد.',
+			admin_url( 'admin.php?page=crpcrm-staff&staff_tab=issues&staff_item_id=' . absint( $issue_id ) ),
+			'issue',
+			$issue_id
+		);
+	}
+
+	private function notify_about_task_assignment( $task_id, $is_new ) {
+		$task = $this->staff_repository->get_task( $task_id );
+		if ( ! $task || empty( $task['assigned_to'] ) ) {
+			return;
+		}
+
+		$this->notification_service->create_for_user(
+			absint( $task['assigned_to'] ),
+			$is_new ? 'task_created' : 'task_updated',
+			$is_new ? 'وظیفه جدید برای شما ثبت شد' : 'وظیفه شما به‌روزرسانی شد',
+			sanitize_text_field( $task['title'] ),
+			admin_url( 'admin.php?page=crpcrm-staff&staff_tab=tasks&staff_item_id=' . absint( $task_id ) ),
+			'task',
+			$task_id
+		);
+	}
+
+	private function notify_about_announcement( $announcement_id ) {
+		$announcement = $this->staff_repository->get_announcement( $announcement_id );
+		if ( ! $announcement ) {
+			return;
+		}
+
+		$this->notification_service->create_for_users(
+			$this->staff_repository->get_audience_user_ids( $announcement ),
+			'announcement',
+			'اطلاعیه جدید',
+			sanitize_text_field( $announcement['title'] ),
+			admin_url( 'admin.php?page=crpcrm-staff&staff_tab=announcements&staff_item_id=' . absint( $announcement_id ) ),
+			'announcement',
+			$announcement_id
+		);
+	}
+
+	private function notify_sales_team_about_request( $request_id, $request_title = '' ) {
+		$user_ids = array_map( 'absint', wp_list_pluck( $this->get_assignable_users(), 'ID' ) );
+		if ( empty( $user_ids ) ) {
+			return;
+		}
+
+		$this->notification_service->create_for_users(
+			$user_ids,
+			'request_created',
+			'درخواست جدید ثبت شد',
+			$request_title ? sanitize_text_field( $request_title ) : 'یک درخواست جدید نیاز به بررسی دارد.',
+			admin_url( 'admin.php?page=crpcrm-requests&request_id=' . absint( $request_id ) ),
+			'request',
+			$request_id
+		);
+	}
+
 	private function get_assignable_users() {
 		return get_users(
 			array(
@@ -1012,7 +1154,7 @@ class CRPCRM_Admin_Pages {
 	}
 
 	private function render_message( $message ) {
-		echo '<div class="wrap crpcrm-admin-wrap" dir="rtl"><h1>' . esc_html( 'پرتال و CRM' ) . '</h1><div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div></div>';
+		echo '<div class="wrap crpcrm-admin-wrap" dir="rtl"><h1>' . esc_html( 'دیجیتال مارکتینگ' ) . '</h1><div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div></div>';
 	}
 
 	private function render( $view, $vars = array() ) {

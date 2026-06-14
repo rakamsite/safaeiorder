@@ -11,9 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Admin_Menu {
 	private $admin_pages;
+	private $notification_service;
 
 	public function __construct( CRPCRM_Admin_Pages $admin_pages ) {
-		$this->admin_pages = $admin_pages;
+		$this->admin_pages          = $admin_pages;
+		$this->notification_service = new CRPCRM_Notification_Service();
 	}
 
 	public function register_hooks() {
@@ -36,12 +38,24 @@ class CRPCRM_Admin_Menu {
 			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
 		}
 
-		$page_features = array( 'crpcrm-reports' => 'reports', 'crpcrm-staff' => 'staff' );
+		$page_features = array(
+			'crpcrm-reports'       => 'reports',
+			'crpcrm-staff'         => 'staff',
+			'crpcrm-notifications' => 'notifications',
+		);
 		if ( isset( $page_features[ $page ] ) && ! CRPCRM_Feature_Manager::is_enabled( $page_features[ $page ] ) ) {
 			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
 		}
+
 		if ( 'crpcrm-settings' === $page && isset( $_GET['tab'] ) ) {
-			$tab_features = array( 'portal' => 'portal', 'registration_fields' => 'customer_registration', 'attribution' => 'tracking', 'staff' => 'staff', 'tools' => 'admin_tools' );
+			$tab_features = array(
+				'portal'              => 'portal',
+				'registration_fields' => 'customer_registration',
+				'attribution'         => 'tracking',
+				'staff'               => 'staff',
+				'notifications'       => 'notifications',
+				'tools'               => 'admin_tools',
+			);
 			$tab          = sanitize_key( wp_unslash( $_GET['tab'] ) );
 			if ( 'crm' === $tab && ! CRPCRM_Feature_Manager::is_crm_ui_enabled() ) {
 				wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
@@ -62,10 +76,15 @@ class CRPCRM_Admin_Menu {
 		$parent_slug         = $crm_ui_enabled ? 'crpcrm-dashboard' : 'crpcrm-settings';
 		$parent_capability   = $crm_ui_enabled ? 'crpcrm_use_staff_portal' : $settings_capability;
 		$parent_callback     = $crm_ui_enabled ? array( $this->admin_pages, 'dashboard' ) : array( $this->admin_pages, 'settings' );
+		$unread_count        = CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->count_unread_for_user( get_current_user_id() ) : 0;
+		$notifications_title = 'اعلانات';
+		if ( $unread_count > 0 ) {
+			$notifications_title .= ' <span class="update-plugins count-' . absint( $unread_count ) . '"><span class="plugin-count">' . number_format_i18n( $unread_count ) . '</span></span>';
+		}
 
 		add_menu_page(
-			'پرتال و CRM',
-			'پرتال و CRM',
+			'دیجیتال مارکتینگ',
+			'دیجیتال مارکتینگ',
 			$parent_capability,
 			$parent_slug,
 			$parent_callback,
@@ -84,6 +103,9 @@ class CRPCRM_Admin_Menu {
 		}
 		if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) && ( 'yes' === CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) || current_user_can( 'manage_options' ) ) ) {
 			add_submenu_page( $parent_slug, 'کارکنان', 'کارکنان', 'crpcrm_use_staff_portal', 'crpcrm-staff', array( $this->admin_pages, 'staff' ) );
+		}
+		if ( CRPCRM_Notification_Service::is_enabled() && current_user_can( 'crpcrm_use_staff_portal' ) ) {
+			add_submenu_page( $parent_slug, 'اعلانات', $notifications_title, 'crpcrm_use_staff_portal', 'crpcrm-notifications', array( $this->admin_pages, 'notifications' ) );
 		}
 		if ( CRPCRM_Settings::current_user_can_manage() ) {
 			add_submenu_page( $parent_slug, 'تنظیمات', 'تنظیمات', $settings_capability, 'crpcrm-settings', array( $this->admin_pages, 'settings' ) );
@@ -105,10 +127,17 @@ class CRPCRM_Admin_Menu {
 			array(
 				'ajaxUrl'              => admin_url( 'admin-ajax.php' ),
 				'productSearchNonce'   => wp_create_nonce( 'crpcrm_search_products' ),
+				'fileUploadNonce'      => wp_create_nonce( 'crpcrm_upload_request_file' ),
 				'productSearchMin'     => 2,
 				'productSearchEmpty'   => 'محصولی پیدا نشد.',
 				'productSearchLoading' => 'در حال جستجو...',
 				'productRemoveLabel'   => 'حذف محصول',
+				'unreadNotifications'  => CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->count_unread_for_user( get_current_user_id() ) : 0,
+				'notificationsPageUrl' => admin_url( 'admin.php?page=crpcrm-notifications' ),
+				'fileUploadLoading'    => 'Ø¯Ø± Ø­Ø§Ù„ Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ...',
+				'fileUploadError'      => 'Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ ÙØ§ÛŒÙ„ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.',
+				'fileUploadedLabel'    => 'Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ Ø´Ø¯Ù‡',
+				'notificationsToast'   => CRPCRM_Notification_Service::is_enabled() && 'yes' === CRPCRM_Settings::get( 'notifications_toast_enabled', 'yes' ),
 			)
 		);
 	}

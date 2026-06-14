@@ -61,11 +61,17 @@ class CRPCRM_Dynamic_Form_Renderer {
 			}
 
 			if ( 'file_upload' === $type ) {
-				$uploaded_files = self::handle_uploaded_files( $files[ $name ] ?? null );
+				$uploaded_files = self::parse_uploaded_files_payload( $posted[ $name . '__uploaded' ] ?? '' );
 				if ( is_wp_error( $uploaded_files ) ) {
 					$errors[] = self::field_error( $field, $uploaded_files->get_error_message() );
 					continue;
 				}
+				$new_uploaded_files = self::handle_uploaded_files( $files[ $name ] ?? null );
+				if ( is_wp_error( $new_uploaded_files ) ) {
+					$errors[] = self::field_error( $field, $new_uploaded_files->get_error_message() );
+					continue;
+				}
+				$uploaded_files = array_merge( $uploaded_files, $new_uploaded_files );
 				if ( ! empty( $field['required'] ) && empty( $uploaded_files ) ) {
 					$errors[] = self::field_error( $field, 'این فیلد الزامی است.' );
 					continue;
@@ -263,6 +269,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		} elseif ( 'file_upload' === $type ) {
 			$accept = '.jpg,.jpeg,.png,.webp,.gif,.pdf';
 			echo '<div class="crpcrm-file-upload" data-field-name="' . esc_attr( $name ) . '">';
+			echo '<input type="hidden" class="crpcrm-uploaded-files-store" name="' . esc_attr( $name . '__uploaded' ) . '" value="">';
 			echo '<div class="crpcrm-file-upload-list">';
 			echo self::render_file_input_row( $name, $accept, $required );
 			echo '</div>';
@@ -460,5 +467,77 @@ class CRPCRM_Dynamic_Form_Renderer {
 			'webp'         => 'image/webp',
 			'pdf'          => 'application/pdf',
 		);
+	}
+
+	public static function handle_async_upload( $file ) {
+		if ( empty( $file ) || ! is_array( $file ) ) {
+			return new WP_Error( 'crpcrm_upload_missing', 'ÙØ§ÛŒÙ„ÛŒ Ø¨Ø±Ø§ÛŒ Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ Ø§Ø±Ø³Ø§Ù„ Ù†Ø´Ø¯Ù‡ Ø§Ø³Øª.' );
+		}
+
+		$uploaded = self::handle_uploaded_files( $file );
+		if ( is_wp_error( $uploaded ) ) {
+			return $uploaded;
+		}
+
+		if ( empty( $uploaded ) ) {
+			return new WP_Error( 'crpcrm_upload_missing', 'ÙØ§ÛŒÙ„ÛŒ Ø¨Ø±Ø§ÛŒ Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ Ø§Ø±Ø³Ø§Ù„ Ù†Ø´Ø¯Ù‡ Ø§Ø³Øª.' );
+		}
+
+		return $uploaded[0];
+	}
+
+	private static function parse_uploaded_files_payload( $payload ) {
+		if ( empty( $payload ) ) {
+			return array();
+		}
+
+		if ( is_string( $payload ) ) {
+			$decoded = json_decode( wp_unslash( $payload ), true );
+		} elseif ( is_array( $payload ) ) {
+			$decoded = $payload;
+		} else {
+			$decoded = array();
+		}
+
+		if ( ! is_array( $decoded ) ) {
+			return new WP_Error( 'crpcrm_upload_invalid', 'Ø§Ø·Ù„Ø§Ø¹Ø§Øª ÙØ§ÛŒÙ„ Ø§Ø±Ø³Ø§Ù„ÛŒ Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª.' );
+		}
+
+		$files = array();
+		foreach ( $decoded as $file ) {
+			if ( ! is_array( $file ) || ! self::is_valid_uploaded_file_meta( $file ) ) {
+				return new WP_Error( 'crpcrm_upload_invalid', 'Ø§Ø·Ù„Ø§Ø¹Ø§Øª ÙØ§ÛŒÙ„ Ø§Ø±Ø³Ø§Ù„ÛŒ Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª.' );
+			}
+
+			$files[] = array(
+				'name'          => sanitize_file_name( $file['name'] ),
+				'url'           => esc_url_raw( $file['url'] ),
+				'relative_path' => sanitize_text_field( $file['relative_path'] ),
+				'type'          => sanitize_text_field( $file['type'] ?? '' ),
+				'size'          => absint( $file['size'] ?? 0 ),
+			);
+		}
+
+		return $files;
+	}
+
+	private static function is_valid_uploaded_file_meta( $file ) {
+		if ( empty( $file['name'] ) || empty( $file['url'] ) || empty( $file['relative_path'] ) ) {
+			return false;
+		}
+
+		$extension = strtolower( pathinfo( (string) $file['name'], PATHINFO_EXTENSION ) );
+		$allowed   = array_keys( self::get_allowed_upload_mimes() );
+		$is_valid  = false;
+
+		foreach ( $allowed as $group ) {
+			$extensions = array_map( 'trim', explode( '|', $group ) );
+			if ( in_array( $extension, $extensions, true ) ) {
+				$is_valid = true;
+				break;
+			}
+		}
+
+		return $is_valid && absint( $file['size'] ?? 0 ) <= self::MAX_FILE_SIZE;
 	}
 }

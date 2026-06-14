@@ -28,6 +28,7 @@ class CRPCRM_DB {
 			'staff_tasks'                 => self::table( 'staff_tasks' ),
 			'manager_announcements'       => self::table( 'manager_announcements' ),
 			'announcement_reads'          => self::table( 'announcement_reads' ),
+			'notifications'               => self::table( 'notifications' ),
 			'plugin_logs'                 => self::table( 'plugin_logs' ),
 		);
 	}
@@ -65,6 +66,7 @@ class CRPCRM_DB {
 		$staff_tasks                = self::table( 'staff_tasks' );
 		$manager_announcements      = self::table( 'manager_announcements' );
 		$announcement_reads         = self::table( 'announcement_reads' );
+		$notifications              = self::table( 'notifications' );
 		$plugin_logs                = self::table( 'plugin_logs' );
 
 		return array(
@@ -322,6 +324,24 @@ class CRPCRM_DB {
 				KEY announcement_id (announcement_id),
 				KEY user_id (user_id),
 				KEY read_at (read_at)
+			) $charset_collate;",
+			"CREATE TABLE $notifications (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				user_id BIGINT UNSIGNED NOT NULL,
+				type VARCHAR(100) NOT NULL,
+				title VARCHAR(255) NOT NULL,
+				message TEXT NULL,
+				target_url TEXT NULL,
+				object_type VARCHAR(100) NULL,
+				object_id BIGINT UNSIGNED NULL,
+				is_read TINYINT(1) NOT NULL DEFAULT 0,
+				read_at DATETIME NULL,
+				created_at DATETIME NOT NULL,
+				PRIMARY KEY  (id),
+				KEY user_read (user_id,is_read),
+				KEY type (type),
+				KEY object_ref (object_type,object_id),
+				KEY created_at (created_at)
 			) $charset_collate;",
 			"CREATE TABLE $plugin_logs (
 				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
