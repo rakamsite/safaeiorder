@@ -792,25 +792,12 @@
 		});
 	}
 
-	function showNotificationsToast(config) {
-		if (!config || !config.notificationsToast || !config.unreadNotifications || !config.notificationsPageUrl) {
-			return;
-		}
-
-		var toast = document.createElement('a');
-		toast.className = 'crpcrm-notifications-toast';
-		toast.href = config.notificationsPageUrl;
-		toast.innerHTML = '<strong>اعلان جدید دارید</strong><span>' + config.unreadNotifications + ' مورد خوانده‌نشده</span>';
-		document.body.appendChild(toast);
-	}
-
 	document.addEventListener('DOMContentLoaded', function () {
 		var config = getAdminConfig();
 		initJalaliDatePickers();
 		initRegistrationFieldSorting();
 		initFormBuilder();
 		cleanupRequestList();
-		showNotificationsToast(config);
 		document.querySelectorAll('.crpcrm-manual-request-form').forEach(function (form) {
 			updateManualCustomerFields(form);
 			initProductSearch(form, config);

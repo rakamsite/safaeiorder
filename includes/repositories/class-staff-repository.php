@@ -88,6 +88,7 @@ class CRPCRM_Staff_Repository {
 		global $wpdb;
 		$now = CRPCRM_Helpers::current_datetime();
 		$data = wp_parse_args( $data, array( 'status' => 'new', 'created_at' => $now, 'updated_at' => $now ) );
+		$data = $this->normalize_staff_request_attachment_fields( $data );
 		$wpdb->insert( $this->tables['staff_requests'], $data );
 		return $wpdb->insert_id;
 	}
@@ -95,6 +96,7 @@ class CRPCRM_Staff_Repository {
 	public function update_staff_request( $id, $data ) {
 		global $wpdb;
 		$data['updated_at'] = CRPCRM_Helpers::current_datetime();
+		$data               = $this->normalize_staff_request_attachment_fields( $data );
 		return false !== $wpdb->update( $this->tables['staff_requests'], $data, array( 'id' => absint( $id ) ) );
 	}
 
@@ -110,8 +112,15 @@ class CRPCRM_Staff_Repository {
 		return $this->get_row( 'staff_requests', $id );
 	}
 
-	public function update_staff_request_status( $id, $status, $manager_response ) {
-		return $this->update_staff_request( $id, array( 'status' => sanitize_key( $status ), 'manager_response' => sanitize_textarea_field( $manager_response ) ) );
+	public function update_staff_request_status( $id, $status, $manager_response, $manager_response_attachment = null ) {
+		$data = array(
+			'status'          => sanitize_key( $status ),
+			'manager_response'=> sanitize_textarea_field( $manager_response ),
+		);
+		if ( null !== $manager_response_attachment ) {
+			$data['manager_response_attachment'] = $manager_response_attachment;
+		}
+		return $this->update_staff_request( $id, $data );
 	}
 
 	public function create_issue( $data ) {
@@ -224,6 +233,30 @@ class CRPCRM_Staff_Repository {
 		$announcement_id = absint( $id );
 		$wpdb->delete( $this->tables['announcement_reads'], array( 'announcement_id' => $announcement_id ), array( '%d' ) );
 		return false !== $wpdb->delete( $this->tables['announcements'], array( 'id' => $announcement_id ), array( '%d' ) );
+	}
+
+	private function normalize_staff_request_attachment_fields( $data ) {
+		foreach ( array( 'request_attachment', 'manager_response_attachment' ) as $field ) {
+			if ( ! array_key_exists( $field, $data ) ) {
+				continue;
+			}
+
+			$value = $data[ $field ];
+			if ( null === $value || '' === $value ) {
+				$data[ $field ] = null;
+				continue;
+			}
+
+			$decoded = is_string( $value ) ? CRPCRM_Helpers::maybe_json_decode( $value, true ) : $value;
+			if ( is_array( $decoded ) ) {
+				$data[ $field ] = CRPCRM_Helpers::maybe_json_encode( CRPCRM_Helpers::sanitize_array( $decoded ) );
+				continue;
+			}
+
+			$data[ $field ] = null;
+		}
+
+		return $data;
 	}
 
 	public function mark_announcement_read( $announcement_id, $user_id ) {

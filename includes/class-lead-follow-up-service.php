@@ -77,7 +77,18 @@ class CRPCRM_Lead_Follow_Up_Service {
 				continue;
 			}
 
+			$request = $this->request_repository->get( $request_id );
 			CRPCRM_Activity::add( $request_id, CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED, array( 'customer_id' => absint( $customer['id'] ), 'actor_type' => 'system', 'new_status' => 'new', 'note' => $reason, 'is_internal' => 1 ) );
+			if ( $request ) {
+				$notification_service = new CRPCRM_Notification_Service();
+				$notification_service->notify_new_request(
+					$request_id,
+					$request['request_title'] ?? 'پیگیری سرنخ',
+					$request['request_code'] ?? '',
+					0,
+					admin_url( 'admin.php?page=crpcrm-requests&request_id=' . $request_id )
+				);
+			}
 			$created++;
 		}
 

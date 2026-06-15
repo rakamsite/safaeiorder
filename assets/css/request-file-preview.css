@@ -1,0 +1,193 @@
+.crpcrm-file-upload-display {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.crpcrm-file-item {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-width: 180px;
+}
+
+.crpcrm-file-thumb {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+.crpcrm-file-thumb-image {
+	display: block;
+	width: 100px;
+	height: 100px;
+	object-fit: cover;
+	border-radius: 14px;
+	border: 1px solid #d1d5db;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.crpcrm-file-pdf,
+.crpcrm-file-download-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	text-decoration: none;
+}
+
+.crpcrm-file-pdf {
+	padding: 12px 14px;
+	border: 1px solid #e5e7eb;
+	border-radius: 14px;
+	background: #fff;
+	color: #111827;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.crpcrm-file-pdf-icon,
+.crpcrm-file-generic-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 54px;
+	height: 54px;
+	border-radius: 14px;
+	background: linear-gradient(180deg, #ef4444, #b91c1c);
+	color: #fff;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: 0.05em;
+}
+
+.crpcrm-file-generic-icon {
+	background: linear-gradient(180deg, #64748b, #334155);
+}
+
+.crpcrm-file-name {
+	max-width: 110px;
+	font-size: 13px;
+	line-height: 1.6;
+	word-break: break-word;
+}
+
+.crpcrm-file-download-link {
+	color: #2563eb;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.crpcrm-file-empty {
+	color: #6b7280;
+	font-size: 13px;
+}
+
+.crpcrm-file-modal-open {
+	overflow: hidden;
+}
+
+.crpcrm-file-modal {
+	position: fixed;
+	inset: 0;
+	display: none;
+	z-index: 100020;
+	direction: rtl;
+}
+
+.crpcrm-file-modal.is-open {
+	display: block;
+}
+
+.crpcrm-file-modal-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(15, 23, 42, 0.82);
+}
+
+.crpcrm-file-modal-content {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	max-width: min(92vw, 1100px);
+	max-height: min(92vh, 900px);
+	margin: 4vh auto;
+	padding: 18px;
+	border-radius: 20px;
+	background: #0f172a;
+	color: #fff;
+	box-shadow: 0 24px 60px rgba(15, 23, 42, 0.38);
+}
+
+.crpcrm-file-modal-body {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 240px;
+}
+
+.crpcrm-file-modal-image {
+	display: block;
+	max-width: 100%;
+	max-height: 74vh;
+	border-radius: 16px;
+	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+}
+
+.crpcrm-file-modal-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.crpcrm-file-modal-title {
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.crpcrm-file-modal-download {
+	margin-inline-start: auto;
+}
+
+.crpcrm-file-modal-close {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	width: 40px;
+	height: 40px;
+	border: 0;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.12);
+	color: #fff;
+	font-size: 24px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.crpcrm-file-modal-close:hover,
+.crpcrm-file-modal-close:focus {
+	background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 782px) {
+	.crpcrm-file-modal-content {
+		max-width: calc(100vw - 20px);
+		margin: 10px auto;
+		padding: 14px;
+	}
+
+	.crpcrm-file-modal-body {
+		min-height: 180px;
+	}
+
+	.crpcrm-file-thumb-image {
+		width: 84px;
+		height: 84px;
+	}
+}

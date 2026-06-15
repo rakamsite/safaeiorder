@@ -49,9 +49,7 @@ class CRPCRM_Plugin {
 		if ( CRPCRM_Feature_Manager::is_enabled( 'admin_tools' ) ) {
 			$this->admin_tools->register_hooks();
 		}
-		if ( CRPCRM_Notification_Service::is_enabled() ) {
-			$this->notification_service->register_hooks();
-		}
+		$this->notification_service->register_hooks();
 		if ( CRPCRM_Feature_Manager::is_enabled( 'lead_followup' ) ) {
 			$this->lead_follow_up_service->register_hooks();
 		}

@@ -63,4 +63,20 @@ class CRPCRM_Activity_Repository {
 			ARRAY_A
 		);
 	}
+
+	public function get_conversation_by_request_id( $request_id, $limit = 100, $offset = 0 ) {
+		global $wpdb;
+
+		$request_id = absint( $request_id );
+		$limit      = max( 1, absint( $limit ) );
+		$offset     = max( 0, absint( $offset ) );
+		$types      = array( 'customer_reply', 'staff_reply', 'manager_reply' );
+		$placeholders = implode( ', ', array_fill( 0, count( $types ), '%s' ) );
+		$sql        = $wpdb->prepare(
+			"SELECT id, request_id, customer_id, actor_user_id, actor_type, activity_type, note AS message, is_internal, meta, created_at FROM {$this->table} WHERE request_id = %d AND activity_type IN ( $placeholders ) ORDER BY created_at ASC, id ASC LIMIT %d OFFSET %d",
+			array_merge( array( $request_id ), $types, array( $limit, $offset ) )
+		);
+
+		return $wpdb->get_results( $sql, ARRAY_A );
+	}
 }
