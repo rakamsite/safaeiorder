@@ -164,29 +164,76 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 					<div class="crpcrm-notice crpcrm-notice-error crpcrm-alert crpcrm-alert-error"><?php echo esc_html( 'شما اجازه مشاهده این درخواست را ندارید.' ); ?></div>
 				<?php elseif ( $request_detail ) : ?>
 					<?php $request_data = CRPCRM_Request_Repository::get_merged_request_data( $request_detail ); ?>
+					<?php
+					$detail_form      = CRPCRM_Request_Forms::get_form_for_request( $request_detail['request_type'], $request_data );
+					$summary_items    = CRPCRM_Dynamic_Form_Renderer::get_summary_items( $detail_form, $request_data );
+					$attachment_items = CRPCRM_Dynamic_Form_Renderer::get_uploaded_file_items( $detail_form, $request_data );
+					$conversation     = ! empty( $portal_data['request_conversation'] ) && is_array( $portal_data['request_conversation'] ) ? $portal_data['request_conversation'] : array();
+					?>
 					<h2><?php echo esc_html( 'جزئیات درخواست' ); ?></h2>
-					<div class="crpcrm-detail-grid">
-						<div><span><?php echo esc_html( 'کد پیگیری' ); ?></span><strong><?php echo esc_html( $request_detail['request_code'] ); ?></strong></div>
-						<div><span><?php echo esc_html( 'نوع درخواست' ); ?></span><strong><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request_detail['request_type'], $request_detail ) ); ?></strong></div>
-						<div><span><?php echo esc_html( 'وضعیت' ); ?></span><strong><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request_detail['status'] ) ); ?></strong></div>
-						<div><span><?php echo esc_html( 'تاریخ ثبت' ); ?></span><strong><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request_detail['created_at'] ) ); ?></strong></div>
-						<div><span><?php echo esc_html( 'آخرین بروزرسانی' ); ?></span><strong><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request_detail['last_activity_at'] ) ? $request_detail['last_activity_at'] : $request_detail['updated_at'] ) ); ?></strong></div>
+					<div class="crpcrm-request-meta-row">
+						<div class="crpcrm-request-meta-card"><span class="crpcrm-request-meta-label"><?php echo esc_html( 'کد پیگیری' ); ?></span><strong class="crpcrm-request-meta-value"><?php echo esc_html( $request_detail['request_code'] ); ?></strong></div>
+						<div class="crpcrm-request-meta-card"><span class="crpcrm-request-meta-label"><?php echo esc_html( 'نوع درخواست' ); ?></span><strong class="crpcrm-request-meta-value"><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request_detail['request_type'], $request_detail ) ); ?></strong></div>
+						<div class="crpcrm-request-meta-card"><span class="crpcrm-request-meta-label"><?php echo esc_html( 'وضعیت' ); ?></span><strong class="crpcrm-request-meta-value"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request_detail['status'] ) ); ?></strong></div>
+						<div class="crpcrm-request-meta-card"><span class="crpcrm-request-meta-label"><?php echo esc_html( 'تاریخ ثبت' ); ?></span><strong class="crpcrm-request-meta-value"><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request_detail['created_at'] ) ); ?></strong></div>
+						<div class="crpcrm-request-meta-card"><span class="crpcrm-request-meta-label"><?php echo esc_html( 'آخرین بروزرسانی' ); ?></span><strong class="crpcrm-request-meta-value"><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request_detail['last_activity_at'] ) ? $request_detail['last_activity_at'] : $request_detail['updated_at'] ) ); ?></strong></div>
 					</div>
 					<h3><?php echo esc_html( 'خلاصه درخواست' ); ?></h3>
-					<p class="crpcrm-request-summary"><?php echo esc_html( CRPCRM_Request_Forms::build_display_summary( $request_detail['request_type'], $request_data, $request_detail['request_summary'] ) ); ?></p>
-					<h3><?php echo esc_html( 'اطلاعات ثبت‌شده در فرم' ); ?></h3>
-					<dl class="crpcrm-data-list">
-						<?php
-						$detail_form = CRPCRM_Request_Forms::get_form_for_request( $request_detail['request_type'], $request_data );
-						$detail_items = CRPCRM_Dynamic_Form_Renderer::get_display_items( $detail_form, $request_data );
-						?>
-						<?php if ( $detail_items ) : ?>
-							<?php foreach ( $detail_items as $item ) : ?>
+					<?php if ( ! empty( $summary_items ) ) : ?>
+						<dl class="crpcrm-request-summary-list">
+							<?php foreach ( $summary_items as $item ) : ?>
 								<dt><?php echo esc_html( $item['label'] ); ?></dt>
-								<dd><?php echo esc_html( $item['value'] ); ?></dd>
+								<dd><?php echo nl2br( esc_html( $item['value'] ) ); ?></dd>
 							<?php endforeach; ?>
-						<?php endif; ?>
-					</dl>
+						</dl>
+					<?php else : ?>
+						<p class="crpcrm-request-summary-empty"><?php echo esc_html( 'اطلاعاتی برای نمایش وجود ندارد.' ); ?></p>
+					<?php endif; ?>
+
+					<?php if ( ! empty( $attachment_items ) ) : ?>
+						<h3><?php echo esc_html( 'فایل‌های پیوست' ); ?></h3>
+						<div class="crpcrm-request-attachments">
+							<?php foreach ( $attachment_items as $item ) : ?>
+								<div class="crpcrm-request-attachment">
+									<strong><?php echo esc_html( $item['label'] ); ?></strong>
+									<?php echo CRPCRM_Dynamic_Form_Renderer::render_uploaded_file_value( $item['raw'], $item, 'public' ); ?>
+								</div>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
+
+					<h3><?php echo esc_html( 'گفت‌وگو' ); ?></h3>
+					<?php if ( ! empty( $conversation ) ) : ?>
+						<ol class="crpcrm-request-conversation">
+							<?php foreach ( $conversation as $message ) : ?>
+								<?php
+								$author_type  = sanitize_key( $message['activity_type'] ?? '' );
+								$author_label = 'customer_reply' === $author_type ? 'مشتری' : ( 'manager_reply' === $author_type ? 'مدیر' : 'کارشناس فروش' );
+								?>
+								<li class="crpcrm-request-conversation-item crpcrm-request-conversation-<?php echo esc_attr( $author_type ); ?>">
+									<div class="crpcrm-request-conversation-meta">
+										<strong><?php echo esc_html( $author_label ); ?></strong>
+										<time><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $message['created_at'] ) ); ?></time>
+									</div>
+									<div class="crpcrm-request-conversation-message"><?php echo nl2br( esc_html( $message['message'] ?? '' ) ); ?></div>
+								</li>
+							<?php endforeach; ?>
+						</ol>
+					<?php else : ?>
+						<p class="crpcrm-request-conversation-empty"><?php echo esc_html( 'هنوز پاسخی ثبت نشده است.' ); ?></p>
+					<?php endif; ?>
+
+					<?php if ( is_user_logged_in() && absint( $request_detail['user_id'] ) === get_current_user_id() ) : ?>
+						<h3><?php echo esc_html( 'ارسال پاسخ' ); ?></h3>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-request-reply-form">
+							<input type="hidden" name="action" value="crpcrm_portal_request_reply">
+							<input type="hidden" name="request_id" value="<?php echo esc_attr( absint( $request_detail['id'] ) ); ?>">
+							<?php wp_nonce_field( 'crpcrm_portal_request_reply_' . absint( $request_detail['id'] ), 'crpcrm_request_reply_nonce' ); ?>
+							<label for="crpcrm-request-reply-message"><?php echo esc_html( 'متن پاسخ' ); ?></label>
+							<textarea id="crpcrm-request-reply-message" name="reply_message" rows="5" required></textarea>
+							<button type="submit" class="crpcrm-button crpcrm-button-primary"><?php echo esc_html( 'ارسال پاسخ' ); ?></button>
+						</form>
+					<?php endif; ?>
 					<div class="crpcrm-button-row crpcrm-form-actions">
 						<?php if ( $default_request_form ) : ?><a class="crpcrm-button crpcrm-button-primary crpcrm-button-inline crpcrm-open-request-form" href="<?php echo esc_url( add_query_arg( 'form_id', sanitize_key( $default_request_form['id'] ), $portal_urls['new_request'] ) ); ?>" data-crpcrm-open-form="<?php echo esc_attr( $default_request_form['page'] ); ?>"><?php echo esc_html( 'ثبت درخواست جدید' ); ?></a><?php endif; ?>
 						<a class="crpcrm-secondary-link crpcrm-button crpcrm-button-secondary" href="<?php echo esc_url( $portal_urls['my_requests'] ); ?>"><?php echo esc_html( 'مشاهده همه درخواست‌ها' ); ?></a>

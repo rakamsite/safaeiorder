@@ -572,6 +572,63 @@
 	font-style: normal;
 }
 
+.crpcrm-request-conversation {
+	list-style: none;
+	margin: 0 0 18px;
+	padding: 0;
+	display: grid;
+	gap: 12px;
+}
+
+.crpcrm-request-conversation-item {
+	background: #f6f7f7;
+	border: 1px solid #dcdcde;
+	border-radius: 12px;
+	padding: 12px;
+}
+
+.crpcrm-request-conversation-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
+
+.crpcrm-request-conversation-meta strong {
+	color: #1d2327;
+}
+
+.crpcrm-request-conversation-meta time {
+	color: #646970;
+	font-size: 12px;
+}
+
+.crpcrm-request-conversation-message {
+	line-height: 1.9;
+	word-break: break-word;
+}
+
+.crpcrm-request-reply-form {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 12px;
+	display: grid;
+	gap: 10px;
+	margin: 0 0 18px;
+	padding: 14px;
+}
+
+.crpcrm-request-reply-form label {
+	font-weight: 700;
+}
+
+.crpcrm-request-reply-form textarea {
+	min-height: 140px;
+	resize: vertical;
+	width: 100%;
+}
+
 @media (max-width: 782px) {
 	.crpcrm-request-actions {
 		grid-template-columns: 1fr;

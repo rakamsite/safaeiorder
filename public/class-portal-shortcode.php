@@ -41,6 +41,7 @@ class CRPCRM_Portal_Shortcode {
 		add_action( 'admin_post_crpcrm_portal_logout', array( $this, 'handle_logout' ) );
 		add_action( 'admin_post_crpcrm_save_profile', array( $this, 'handle_save_profile' ) );
 		add_action( 'admin_post_crpcrm_submit_request', array( $this, 'handle_submit_request' ) );
+		add_action( 'admin_post_crpcrm_portal_request_reply', array( $this, 'handle_request_reply' ) );
 	}
 
 	public function register_query_vars( $vars ) {
@@ -404,6 +405,68 @@ class CRPCRM_Portal_Shortcode {
 		exit;
 	}
 
+	public function handle_request_reply() {
+		$this->guard_feature( 'portal' );
+
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( $this->clean_portal_url() );
+			exit;
+		}
+
+		check_admin_referer( 'crpcrm_portal_request_reply', 'crpcrm_request_reply_nonce' );
+
+		$user_id    = get_current_user_id();
+		$request_id = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
+		$message    = isset( $_POST['reply_message'] ) ? trim( sanitize_textarea_field( wp_unslash( $_POST['reply_message'] ) ) ) : '';
+
+		if ( ! $request_id || '' === $message ) {
+			$this->redirect_with_notice( $this->get_portal_url( 'request_detail', array( 'request_id' => $request_id ) ), 'error', 'ارسال پاسخ انجام نشد.' );
+		}
+
+		$request = $this->request_repository->get( $request_id );
+		if ( ! $request || absint( $request['user_id'] ) !== $user_id || CRPCRM_System_Request_Types::is_system_type( $request['request_type'] ) ) {
+			CRPCRM_Logger::warning( 'customer_request_reply_denied', 'request', array( 'user_id' => $user_id, 'request_id' => $request_id ) );
+			$this->redirect_with_notice( $this->get_portal_url( 'request_detail', array( 'request_id' => $request_id ) ), 'error', 'شما اجازه ارسال پاسخ برای این درخواست را ندارید.' );
+		}
+
+		$now = CRPCRM_Helpers::current_datetime();
+		$activity_id = $this->activity_repository->add_activity(
+			$request_id,
+			'customer_reply',
+			array(
+				'customer_id'   => absint( $request['customer_id'] ?? 0 ),
+				'actor_user_id' => $user_id,
+				'actor_type'    => 'customer',
+				'note'          => $message,
+				'is_internal'   => 0,
+			)
+		);
+		if ( false === $activity_id ) {
+			CRPCRM_Logger::error( 'customer_request_reply_failed', 'request', array( 'user_id' => $user_id, 'request_id' => $request_id, 'reason' => 'activity_insert_failed' ) );
+			$this->redirect_with_notice( $this->get_portal_url( 'request_detail', array( 'request_id' => $request_id ) ), 'error', 'ارسال پاسخ انجام نشد. لطفاً دوباره تلاش کنید.' );
+		}
+		$this->request_repository->update(
+			$request_id,
+			array(
+				'last_action'      => 'customer_reply',
+				'last_activity_at' => $now,
+			)
+		);
+
+		$this->notification_service->notify_reply_added(
+			$request,
+			$user_id,
+			$message,
+			admin_url( 'admin.php?page=crpcrm-requests&request_id=' . $request_id )
+		);
+
+		$this->redirect_with_notice(
+			$this->get_portal_url( 'request_detail', array( 'request_id' => $request_id, 'request_code' => $request['request_code'] ?? '' ) ),
+			'success',
+			'پاسخ شما با موفقیت ثبت شد.'
+		);
+	}
+
 	public function handle_change_phone() {
 		check_admin_referer( 'crpcrm_change_otp_phone', 'crpcrm_otp_nonce' );
 		wp_safe_redirect( $this->posted_redirect_url() );
@@ -607,6 +670,7 @@ class CRPCRM_Portal_Shortcode {
 			'my_requests'     => array(),
 			'latest_requests' => $this->request_repository->list_for_customer( $customer_id, array( 'limit' => 3, 'user_id' => get_current_user_id() ) ),
 			'request_detail'  => null,
+			'request_conversation' => array(),
 			'access_denied'   => false,
 			'form_error'      => '',
 			'request_forms'   => CRPCRM_Request_Forms::get_forms(),
@@ -651,6 +715,7 @@ class CRPCRM_Portal_Shortcode {
 			}
 
 			$data['request_detail'] = $request;
+			$data['request_conversation'] = ( new CRPCRM_Activity_Repository() )->get_conversation_by_request_id( $request['id'], 100, 0 );
 		}
 
 		return $data;
@@ -767,6 +832,8 @@ class CRPCRM_Portal_Shortcode {
 	private function enqueue_assets() {
 		wp_enqueue_style( 'crpcrm-public' );
 		wp_enqueue_script( 'crpcrm-public' );
+		wp_enqueue_style( 'crpcrm-request-file-preview' );
+		wp_enqueue_script( 'crpcrm-request-file-preview' );
 	}
 
 	private function guard_feature( $feature ) {
@@ -861,26 +928,13 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	private function notify_sales_team_about_request( $request_id, $request_title ) {
-		if ( ! CRPCRM_Notification_Service::is_enabled() ) {
-			return;
-		}
-
-		$users    = get_users(
-			array(
-				'role__in' => array( 'sales_agent', 'sales_manager' ),
-				'fields'   => array( 'ID' ),
-			)
-		);
-		$user_ids = array_map( 'absint', wp_list_pluck( $users, 'ID' ) );
-
-		$this->notification_service->create_for_users(
-			$user_ids,
-			'request_created',
-			'درخواست جدید ثبت شد',
-			sanitize_text_field( $request_title ),
-			admin_url( 'admin.php?page=crpcrm-requests&request_id=' . absint( $request_id ) ),
-			'request',
-			$request_id
+		$request = $this->request_repository->get( $request_id );
+		$this->notification_service->notify_new_request(
+			$request_id,
+			$request_title,
+			$request && ! empty( $request['request_code'] ) ? $request['request_code'] : '',
+			get_current_user_id(),
+			admin_url( 'admin.php?page=crpcrm-requests&request_id=' . absint( $request_id ) )
 		);
 	}
 }

@@ -815,6 +815,149 @@
 	padding: 14px;
 }
 
+.crpcrm-request-meta-row {
+	display: grid;
+	gap: 10px;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	margin: 14px 0 18px;
+}
+
+.crpcrm-request-meta-card {
+	background: #f9fafb;
+	border: 1px solid #e5e7eb;
+	border-radius: 12px;
+	min-width: 0;
+	padding: 10px 12px;
+}
+
+.crpcrm-request-meta-label {
+	color: #6b7280;
+	display: block;
+	font-size: 0.82rem;
+	font-weight: 700;
+	margin-bottom: 4px;
+}
+
+.crpcrm-request-meta-value {
+	color: #111827;
+	display: block;
+	font-size: 0.98rem;
+	font-weight: 800;
+	line-height: 1.5;
+	word-break: break-word;
+}
+
+.crpcrm-request-summary-list {
+	display: grid;
+	grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+	gap: 10px 14px;
+	margin: 0 0 18px;
+}
+
+.crpcrm-request-summary-list dt,
+.crpcrm-request-summary-list dd {
+	border-bottom: 1px solid #eef2f7;
+	margin: 0;
+	padding: 10px 0;
+}
+
+.crpcrm-request-summary-list dt {
+	color: #6b7280;
+	font-weight: 700;
+}
+
+.crpcrm-request-summary-list dd {
+	color: #111827;
+	font-weight: 600;
+	word-break: break-word;
+}
+
+.crpcrm-request-summary-empty,
+.crpcrm-request-conversation-empty {
+	color: #6b7280;
+	margin: 0 0 18px;
+}
+
+.crpcrm-request-attachments {
+	display: grid;
+	gap: 12px;
+	margin: 0 0 20px;
+}
+
+.crpcrm-request-attachment {
+	background: #f9fafb;
+	border: 1px solid #e5e7eb;
+	border-radius: 12px;
+	padding: 12px;
+}
+
+.crpcrm-request-attachment > strong {
+	color: #111827;
+	display: block;
+	margin-bottom: 10px;
+}
+
+.crpcrm-request-conversation {
+	display: grid;
+	gap: 12px;
+	list-style: none;
+	margin: 0 0 18px;
+	padding: 0;
+}
+
+.crpcrm-request-conversation-item {
+	background: #f9fafb;
+	border: 1px solid #e5e7eb;
+	border-radius: 14px;
+	padding: 12px 14px;
+}
+
+.crpcrm-request-conversation-meta {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	justify-content: space-between;
+	margin-bottom: 8px;
+}
+
+.crpcrm-request-conversation-meta strong {
+	color: #111827;
+	font-size: 0.95rem;
+}
+
+.crpcrm-request-conversation-meta time {
+	color: #6b7280;
+	font-size: 0.86rem;
+}
+
+.crpcrm-request-conversation-message {
+	color: #374151;
+	line-height: 1.9;
+	word-break: break-word;
+}
+
+.crpcrm-request-reply-form {
+	background: #f8fbff;
+	border: 1px solid #dbeafe;
+	border-radius: 14px;
+	display: grid;
+	gap: 10px;
+	margin: 0 0 18px;
+	padding: 14px;
+}
+
+.crpcrm-request-reply-form label {
+	color: #1f2937;
+	font-weight: 700;
+}
+
+.crpcrm-request-reply-form textarea {
+	min-height: 140px;
+	resize: vertical;
+	width: 100%;
+}
+
 .crpcrm-data-list {
 	display: grid;
 	gap: 10px 16px;
@@ -865,9 +1008,17 @@
 	font-size: 0.9rem;
 }
 
+@media (max-width: 1024px) {
+	.crpcrm-request-meta-row {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
 @media (max-width: 700px) {
+	.crpcrm-request-meta-row,
 	.crpcrm-detail-grid,
 	.crpcrm-data-list,
+	.crpcrm-request-summary-list,
 	.crpcrm-latest-request-item {
 		grid-template-columns: 1fr;
 	}

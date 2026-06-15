@@ -30,8 +30,12 @@ class CRPCRM_Public {
 
 		$public_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/public.css';
 		$public_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/public.js';
+		$request_preview_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/request-file-preview.css';
+		$request_preview_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/request-file-preview.js';
 		wp_register_style( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/css/public.css', array(), file_exists( $public_css_path ) ? filemtime( $public_css_path ) : CRPCRM_VERSION );
 		wp_register_script( 'crpcrm-public', CRPCRM_PLUGIN_URL . 'assets/js/public.js', array(), file_exists( $public_js_path ) ? filemtime( $public_js_path ) : CRPCRM_VERSION, true );
+		wp_register_style( 'crpcrm-request-file-preview', CRPCRM_PLUGIN_URL . 'assets/css/request-file-preview.css', array(), file_exists( $request_preview_css_path ) ? filemtime( $request_preview_css_path ) : CRPCRM_VERSION );
+		wp_register_script( 'crpcrm-request-file-preview', CRPCRM_PLUGIN_URL . 'assets/js/request-file-preview.js', array(), file_exists( $request_preview_js_path ) ? filemtime( $request_preview_js_path ) : CRPCRM_VERSION, true );
 		wp_localize_script(
 			'crpcrm-public',
 			'crpcrmPublic',
@@ -43,9 +47,9 @@ class CRPCRM_Public {
 				'productSearchEmpty'   => 'محصولی پیدا نشد.',
 				'productSearchLoading' => 'در حال جستجو...',
 				'productRemoveLabel'   => 'حذف محصول',
-				'fileUploadLoading'    => 'Uploading...',
-				'fileUploadError'      => 'Upload failed.',
-				'fileUploadedLabel'    => 'Uploaded',
+				'fileUploadLoading'    => 'در حال بارگذاری...',
+				'fileUploadError'      => 'بارگذاری فایل انجام نشد.',
+				'fileUploadedLabel'    => 'بارگذاری شده',
 			)
 		);
 	}

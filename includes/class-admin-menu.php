@@ -76,7 +76,7 @@ class CRPCRM_Admin_Menu {
 		$parent_slug         = $crm_ui_enabled ? 'crpcrm-dashboard' : 'crpcrm-settings';
 		$parent_capability   = $crm_ui_enabled ? 'crpcrm_use_staff_portal' : $settings_capability;
 		$parent_callback     = $crm_ui_enabled ? array( $this->admin_pages, 'dashboard' ) : array( $this->admin_pages, 'settings' );
-		$unread_count        = CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->count_unread_for_user( get_current_user_id() ) : 0;
+		$unread_count        = CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->get_unread_count( get_current_user_id() ) : 0;
 		$notifications_title = 'اعلانات';
 		if ( $unread_count > 0 ) {
 			$notifications_title .= ' <span class="update-plugins count-' . absint( $unread_count ) . '"><span class="plugin-count">' . number_format_i18n( $unread_count ) . '</span></span>';
@@ -119,8 +119,12 @@ class CRPCRM_Admin_Menu {
 
 		$admin_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/admin.css';
 		$admin_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/admin.js';
+		$request_preview_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/request-file-preview.css';
+		$request_preview_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/request-file-preview.js';
 		wp_enqueue_style( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/css/admin.css', array(), file_exists( $admin_css_path ) ? filemtime( $admin_css_path ) : CRPCRM_VERSION );
 		wp_enqueue_script( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'jquery-ui-sortable' ), file_exists( $admin_js_path ) ? filemtime( $admin_js_path ) : CRPCRM_VERSION, true );
+		wp_enqueue_style( 'crpcrm-request-file-preview', CRPCRM_PLUGIN_URL . 'assets/css/request-file-preview.css', array(), file_exists( $request_preview_css_path ) ? filemtime( $request_preview_css_path ) : CRPCRM_VERSION );
+		wp_enqueue_script( 'crpcrm-request-file-preview', CRPCRM_PLUGIN_URL . 'assets/js/request-file-preview.js', array(), file_exists( $request_preview_js_path ) ? filemtime( $request_preview_js_path ) : CRPCRM_VERSION, true );
 		wp_localize_script(
 			'crpcrm-admin',
 			'crpcrmAdmin',
@@ -132,12 +136,34 @@ class CRPCRM_Admin_Menu {
 				'productSearchEmpty'   => 'محصولی پیدا نشد.',
 				'productSearchLoading' => 'در حال جستجو...',
 				'productRemoveLabel'   => 'حذف محصول',
-				'unreadNotifications'  => CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->count_unread_for_user( get_current_user_id() ) : 0,
+				'unreadNotifications'  => CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->get_unread_count( get_current_user_id() ) : 0,
 				'notificationsPageUrl' => admin_url( 'admin.php?page=crpcrm-notifications' ),
-				'fileUploadLoading'    => 'Ø¯Ø± Ø­Ø§Ù„ Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ...',
-				'fileUploadError'      => 'Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ ÙØ§ÛŒÙ„ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.',
-				'fileUploadedLabel'    => 'Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ Ø´Ø¯Ù‡',
+				'fileUploadLoading'    => 'در حال بارگذاری...',
+				'fileUploadError'      => 'بارگذاری فایل انجام نشد.',
+				'fileUploadedLabel'    => 'بارگذاری شده',
 				'notificationsToast'   => CRPCRM_Notification_Service::is_enabled() && 'yes' === CRPCRM_Settings::get( 'notifications_toast_enabled', 'yes' ),
+			)
+		);
+
+		if ( ! CRPCRM_Notification_Service::is_enabled() || ! is_user_logged_in() || ( ! current_user_can( 'crpcrm_use_staff_portal' ) && ! current_user_can( 'manage_options' ) ) ) {
+			return;
+		}
+
+		$notifications_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/admin-notifications.css';
+		$notifications_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/admin-notifications.js';
+		wp_enqueue_style( 'crpcrm-admin-notifications', CRPCRM_PLUGIN_URL . 'assets/css/admin-notifications.css', array( 'crpcrm-admin' ), file_exists( $notifications_css_path ) ? filemtime( $notifications_css_path ) : CRPCRM_VERSION );
+		wp_enqueue_script( 'crpcrm-admin-notifications', CRPCRM_PLUGIN_URL . 'assets/js/admin-notifications.js', array(), file_exists( $notifications_js_path ) ? filemtime( $notifications_js_path ) : CRPCRM_VERSION, true );
+		wp_localize_script(
+			'crpcrm-admin-notifications',
+			'crpcrmNotifications',
+			array(
+				'ajax_url'              => admin_url( 'admin-ajax.php' ),
+				'nonce'                 => wp_create_nonce( 'crpcrm_get_new_notifications' ),
+				'poll_interval'         => 30000,
+				'notifications_page_url'=> admin_url( 'admin.php?page=crpcrm-notifications' ),
+				'enabled'               => true,
+				'max_toasts'            => 3,
+				'debug'                 => defined( 'WP_DEBUG' ) && WP_DEBUG,
 			)
 		);
 	}
