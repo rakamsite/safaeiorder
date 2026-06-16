@@ -77,6 +77,7 @@ class CRPCRM_Admin_Menu {
 		$parent_capability   = $crm_ui_enabled ? 'crpcrm_use_staff_portal' : $settings_capability;
 		$parent_callback     = $crm_ui_enabled ? array( $this->admin_pages, 'dashboard' ) : array( $this->admin_pages, 'settings' );
 		$unread_count        = CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->get_unread_count( get_current_user_id() ) : 0;
+		$can_view_notifications = CRPCRM_Notification_Service::current_user_can_view_notifications();
 		$notifications_title = 'اعلانات';
 		if ( $unread_count > 0 ) {
 			$notifications_title .= ' <span class="update-plugins count-' . absint( $unread_count ) . '"><span class="plugin-count">' . number_format_i18n( $unread_count ) . '</span></span>';
@@ -104,8 +105,8 @@ class CRPCRM_Admin_Menu {
 		if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) && ( 'yes' === CRPCRM_Settings::get( 'staff_portal_enabled', 'yes' ) || current_user_can( 'manage_options' ) ) ) {
 			add_submenu_page( $parent_slug, 'کارکنان', 'کارکنان', 'crpcrm_use_staff_portal', 'crpcrm-staff', array( $this->admin_pages, 'staff' ) );
 		}
-		if ( CRPCRM_Notification_Service::is_enabled() && current_user_can( 'crpcrm_use_staff_portal' ) ) {
-			add_submenu_page( $parent_slug, 'اعلانات', $notifications_title, 'crpcrm_use_staff_portal', 'crpcrm-notifications', array( $this->admin_pages, 'notifications' ) );
+		if ( CRPCRM_Notification_Service::is_enabled() && $can_view_notifications ) {
+			add_submenu_page( $parent_slug, 'اعلانات', $notifications_title, current_user_can( 'crpcrm_view_notifications' ) ? 'crpcrm_view_notifications' : $parent_capability, 'crpcrm-notifications', array( $this->admin_pages, 'notifications' ) );
 		}
 		if ( CRPCRM_Settings::current_user_can_manage() ) {
 			add_submenu_page( $parent_slug, 'تنظیمات', 'تنظیمات', $settings_capability, 'crpcrm-settings', array( $this->admin_pages, 'settings' ) );
@@ -145,7 +146,7 @@ class CRPCRM_Admin_Menu {
 			)
 		);
 
-		if ( ! CRPCRM_Notification_Service::is_enabled() || ! is_user_logged_in() || ( ! current_user_can( 'crpcrm_use_staff_portal' ) && ! current_user_can( 'manage_options' ) ) ) {
+		if ( ! CRPCRM_Notification_Service::is_enabled() || ! is_user_logged_in() || ! CRPCRM_Notification_Service::current_user_can_view_notifications() ) {
 			return;
 		}
 
@@ -161,7 +162,7 @@ class CRPCRM_Admin_Menu {
 				'nonce'                 => wp_create_nonce( 'crpcrm_get_new_notifications' ),
 				'poll_interval'         => 30000,
 				'notifications_page_url'=> admin_url( 'admin.php?page=crpcrm-notifications' ),
-				'enabled'               => true,
+				'enabled'               => 'yes' === CRPCRM_Settings::get( 'notifications_toast_enabled', 'yes' ),
 				'max_toasts'            => 3,
 				'debug'                 => defined( 'WP_DEBUG' ) && WP_DEBUG,
 			)

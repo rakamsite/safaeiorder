@@ -43,6 +43,15 @@ class CRPCRM_Request_Repository {
 		$request_code = $this->generate_request_code( $id );
 		$this->update( $id, array( 'request_code' => $request_code ) );
 
+		if ( class_exists( 'CRPCRM_Dynamic_Form_Renderer' ) ) {
+			$request_data = isset( $data['request_data'] ) ? CRPCRM_Helpers::maybe_json_decode( $data['request_data'], true ) : array();
+			$request_data = is_array( $request_data ) ? $request_data : array();
+			$finalized    = CRPCRM_Dynamic_Form_Renderer::finalize_request_data_uploads( $request_data, $id );
+			if ( $finalized !== $request_data ) {
+				$this->update( $id, array( 'request_data' => $finalized ) );
+			}
+		}
+
 		return $id;
 	}
 

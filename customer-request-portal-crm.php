@@ -3,7 +3,7 @@
  * Plugin Name: دیجیتال مارکتینگ راکام
  * Plugin URI: https://rakam.me/
  * Description: افزونه جامع دیجیتال مارکتینگ برای پیگیری سرنخ ها و فروش ها و گزارشات جامع
- * Version: 1
+ * Version: 1.1.2
  * Author: sajad torabi
  * Author URI: https://rakam.me/
  * Text Domain: customer-request-portal-crm
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CRPCRM_VERSION', '1' );
+define( 'CRPCRM_VERSION', '1.1.2' );
 define( 'CRPCRM_DB_VERSION', '1.1.1' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

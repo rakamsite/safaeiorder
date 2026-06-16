@@ -106,7 +106,8 @@ class CRPCRM_Public {
 			wp_send_json_error( array( 'message' => 'missing_file' ), 400 );
 		}
 
-		$file = CRPCRM_Dynamic_Form_Renderer::handle_async_upload( $_FILES['file'] );
+		$field_key = isset( $_POST['field_key'] ) ? sanitize_key( wp_unslash( $_POST['field_key'] ) ) : '';
+		$file      = CRPCRM_Dynamic_Form_Renderer::handle_async_upload( $_FILES['file'], $field_key );
 		if ( is_wp_error( $file ) ) {
 			wp_send_json_error( array( 'message' => $file->get_error_message() ), 400 );
 		}

@@ -413,10 +413,14 @@ class CRPCRM_Portal_Shortcode {
 			exit;
 		}
 
-		check_admin_referer( 'crpcrm_portal_request_reply', 'crpcrm_request_reply_nonce' );
-
 		$user_id    = get_current_user_id();
 		$request_id = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
+		if ( ! $request_id ) {
+			$this->redirect_with_notice( $this->clean_portal_url(), 'error', 'ارسال پاسخ انجام نشد.' );
+		}
+
+		check_admin_referer( 'crpcrm_portal_request_reply_' . $request_id, 'crpcrm_request_reply_nonce' );
+
 		$message    = isset( $_POST['reply_message'] ) ? trim( sanitize_textarea_field( wp_unslash( $_POST['reply_message'] ) ) ) : '';
 
 		if ( ! $request_id || '' === $message ) {

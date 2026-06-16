@@ -43,6 +43,8 @@ class CRPCRM_Plugin {
 		$this->admin_menu->register_hooks();
 		$this->form_builder_admin->register_hooks();
 		$this->public->register_hooks();
+		add_action( 'crpcrm_pending_upload_cleanup', array( 'CRPCRM_Dynamic_Form_Renderer', 'cleanup_pending_uploads' ) );
+		CRPCRM_Dynamic_Form_Renderer::schedule_pending_upload_cleanup();
 		if ( CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
 			$this->attribution_service->register_hooks();
 		}

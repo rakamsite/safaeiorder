@@ -12,7 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CRPCRM_Dynamic_Form_Renderer {
 	const ALLOWED_TYPES = array( 'text', 'textarea', 'select', 'product_search', 'file_upload', 'display_html' );
 	const ALLOWED_WIDTHS = array( '25', '33', '50', '100' );
-	const MAX_FILE_SIZE = 10485760;
+	const MAX_FILE_SIZE = 5242880;
+	const PENDING_UPLOAD_TTL = 14400;
+	const PENDING_UPLOAD_OPTION = 'crpcrm_pending_upload_tokens';
 
 	public static function render_fields( $form, $context = 'public' ) {
 		$form    = is_array( $form ) ? $form : array();
@@ -34,10 +36,6 @@ class CRPCRM_Dynamic_Form_Renderer {
 			$type = self::normalize_type( $field['type'] ?? 'text' );
 
 			if ( 'display_html' === $type ) {
-				$content = trim( wp_strip_all_tags( $field['content'] ?? '' ) );
-				if ( '' !== $content ) {
-					$data[ $name ] = $content;
-				}
 				continue;
 			}
 
@@ -61,12 +59,12 @@ class CRPCRM_Dynamic_Form_Renderer {
 			}
 
 			if ( 'file_upload' === $type ) {
-				$uploaded_files = self::parse_uploaded_files_payload( $posted[ $name . '__uploaded' ] ?? '' );
+				$uploaded_files = self::parse_uploaded_files_payload( $posted[ $name . '__uploaded' ] ?? '', $name );
 				if ( is_wp_error( $uploaded_files ) ) {
 					$errors[] = self::field_error( $field, $uploaded_files->get_error_message() );
 					continue;
 				}
-				$new_uploaded_files = self::handle_uploaded_files( $files[ $name ] ?? null );
+				$new_uploaded_files = self::handle_uploaded_files( $files[ $name ] ?? null, $name );
 				if ( is_wp_error( $new_uploaded_files ) ) {
 					$errors[] = self::field_error( $field, $new_uploaded_files->get_error_message() );
 					continue;
@@ -125,6 +123,9 @@ class CRPCRM_Dynamic_Form_Renderer {
 		foreach ( self::get_enabled_fields( $form ) as $field ) {
 			$name = sanitize_key( $field['name'] ?? $field['key'] ?? '' );
 			if ( $name ) {
+				if ( 'display_html' === self::normalize_type( $field['type'] ?? 'text' ) ) {
+					continue;
+				}
 				$labels[ $name ] = sanitize_text_field( $field['label'] ?? $name );
 			}
 		}
@@ -140,6 +141,9 @@ class CRPCRM_Dynamic_Form_Renderer {
 		foreach ( self::get_enabled_fields( $form ) as $field ) {
 			$name = sanitize_key( $field['name'] ?? $field['key'] ?? '' );
 			if ( ! $name ) {
+				continue;
+			}
+			if ( 'display_html' === self::normalize_type( $field['type'] ?? 'text' ) ) {
 				continue;
 			}
 			$field_schema[ $name ] = array(
@@ -219,7 +223,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		foreach ( $request_data as $key => $value ) {
 			$key = sanitize_key( $key );
-			if ( ! $key || isset( $items[ $key ] ) || 0 === strpos( $key, '_submitted_' ) || in_array( $key, array( 'form_id', 'form_version', 'request_type', 'fields', 'submitted_fields' ), true ) ) {
+			if ( ! $key || isset( $items[ $key ] ) || 0 === strpos( $key, '_submitted_' ) || in_array( $key, array( 'form_id', 'form_version', 'request_type', 'fields', 'submitted_fields', 'display_html' ), true ) ) {
 				continue;
 			}
 			if ( is_array( $value ) && empty( $value ) ) {
@@ -471,7 +475,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		return $products;
 	}
 
-	private static function handle_uploaded_files( $file_group ) {
+	private static function handle_uploaded_files( $file_group, $field_key = '' ) {
 		if ( empty( $file_group ) || empty( $file_group['name'] ) ) {
 			return array();
 		}
@@ -486,11 +490,11 @@ class CRPCRM_Dynamic_Form_Renderer {
 			if ( (int) $file['error'] !== UPLOAD_ERR_OK ) {
 				return new WP_Error( 'crpcrm_upload_error', 'بارگذاری فایل انجام نشد.' );
 			}
-			if ( empty( $file['size'] ) || (int) $file['size'] > self::MAX_FILE_SIZE ) {
-				return new WP_Error( 'crpcrm_upload_size', 'هر فایل باید حداکثر 10 مگابایت باشد.' );
+			if ( empty( $file['size'] ) || (int) $file['size'] > self::get_max_file_size() ) {
+				return new WP_Error( 'crpcrm_upload_size', 'هر فایل باید حداکثر ' . size_format( self::get_max_file_size(), 0 ) . ' باشد.' );
 			}
 
-			$stored = self::store_uploaded_file( $file );
+			$stored = self::store_uploaded_file( $file, $field_key );
 			if ( is_wp_error( $stored ) ) {
 				return $stored;
 			}
@@ -645,6 +649,8 @@ class CRPCRM_Dynamic_Form_Renderer {
 			'upload_year'   => $created['year'],
 			'upload_month'  => $created['month'],
 			'size'          => $size,
+			'upload_token'  => ! empty( $file['upload_token'] ) ? sanitize_text_field( $file['upload_token'] ) : '',
+			'field_key'     => ! empty( $file['field_key'] ) ? sanitize_key( $file['field_key'] ) : '',
 		);
 	}
 
@@ -788,7 +794,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 			if ( ! is_array( $item ) ) {
 				continue;
 			}
-			if ( ! empty( $item['attachment_id'] ) || ! empty( $item['download_url'] ) || ! empty( $item['relative_path'] ) || ! empty( $item['mime_type'] ) || ! empty( $item['is_image'] ) || ! empty( $item['is_pdf'] ) ) {
+			if ( ! empty( $item['attachment_id'] ) || ! empty( $item['download_url'] ) || ! empty( $item['relative_path'] ) || ! empty( $item['mime_type'] ) || ! empty( $item['is_image'] ) || ! empty( $item['is_pdf'] ) || ! empty( $item['upload_token'] ) ) {
 				return true;
 			}
 		}
@@ -833,7 +839,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		return $normalized;
 	}
 
-	private static function store_uploaded_file( $file ) {
+	private static function store_uploaded_file( $file, $field_key = '' ) {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 
 		$upload_dir = self::get_request_upload_dir();
@@ -867,7 +873,8 @@ class CRPCRM_Dynamic_Form_Renderer {
 		$name  = sanitize_file_name( wp_basename( $result['file'] ) );
 		$file_type = self::is_pdf_mime_type( $mime, $name ) ? 'pdf' : ( self::is_image_mime_type( $mime, $name ) ? 'image' : 'file' );
 
-		return array(
+		return self::register_pending_upload(
+			array(
 			'attachment_id' => 0,
 			'name'          => $name,
 			'filename'      => $name,
@@ -882,6 +889,8 @@ class CRPCRM_Dynamic_Form_Renderer {
 			'is_image'      => 'image' === $file_type ? 1 : 0,
 			'is_pdf'        => 'pdf' === $file_type ? 1 : 0,
 			'size'          => file_exists( $result['file'] ) ? absint( filesize( $result['file'] ) ) : absint( $file['size'] ?? 0 ),
+			'field_key'     => sanitize_key( $field_key ),
+			)
 		);
 	}
 
@@ -903,12 +912,12 @@ class CRPCRM_Dynamic_Form_Renderer {
 		);
 	}
 
-	public static function handle_async_upload( $file ) {
+	public static function handle_async_upload( $file, $field_key = '' ) {
 		if ( empty( $file ) || ! is_array( $file ) ) {
 			return new WP_Error( 'crpcrm_upload_missing', 'فایلی برای بارگذاری ارسال نشده است.' );
 		}
 
-		$uploaded = self::handle_uploaded_files( $file );
+		$uploaded = self::handle_uploaded_files( $file, $field_key );
 		if ( is_wp_error( $uploaded ) ) {
 			return $uploaded;
 		}
@@ -920,7 +929,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		return $uploaded[0];
 	}
 
-	private static function parse_uploaded_files_payload( $payload ) {
+	private static function parse_uploaded_files_payload( $payload, $field_key = '' ) {
 		if ( empty( $payload ) ) {
 			return array();
 		}
@@ -937,29 +946,39 @@ class CRPCRM_Dynamic_Form_Renderer {
 			return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
 		}
 
-		$files = self::normalize_uploaded_file_payload( $decoded );
 		$normalized = array();
-		foreach ( $files as $file ) {
-			if ( ! is_array( $file ) || ( empty( $file['url'] ) && empty( $file['attachment_id'] ) ) ) {
+		foreach ( self::normalize_uploaded_file_payload( $decoded ) as $file ) {
+			if ( ! is_array( $file ) ) {
 				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
 			}
 
-			$normalized[] = array(
-				'attachment_id' => absint( $file['attachment_id'] ?? 0 ),
-				'name'          => sanitize_file_name( $file['name'] ),
-				'filename'      => sanitize_file_name( $file['filename'] ?? $file['name'] ),
-				'url'           => esc_url_raw( $file['url'] ),
-				'download_url'  => esc_url_raw( $file['download_url'] ?? $file['url'] ),
-				'relative_path' => sanitize_text_field( $file['relative_path'] ),
-				'upload_year'   => sanitize_text_field( $file['upload_year'] ?? '' ),
-				'upload_month'  => sanitize_text_field( $file['upload_month'] ?? '' ),
-				'mime_type'     => sanitize_text_field( $file['mime_type'] ?? $file['type'] ?? '' ),
-				'type'          => sanitize_text_field( $file['type'] ?? '' ),
-				'file_type'     => sanitize_key( $file['file_type'] ?? '' ),
-				'is_image'      => ! empty( $file['is_image'] ) ? 1 : 0,
-				'is_pdf'        => ! empty( $file['is_pdf'] ) ? 1 : 0,
-				'size'          => absint( $file['size'] ?? 0 ),
-			);
+			$token = ! empty( $file['upload_token'] ) ? sanitize_text_field( $file['upload_token'] ) : '';
+			if ( $token ) {
+				$pending = self::get_pending_upload( $token );
+				if ( ! $pending ) {
+					return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+				}
+				if ( absint( $pending['current_user_id'] ?? 0 ) !== get_current_user_id() ) {
+					return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+				}
+				$pending_field_key   = sanitize_key( $pending['field_key'] ?? '' );
+				$requested_field_key = sanitize_key( $field_key );
+				if ( $pending_field_key && $requested_field_key && $pending_field_key !== $requested_field_key ) {
+					return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+				}
+
+				$file = $pending;
+				$file['field_key'] = $requested_field_key ? $requested_field_key : $pending_field_key;
+				$normalized[] = self::normalize_single_uploaded_file_meta( $file );
+				continue;
+			}
+
+			if ( ! self::is_valid_legacy_uploaded_file_meta( $file ) ) {
+				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+			}
+
+			$file['field_key'] = sanitize_key( $field_key );
+			$normalized[] = self::normalize_single_uploaded_file_meta( $file );
 		}
 
 		return $normalized;
@@ -982,6 +1001,243 @@ class CRPCRM_Dynamic_Form_Renderer {
 			}
 		}
 
-		return $is_valid && absint( $file['size'] ?? 0 ) <= self::MAX_FILE_SIZE;
+		return $is_valid && absint( $file['size'] ?? 0 ) <= self::get_max_file_size();
+	}
+
+	private static function is_valid_legacy_uploaded_file_meta( $file ) {
+		$file = is_array( $file ) ? $file : array();
+
+		if ( ! empty( $file['attachment_id'] ) ) {
+			$attachment_url = wp_get_attachment_url( absint( $file['attachment_id'] ) );
+			return $attachment_url && self::is_safe_internal_file_url( $attachment_url );
+		}
+
+		if ( empty( $file['url'] ) || ! self::is_safe_internal_file_url( $file['url'] ) ) {
+			return false;
+		}
+
+		$uploads      = wp_get_upload_dir();
+		$baseurl_path = wp_parse_url( $uploads['baseurl'], PHP_URL_PATH );
+		$url_path     = wp_parse_url( $file['url'], PHP_URL_PATH );
+		if ( ! $baseurl_path || ! $url_path || 0 !== strpos( $url_path, $baseurl_path ) ) {
+			return false;
+		}
+
+		if ( ! empty( $file['size'] ) && absint( $file['size'] ) > self::get_max_file_size() ) {
+			return false;
+		}
+
+		return ! empty( $file['relative_path'] ) || ! empty( $file['filename'] ) || ! empty( $file['name'] );
+	}
+
+	private static function register_pending_upload( $file ) {
+		$file = is_array( $file ) ? $file : array();
+		$token = wp_generate_password( 32, false, false );
+		$now   = current_time( 'timestamp' );
+
+		$pending = $file;
+		$pending['upload_token']    = $token;
+		$pending['created_at']      = CRPCRM_Helpers::current_datetime();
+		$pending['expires_at']      = wp_date( 'Y-m-d H:i:s', $now + self::PENDING_UPLOAD_TTL );
+		$pending['current_user_id'] = get_current_user_id();
+		$pending['status']          = 'pending';
+
+		set_transient( self::pending_upload_transient_key( $token ), $pending, self::PENDING_UPLOAD_TTL );
+		self::index_pending_upload( $token, $pending );
+
+		$file['upload_token'] = $token;
+		$file['field_key']    = sanitize_key( $file['field_key'] ?? '' );
+		return $file;
+	}
+
+	private static function index_pending_upload( $token, $file ) {
+		$token = sanitize_text_field( $token );
+		if ( '' === $token ) {
+			return;
+		}
+
+		$index = get_option( self::PENDING_UPLOAD_OPTION, array() );
+		$index = is_array( $index ) ? $index : array();
+		$index[ $token ] = array(
+			'expires_at'      => strtotime( $file['expires_at'] ?? '' ) ? strtotime( $file['expires_at'] ) : ( current_time( 'timestamp' ) + self::PENDING_UPLOAD_TTL ),
+			'current_user_id' => absint( $file['current_user_id'] ?? 0 ),
+			'field_key'      => sanitize_key( $file['field_key'] ?? '' ),
+			'relative_path'  => sanitize_text_field( $file['relative_path'] ?? '' ),
+		);
+		update_option( self::PENDING_UPLOAD_OPTION, $index, false );
+	}
+
+	private static function get_pending_upload( $token ) {
+		$token = sanitize_text_field( $token );
+		if ( '' === $token ) {
+			return false;
+		}
+
+		$pending = get_transient( self::pending_upload_transient_key( $token ) );
+		return is_array( $pending ) ? $pending : false;
+	}
+
+	private static function finalize_pending_upload( $token ) {
+		$token = sanitize_text_field( $token );
+		if ( '' === $token ) {
+			return;
+		}
+
+		delete_transient( self::pending_upload_transient_key( $token ) );
+		$index = get_option( self::PENDING_UPLOAD_OPTION, array() );
+		$index = is_array( $index ) ? $index : array();
+		if ( isset( $index[ $token ] ) ) {
+			unset( $index[ $token ] );
+			update_option( self::PENDING_UPLOAD_OPTION, $index, false );
+		}
+	}
+
+	private static function pending_upload_transient_key( $token ) {
+		return 'crpcrm_pending_upload_' . sanitize_key( $token );
+	}
+
+	private static function get_max_file_size() {
+		$limit = self::MAX_FILE_SIZE;
+		if ( function_exists( 'wp_max_upload_size' ) ) {
+			$wp_limit = absint( wp_max_upload_size() );
+			if ( $wp_limit > 0 ) {
+				$limit = min( $limit, $wp_limit );
+			}
+		}
+
+		return max( 1, $limit );
+	}
+
+	public static function finalize_request_data_uploads( $request_data, $request_id ) {
+		$request_data = is_array( $request_data ) ? $request_data : array();
+		$request_id   = absint( $request_id );
+
+		if ( ! $request_id ) {
+			return $request_data;
+		}
+
+		return self::finalize_request_data_uploads_recursive( $request_data, $request_id );
+	}
+
+	public static function schedule_pending_upload_cleanup() {
+		if ( ! wp_next_scheduled( 'crpcrm_pending_upload_cleanup' ) ) {
+			wp_schedule_event( current_time( 'timestamp' ) + HOUR_IN_SECONDS, 'twicedaily', 'crpcrm_pending_upload_cleanup' );
+		}
+	}
+
+	public static function clear_pending_upload_cleanup() {
+		wp_clear_scheduled_hook( 'crpcrm_pending_upload_cleanup' );
+	}
+
+	public static function cleanup_pending_uploads() {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+
+		$index = get_option( self::PENDING_UPLOAD_OPTION, array() );
+		$index = is_array( $index ) ? $index : array();
+		$now   = current_time( 'timestamp' );
+
+		foreach ( $index as $token => $item ) {
+			$token = sanitize_text_field( $token );
+			if ( '' === $token ) {
+				unset( $index[ $token ] );
+				continue;
+			}
+
+			$pending = self::get_pending_upload( $token );
+			$expires = absint( is_array( $item ) && isset( $item['expires_at'] ) ? $item['expires_at'] : 0 );
+			if ( $pending && ( ! $expires || $expires > $now ) ) {
+				continue;
+			}
+
+			$path = self::resolve_uploaded_file_path( is_array( $pending ) ? $pending : $item );
+			if ( $path && file_exists( $path ) ) {
+				if ( false === wp_delete_file( $path ) ) {
+					error_log( '[CRPCRM] pending_upload_cleanup_file_delete_failed: ' . wp_json_encode( array( 'token' => $token, 'path' => $path ) ) );
+				}
+			}
+
+			$attachment_id = absint( is_array( $pending ) && ! empty( $pending['attachment_id'] ) ? $pending['attachment_id'] : ( is_array( $item ) && ! empty( $item['attachment_id'] ) ? $item['attachment_id'] : 0 ) );
+			if ( $attachment_id && function_exists( 'wp_delete_attachment' ) ) {
+				wp_delete_attachment( $attachment_id, true );
+			}
+
+			delete_transient( self::pending_upload_transient_key( $token ) );
+			unset( $index[ $token ] );
+		}
+
+		update_option( self::PENDING_UPLOAD_OPTION, $index, false );
+	}
+
+	private static function finalize_request_data_uploads_recursive( $value, $request_id ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		if ( self::looks_like_uploaded_file_payload( $value ) ) {
+			return self::finalize_uploaded_file_payload( $value, $request_id );
+		}
+
+		foreach ( $value as $key => $item ) {
+			$value[ $key ] = self::finalize_request_data_uploads_recursive( $item, $request_id );
+		}
+
+		return $value;
+	}
+
+	private static function finalize_uploaded_file_payload( $value, $request_id ) {
+		$files = self::normalize_uploaded_file_payload( $value );
+		$final = array();
+
+		foreach ( $files as $file ) {
+			$file  = is_array( $file ) ? $file : array();
+			$token = ! empty( $file['upload_token'] ) ? sanitize_text_field( $file['upload_token'] ) : '';
+			if ( $token ) {
+				$pending = self::get_pending_upload( $token );
+				if ( $pending && absint( $pending['current_user_id'] ?? 0 ) === get_current_user_id() ) {
+					$file = self::normalize_single_uploaded_file_meta( $pending );
+					self::finalize_pending_upload( $token );
+				}
+			}
+
+			$file['request_id'] = absint( $request_id );
+			if ( empty( $file['field_key'] ) && isset( $value['field_key'] ) ) {
+				$file['field_key'] = sanitize_key( $value['field_key'] );
+			}
+			unset( $file['upload_token'], $file['status'], $file['current_user_id'], $file['created_at'], $file['expires_at'] );
+			$normalized = self::normalize_single_uploaded_file_meta( $file );
+			$normalized['request_id'] = absint( $request_id );
+			$final[] = $normalized;
+		}
+
+		return $final;
+	}
+
+	private static function resolve_uploaded_file_path( $file ) {
+		$file = is_array( $file ) ? $file : array();
+		$uploads = wp_get_upload_dir();
+		$base    = realpath( $uploads['basedir'] );
+
+		if ( ! empty( $file['relative_path'] ) ) {
+			$path = trailingslashit( $uploads['basedir'] ) . ltrim( sanitize_text_field( $file['relative_path'] ), '/' );
+			$real = realpath( $path );
+			if ( $real && $base && 0 === strpos( $real, $base ) ) {
+				return $real;
+			}
+		}
+
+		if ( ! empty( $file['url'] ) ) {
+			$baseurl_path = wp_parse_url( $uploads['baseurl'], PHP_URL_PATH );
+			$url_path     = wp_parse_url( $file['url'], PHP_URL_PATH );
+			if ( $baseurl_path && $url_path && 0 === strpos( $url_path, $baseurl_path ) ) {
+				$relative = ltrim( substr( $url_path, strlen( $baseurl_path ) ), '/' );
+				$path     = trailingslashit( $uploads['basedir'] ) . $relative;
+				$real     = realpath( $path );
+				if ( $real && $base && 0 === strpos( $real, $base ) ) {
+					return $real;
+				}
+			}
+		}
+
+		return '';
 	}
 }

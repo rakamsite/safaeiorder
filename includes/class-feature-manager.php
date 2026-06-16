@@ -53,7 +53,7 @@ class CRPCRM_Feature_Manager {
 	}
 
 	public static function is_crm_ui_enabled() {
-		foreach ( array( 'portal', 'customer_registration', 'reports', 'otp', 'tracking', 'lead_followup', 'admin_tools', 'notifications' ) as $feature ) {
+		foreach ( array( 'portal', 'customer_registration', 'staff', 'reports', 'otp', 'tracking', 'lead_followup', 'admin_tools', 'form_builder' ) as $feature ) {
 			if ( self::is_enabled( $feature ) ) {
 				return true;
 			}

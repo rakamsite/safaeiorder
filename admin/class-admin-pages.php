@@ -304,7 +304,7 @@ class CRPCRM_Admin_Pages {
 			return;
 		}
 
-		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) ) {
+		if ( ! CRPCRM_Notification_Service::current_user_can_view_notifications() ) {
 			$this->render_message( 'شما اجازه دسترسی به این بخش را ندارید.' );
 			return;
 		}
@@ -483,7 +483,7 @@ class CRPCRM_Admin_Pages {
 		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
 			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
 		}
-		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) ) {
+		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) && ! current_user_can( 'manage_options' ) ) {
 			CRPCRM_Logger::warning( 'staff_access_denied', 'staff_access_denied', array( 'user_id' => get_current_user_id(), 'action' => 'post' ) );
 			wp_die( esc_html( 'شما اجازه دسترسی به پنل کارکنان را ندارید.' ) );
 		}
