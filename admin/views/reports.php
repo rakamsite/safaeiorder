@@ -7,7 +7,7 @@ if ( ! function_exists( 'crpcrm_reports_url' ) ) {
 	function crpcrm_reports_url( $args = array(), $remove = array() ) {
 		$base = array(
 			'page'         => 'crpcrm-reports',
-			'date_range'   => $GLOBALS['filters']['date_range'] ?? 'today',
+			'date_range'   => $GLOBALS['filters']['date_range'] ?? 'last_30_days',
 			'date_from'    => $GLOBALS['filters']['date_from'] ?? '',
 			'date_to'      => $GLOBALS['filters']['date_to'] ?? '',
 			'request_type' => $GLOBALS['filters']['request_type'] ?? '',
@@ -139,9 +139,6 @@ $sources = array(
 	'google'    => 'گوگل',
 	'telegram'  => 'تلگرام',
 	'bing'      => 'بینگ',
-	'referral'  => 'ارجاعی',
-	'organic'   => 'ارگانیک',
-	'utm'       => 'کمپین UTM',
 	'other'     => 'سایر',
 );
 $statuses = array(
@@ -185,7 +182,7 @@ $csv_args = array_filter(
 	}
 );
 
-$selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_ranges[ $filters['date_range'] ] : $date_ranges['today'];
+$selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_ranges[ $filters['date_range'] ] : $date_ranges['last_30_days'];
 ?>
 <div class="wrap crpcrm-admin-wrap crpcrm-reports-admin" dir="rtl">
 	<div class="crpcrm-page-header">
