@@ -196,7 +196,12 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 							<?php foreach ( $attachment_items as $item ) : ?>
 								<div class="crpcrm-request-attachment">
 									<strong><?php echo esc_html( $item['label'] ); ?></strong>
-									<?php echo CRPCRM_Dynamic_Form_Renderer::render_uploaded_file_value( $item['raw'], $item, 'public' ); ?>
+									<?php
+									$item['source_type']  = 'request';
+									$item['source_id']    = absint( $request_detail['id'] ?? 0 );
+									$item['source_field'] = sanitize_key( $item['key'] ?? $item['field_key'] ?? '' );
+									echo CRPCRM_Dynamic_Form_Renderer::render_uploaded_file_value( $item['raw'], $item, 'public' );
+									?>
 								</div>
 							<?php endforeach; ?>
 						</div>

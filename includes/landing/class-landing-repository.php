@@ -38,8 +38,8 @@ class CRPCRM_Landing_Repository {
 				'status'               => isset( $data['status'] ) ? sanitize_key( $data['status'] ) : 'active',
 				'created_by'           => ! empty( $data['created_by'] ) ? absint( $data['created_by'] ) : null,
 				'updated_by'           => ! empty( $data['updated_by'] ) ? absint( $data['updated_by'] ) : null,
-				'created_at'           => isset( $data['created_at'] ) ? $data['created_at'] : current_time( 'mysql' ),
-				'updated_at'           => isset( $data['updated_at'] ) ? $data['updated_at'] : current_time( 'mysql' ),
+				'created_at'           => isset( $data['created_at'] ) ? $data['created_at'] : CRPCRM_Helpers::current_datetime(),
+				'updated_at'           => isset( $data['updated_at'] ) ? $data['updated_at'] : CRPCRM_Helpers::current_datetime(),
 			),
 			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%d', '%s', '%s' )
 		);
@@ -74,7 +74,7 @@ class CRPCRM_Landing_Repository {
 				'append_standard_utm' => ! empty( $data['append_standard_utm'] ) ? 1 : 0,
 				'status'              => isset( $data['status'] ) ? sanitize_key( $data['status'] ) : 'active',
 				'updated_by'          => ! empty( $data['updated_by'] ) ? absint( $data['updated_by'] ) : null,
-				'updated_at'          => isset( $data['updated_at'] ) ? $data['updated_at'] : current_time( 'mysql' ),
+				'updated_at'          => isset( $data['updated_at'] ) ? $data['updated_at'] : CRPCRM_Helpers::current_datetime(),
 			),
 			array( 'id' => absint( $id ) ),
 			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s' ),
@@ -180,7 +180,7 @@ class CRPCRM_Landing_Repository {
 			array(
 				'status'      => $status,
 				'updated_by'  => absint( $updated_by ),
-				'updated_at'  => current_time( 'mysql' ),
+				'updated_at'  => CRPCRM_Helpers::current_datetime(),
 			),
 			array( 'id' => absint( $id ) ),
 			array( '%s', '%d', '%s' ),

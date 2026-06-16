@@ -31,7 +31,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 		}
 
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', self::CRON_HOOK );
+			wp_schedule_event( CRPCRM_Helpers::current_timestamp() + HOUR_IN_SECONDS, 'hourly', self::CRON_HOOK );
 		}
 	}
 
@@ -44,7 +44,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 			return 0;
 		}
 
-		$cutoff    = wp_date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - DAY_IN_SECONDS );
+		$cutoff    = CRPCRM_Helpers::subtract_seconds_from_now( DAY_IN_SECONDS );
 		$customers = $this->customer_repository->find_customers_without_requests( $cutoff, 100 );
 		$created   = 0;
 

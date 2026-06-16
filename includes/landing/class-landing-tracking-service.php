@@ -263,7 +263,7 @@ class CRPCRM_Landing_Tracking_Service {
 		$this->set_signed_cookie(
 			self::FIRST_TOUCH_COOKIE,
 			$this->build_touch_payload( $landing, $click_id, $current_url, $visitor_id ),
-			time() + ( self::VISITOR_COOKIE_DAYS * DAY_IN_SECONDS )
+			CRPCRM_Helpers::current_timestamp() + ( self::VISITOR_COOKIE_DAYS * DAY_IN_SECONDS )
 		);
 	}
 
@@ -271,7 +271,7 @@ class CRPCRM_Landing_Tracking_Service {
 		$this->set_signed_cookie(
 			self::LAST_TOUCH_COOKIE,
 			$this->build_touch_payload( $landing, $click_id, $current_url, $visitor_id ),
-			time() + ( self::VISITOR_COOKIE_DAYS * DAY_IN_SECONDS )
+			CRPCRM_Helpers::current_timestamp() + ( self::VISITOR_COOKIE_DAYS * DAY_IN_SECONDS )
 		);
 	}
 
@@ -303,7 +303,7 @@ class CRPCRM_Landing_Tracking_Service {
 		}
 
 		$visitor_id = strtolower( wp_generate_uuid4() );
-		$this->set_plain_cookie( self::VISITOR_COOKIE, $visitor_id, time() + ( self::VISITOR_COOKIE_DAYS * DAY_IN_SECONDS ) );
+		$this->set_plain_cookie( self::VISITOR_COOKIE, $visitor_id, CRPCRM_Helpers::current_timestamp() + ( self::VISITOR_COOKIE_DAYS * DAY_IN_SECONDS ) );
 		return $visitor_id;
 	}
 
@@ -589,7 +589,7 @@ class CRPCRM_Landing_Tracking_Service {
 				(string) $visitor_id,
 				(string) $ip_hash,
 				(string) $ua_hash,
-				gmdate( 'YmdHi', current_time( 'timestamp', true ) ),
+				CRPCRM_Helpers::now()->format( 'YmdHi' ),
 			)
 		);
 

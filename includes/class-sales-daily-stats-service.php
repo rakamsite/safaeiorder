@@ -165,10 +165,10 @@ class CRPCRM_Sales_Daily_Stats_Service {
 
 	private function get_day_range( $date = null ) {
 		$timezone = wp_timezone();
-		$date     = $date ? sanitize_text_field( $date ) : current_time( 'Y-m-d' );
+		$date     = $date ? sanitize_text_field( $date ) : CRPCRM_Helpers::current_date();
 		$day      = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $date . ' 00:00:00', $timezone );
 		if ( ! $day ) {
-			$day = new DateTimeImmutable( current_time( 'Y-m-d' ) . ' 00:00:00', $timezone );
+			$day = new DateTimeImmutable( CRPCRM_Helpers::current_date() . ' 00:00:00', $timezone );
 		}
 
 		return array(

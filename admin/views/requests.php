@@ -137,7 +137,7 @@ function crpcrm_request_row_classes( $item, $current_user_id ) {
 	if ( 'customer_reply' === sanitize_key( $item['last_action'] ?? '' ) ) {
 		$classes[] = 'crpcrm-request-row-customer-reply';
 	}
-	if ( ! empty( $item['next_follow_up_at'] ) && 'follow_up' === sanitize_key( $item['status'] ?? '' ) && strtotime( $item['next_follow_up_at'] ) < current_time( 'timestamp' ) ) {
+	if ( ! empty( $item['next_follow_up_at'] ) && 'follow_up' === sanitize_key( $item['status'] ?? '' ) && false !== CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() ) {
 		$classes[] = 'crpcrm-request-row-overdue';
 	}
 
@@ -189,7 +189,7 @@ function crpcrm_request_operational_badges( $request ) {
 	if ( empty( $request['owner_id'] ) ) {
 		$badges[] = '<span class="crpcrm-badge crpcrm-badge-muted">بدون مسئول</span>';
 	}
-	if ( 'follow_up' === $status && ! empty( $request['next_follow_up_at'] ) && strtotime( $request['next_follow_up_at'] ) < current_time( 'timestamp' ) ) {
+	if ( 'follow_up' === $status && ! empty( $request['next_follow_up_at'] ) && false !== CRPCRM_Helpers::datetime_to_timestamp( $request['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $request['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() ) {
 		$badges[] = '<span class="crpcrm-badge crpcrm-badge-failed">عقب‌افتاده</span>';
 	}
 
@@ -499,7 +499,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 							<td><?php echo esc_html( ! empty( $landing_touch ) ? crpcrm_request_landing_touch_summary( $landing_touch ) : '—' ); ?></td>
 							<td><?php echo esc_html( $item['request_campaign'] ? $item['request_campaign'] : '—' ); ?></td>
 							<td><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $item['owner_id'] ) ); ?></td>
-							<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && strtotime( $item['next_follow_up_at'] ) < current_time( 'timestamp' ) && 'follow_up' === $item['status'] ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $item['next_follow_up_at'] ) : 'ثبت نشده' ); ?></td>
+							<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() && 'follow_up' === $item['status'] ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $item['next_follow_up_at'] ) : 'ثبت نشده' ); ?></td>
 							<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['created_at'] ) ); ?></td>
 							<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['updated_at'] ) ); ?></td>
 							<td class="crpcrm-actions">
@@ -619,8 +619,13 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		</div>
 
 		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'اطلاعات فرم' ); ?></h2><dl class="crpcrm-form-data">
-			<?php foreach ( $detail_items as $item ) : ?>
-				<?php echo CRPCRM_Dynamic_Form_Renderer::render_display_item( $item, 'admin' ); ?>
+			<?php foreach ( $detail_items as $detail_key => $item ) : ?>
+				<?php
+				$item['source_type']  = 'request';
+				$item['source_id']    = absint( $request['id'] ?? 0 );
+				$item['source_field'] = sanitize_key( is_string( $detail_key ) ? $detail_key : ( $item['key'] ?? $item['field_key'] ?? '' ) );
+				echo CRPCRM_Dynamic_Form_Renderer::render_display_item( $item, 'admin' );
+				?>
 			<?php endforeach; ?>
 		</dl></div>
 

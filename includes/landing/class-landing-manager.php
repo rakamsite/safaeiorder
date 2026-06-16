@@ -376,7 +376,7 @@ class CRPCRM_Landing_Manager {
 			'append_standard_utm' => ! empty( $data['append_standard_utm'] ) ? 1 : 0,
 			'status'              => $status,
 			'updated_by'          => ! empty( $data['updated_by'] ) ? absint( $data['updated_by'] ) : get_current_user_id(),
-			'updated_at'          => current_time( 'mysql' ),
+			'updated_at'          => CRPCRM_Helpers::current_datetime(),
 		);
 
 		if ( $id ) {
@@ -388,7 +388,7 @@ class CRPCRM_Landing_Manager {
 		}
 
 		$record['created_by'] = ! empty( $data['created_by'] ) ? absint( $data['created_by'] ) : get_current_user_id();
-		$record['created_at']  = current_time( 'mysql' );
+		$record['created_at']  = CRPCRM_Helpers::current_datetime();
 		$result = $this->repository->insert( $record );
 		if ( is_wp_error( $result ) ) {
 			return $result;

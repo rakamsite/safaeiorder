@@ -152,11 +152,11 @@ class CRPCRM_Request_Workflow_Service {
 				return new WP_Error( 'follow_up_required', 'تاریخ پیگیری بعدی الزامی است.' );
 			}
 			$normalized = CRPCRM_Helpers::normalize_datetime_input( $raw );
-			$timestamp  = $normalized ? strtotime( $normalized ) : false;
+			$timestamp  = $normalized ? CRPCRM_Helpers::datetime_to_timestamp( $normalized ) : false;
 			if ( ! $timestamp ) {
 				return new WP_Error( 'follow_up_required', 'تاریخ پیگیری بعدی الزامی است.' );
 			}
-			if ( $timestamp < current_time( 'timestamp' ) ) {
+			if ( $timestamp < CRPCRM_Helpers::current_timestamp() ) {
 				return new WP_Error( 'follow_up_in_past', 'تاریخ پیگیری نمی‌تواند در گذشته باشد.' );
 			}
 			$clean['next_follow_up_at'] = $normalized;

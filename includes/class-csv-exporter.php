@@ -17,7 +17,7 @@ class CRPCRM_CSV_Exporter {
 
 		$filename = sanitize_file_name( $filename );
 		if ( '' === $filename ) {
-			$filename = 'crpcrm-export-' . current_time( 'Y-m-d' ) . '.csv';
+			$filename = 'crpcrm-export-' . CRPCRM_Helpers::current_date() . '.csv';
 		}
 
 		nocache_headers();
@@ -60,8 +60,7 @@ class CRPCRM_CSV_Exporter {
 		if ( empty( $value ) || '0000-00-00 00:00:00' === $value || '0000-00-00' === $value ) {
 			return '';
 		}
-		$timestamp = strtotime( $value );
-		return $timestamp ? CRPCRM_Helpers::format_jalali_datetime( $value ) : sanitize_text_field( $value );
+		return CRPCRM_Helpers::is_valid_datetime( $value ) ? CRPCRM_Helpers::format_jalali_datetime( $value ) : sanitize_text_field( $value );
 	}
 
 	public function format_boolean( $value ) {

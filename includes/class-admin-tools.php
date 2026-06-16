@@ -44,7 +44,7 @@ class CRPCRM_Admin_Tools {
 			return;
 		}
 		if ( ! wp_next_scheduled( 'crpcrm_daily_log_cleanup' ) ) {
-			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'crpcrm_daily_log_cleanup' );
+			wp_schedule_event( CRPCRM_Helpers::current_timestamp() + HOUR_IN_SECONDS, 'daily', 'crpcrm_daily_log_cleanup' );
 		}
 	}
 
@@ -124,7 +124,7 @@ class CRPCRM_Admin_Tools {
 			$out[] = array( $r['request_code'], $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ), $r['customer_name'], $r['customer_phone'], $r['customer_province'], $r['customer_city'], CRPCRM_Request_Type_Registry::get_label( $r['request_type'], $r ), CRPCRM_Labels::get_status_label( $r['status'] ), $r['request_summary'], CRPCRM_Labels::get_source_label( $r['request_source'] ), CRPCRM_Labels::get_medium_label( $r['request_medium'] ), $r['request_campaign'], $r['request_content'], $r['request_landing_page'], $r['owner_name'], CRPCRM_Labels::get_activity_label( $r['last_action'] ), $this->csv->format_datetime( $r['last_activity_at'] ), $this->csv->format_datetime( $r['next_follow_up_at'] ), $this->csv->format_datetime( $r['closed_at'] ), CRPCRM_Labels::get_close_reason_label( $r['close_reason'] ), CRPCRM_Labels::get_invalid_reason_label( $r['invalid_reason'] ) );
 		}
 		CRPCRM_Logger::info( 'csv_export_requests', 'csv_export_requests', array( 'user_id' => get_current_user_id(), 'filters' => $f, 'count' => count( $out ) ) );
-		$this->csv->output_csv( 'requests-export-' . current_time( 'Y-m-d' ) . '.csv', array( 'کد پیگیری', 'تاریخ ثبت', 'تاریخ آخرین بروزرسانی', 'نام مشتری', 'موبایل', 'استان', 'شهر', 'نوع درخواست', 'وضعیت', 'خلاصه درخواست', 'منبع', 'مدیوم', 'کمپین', 'محتوا', 'صفحه ورود', 'مسئول', 'آخرین اقدام', 'آخرین فعالیت', 'پیگیری بعدی', 'تاریخ بسته‌شدن', 'دلیل ناموفق', 'دلیل نامعتبر' ), $out );
+		$this->csv->output_csv( 'requests-export-' . CRPCRM_Helpers::current_date() . '.csv', array( 'کد پیگیری', 'تاریخ ثبت', 'تاریخ آخرین بروزرسانی', 'نام مشتری', 'موبایل', 'استان', 'شهر', 'نوع درخواست', 'وضعیت', 'خلاصه درخواست', 'منبع', 'مدیوم', 'کمپین', 'محتوا', 'صفحه ورود', 'مسئول', 'آخرین اقدام', 'آخرین فعالیت', 'پیگیری بعدی', 'تاریخ بسته‌شدن', 'دلیل ناموفق', 'دلیل نامعتبر' ), $out );
 	}
 
 	public function export_customers() {
@@ -146,7 +146,7 @@ class CRPCRM_Admin_Tools {
 			$out[] = array( $r['full_name'], $r['phone'], $r['province'], $r['city'], $this->csv->format_boolean( $r['profile_completed'] ), CRPCRM_Labels::get_source_label( $r['first_source'] ), $r['first_campaign'], $this->csv->format_datetime( $r['first_seen_at'] ), CRPCRM_Labels::get_source_label( $r['last_source'] ), $r['last_campaign'], $this->csv->format_datetime( $r['last_seen_at'] ), $r['total_requests'], $r['open_requests'], $r['closed_requests'], $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ) );
 		}
 		CRPCRM_Logger::info( 'csv_export_customers', 'csv_export_customers', array( 'user_id' => get_current_user_id(), 'filters' => $f, 'count' => count( $out ) ) );
-		$this->csv->output_csv( 'customers-export-' . current_time( 'Y-m-d' ) . '.csv', array( 'نام و نام خانوادگی', 'موبایل', 'استان', 'شهر', 'وضعیت تکمیل پروفایل', 'منبع اولین ورود', 'کمپین اولین ورود', 'تاریخ اولین ورود', 'منبع آخرین ورود', 'کمپین آخرین ورود', 'تاریخ آخرین ورود', 'تعداد کل درخواست‌ها', 'تعداد درخواست‌های باز', 'تعداد درخواست‌های بسته‌شده', 'تاریخ ایجاد پروفایل', 'تاریخ بروزرسانی پروفایل' ), $out );
+		$this->csv->output_csv( 'customers-export-' . CRPCRM_Helpers::current_date() . '.csv', array( 'نام و نام خانوادگی', 'موبایل', 'استان', 'شهر', 'وضعیت تکمیل پروفایل', 'منبع اولین ورود', 'کمپین اولین ورود', 'تاریخ اولین ورود', 'منبع آخرین ورود', 'کمپین آخرین ورود', 'تاریخ آخرین ورود', 'تعداد کل درخواست‌ها', 'تعداد درخواست‌های باز', 'تعداد درخواست‌های بسته‌شده', 'تاریخ ایجاد پروفایل', 'تاریخ بروزرسانی پروفایل' ), $out );
 	}
 
 	public function export_daily_reports() {
@@ -190,11 +190,11 @@ class CRPCRM_Admin_Tools {
 		$log_map = array( 'daily_reports' => 'csv_export_daily_reports', 'staff_requests' => 'csv_export_staff_requests', 'staff_issues' => 'csv_export_staff_issues' );
 		CRPCRM_Logger::info( $log_map[ $type ], $log_map[ $type ], array( 'user_id' => get_current_user_id(), 'filters' => $f, 'count' => count( $out ) ) );
 		if ( 'daily_reports' === $type ) {
-			$this->csv->output_csv( 'daily-reports-export-' . current_time( 'Y-m-d' ) . '.csv', array( 'تاریخ گزارش', 'نام کارمند', 'کارهای انجام‌شده', 'کارهای نیمه‌تمام', 'مشکلات', 'برنامه فردا', 'نیازمند توجه مدیر', 'وضعیت', 'پاسخ مدیر', 'توضیح تکمیلی فروش', 'آمار CRM، به صورت خلاصه متنی', 'تاریخ ثبت', 'تاریخ بروزرسانی' ), $out );
+			$this->csv->output_csv( 'daily-reports-export-' . CRPCRM_Helpers::current_date() . '.csv', array( 'تاریخ گزارش', 'نام کارمند', 'کارهای انجام‌شده', 'کارهای نیمه‌تمام', 'مشکلات', 'برنامه فردا', 'نیازمند توجه مدیر', 'وضعیت', 'پاسخ مدیر', 'توضیح تکمیلی فروش', 'آمار CRM، به صورت خلاصه متنی', 'تاریخ ثبت', 'تاریخ بروزرسانی' ), $out );
 		} elseif ( 'staff_requests' === $type ) {
-			$this->csv->output_csv( 'staff-requests-export-' . current_time( 'Y-m-d' ) . '.csv', array( 'تاریخ ثبت', 'نام کارمند', 'دسته‌بندی', 'عنوان', 'توضیحات', 'اولویت', 'وضعیت', 'پاسخ مدیر', 'تاریخ بروزرسانی' ), $out );
+			$this->csv->output_csv( 'staff-requests-export-' . CRPCRM_Helpers::current_date() . '.csv', array( 'تاریخ ثبت', 'نام کارمند', 'دسته‌بندی', 'عنوان', 'توضیحات', 'اولویت', 'وضعیت', 'پاسخ مدیر', 'تاریخ بروزرسانی' ), $out );
 		} else {
-			$this->csv->output_csv( 'staff-issues-export-' . current_time( 'Y-m-d' ) . '.csv', array( 'تاریخ ثبت', 'نام کارمند', 'عنوان', 'واحد مرتبط', 'شدت', 'توضیحات', 'پیشنهاد راه‌حل', 'نیازمند تصمیم مدیر', 'وضعیت', 'پاسخ مدیر', 'تاریخ بروزرسانی' ), $out );
+			$this->csv->output_csv( 'staff-issues-export-' . CRPCRM_Helpers::current_date() . '.csv', array( 'تاریخ ثبت', 'نام کارمند', 'عنوان', 'واحد مرتبط', 'شدت', 'توضیحات', 'پیشنهاد راه‌حل', 'نیازمند تصمیم مدیر', 'وضعیت', 'پاسخ مدیر', 'تاریخ بروزرسانی' ), $out );
 		}
 	}
 

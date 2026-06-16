@@ -13,7 +13,7 @@ class CRPCRM_Maintenance_Service {
 	public function cleanup_old_logs( $days ) {
 		global $wpdb;
 		$days   = max( 1, absint( $days ) );
-		$cutoff = wp_date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( DAY_IN_SECONDS * $days ) );
+		$cutoff = CRPCRM_Helpers::subtract_seconds_from_now( DAY_IN_SECONDS * $days );
 		return (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . CRPCRM_DB::table( 'plugin_logs' ) . ' WHERE created_at < %s', $cutoff ) );
 	}
 
