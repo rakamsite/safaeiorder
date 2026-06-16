@@ -4,99 +4,123 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! function_exists( 'crpcrm_reports_url' ) ) {
-function crpcrm_reports_url( $args = array(), $remove = array() ) {
-	$base = array(
-		'page'         => 'crpcrm-reports',
-		'date_range'   => $GLOBALS['filters']['date_range'] ?? 'today',
-		'date_from'    => $GLOBALS['filters']['date_from'] ?? '',
-		'date_to'      => $GLOBALS['filters']['date_to'] ?? '',
-		'request_type' => $GLOBALS['filters']['request_type'] ?? '',
-		'source'       => $GLOBALS['filters']['source'] ?? '',
-		'campaign'     => $GLOBALS['filters']['campaign'] ?? '',
-		'content'      => $GLOBALS['filters']['content'] ?? '',
-		'status'       => $GLOBALS['filters']['status'] ?? '',
-		'owner_filter' => $GLOBALS['filters']['owner_filter'] ?? 'all',
-	);
-	$query = array_merge( $base, $args );
-	foreach ( $remove as $key ) {
-		unset( $query[ $key ] );
-	}
-	foreach ( $query as $key => $value ) {
-		if ( '' === $value || null === $value ) {
+	function crpcrm_reports_url( $args = array(), $remove = array() ) {
+		$base = array(
+			'page'         => 'crpcrm-reports',
+			'date_range'   => $GLOBALS['filters']['date_range'] ?? 'today',
+			'date_from'    => $GLOBALS['filters']['date_from'] ?? '',
+			'date_to'      => $GLOBALS['filters']['date_to'] ?? '',
+			'request_type' => $GLOBALS['filters']['request_type'] ?? '',
+			'source'       => $GLOBALS['filters']['source'] ?? '',
+			'campaign'     => $GLOBALS['filters']['campaign'] ?? '',
+			'content'      => $GLOBALS['filters']['content'] ?? '',
+			'landing'      => $GLOBALS['filters']['landing'] ?? '',
+			'status'       => $GLOBALS['filters']['status'] ?? '',
+			'owner_filter' => $GLOBALS['filters']['owner_filter'] ?? 'all',
+		);
+		$query = array_merge( $base, $args );
+		foreach ( $remove as $key ) {
 			unset( $query[ $key ] );
 		}
+		foreach ( $query as $key => $value ) {
+			if ( '' === $value || null === $value ) {
+				unset( $query[ $key ] );
+			}
+		}
+		return add_query_arg( $query, admin_url( 'admin.php' ) );
 	}
-	return add_query_arg( $query, admin_url( 'admin.php' ) );
-}
 }
 
 if ( ! function_exists( 'crpcrm_reports_percent' ) ) {
-function crpcrm_reports_percent( $part, $total ) {
-	$total = absint( $total );
-	return $total > 0 ? round( ( absint( $part ) / $total ) * 100, 1 ) . '%' : '۰٪';
-}
+	function crpcrm_reports_percent( $part, $total ) {
+		$total = absint( $total );
+		return $total > 0 ? round( ( absint( $part ) / $total ) * 100, 1 ) . '%' : '—';
+	}
 }
 
 if ( ! function_exists( 'crpcrm_reports_rate' ) ) {
-function crpcrm_reports_rate( $won, $closed ) {
-	$closed = absint( $closed );
-	return $closed > 0 ? round( ( absint( $won ) / $closed ) * 100, 1 ) . '%' : 'قابل محاسبه نیست';
-}
+	function crpcrm_reports_rate( $won, $closed ) {
+		$closed = absint( $closed );
+		return $closed > 0 ? round( ( absint( $won ) / $closed ) * 100, 1 ) . '%' : '—';
+	}
 }
 
 if ( ! function_exists( 'crpcrm_reports_duration' ) ) {
-function crpcrm_reports_duration( $seconds ) {
-	if ( null === $seconds || '' === $seconds ) {
-		return '—';
+	function crpcrm_reports_duration( $seconds ) {
+		if ( null === $seconds || '' === $seconds ) {
+			return '—';
+		}
+		$seconds = max( 0, (int) $seconds );
+		$hours   = floor( $seconds / HOUR_IN_SECONDS );
+		$minutes = floor( ( $seconds % HOUR_IN_SECONDS ) / MINUTE_IN_SECONDS );
+		return $hours > 0 ? $hours . ' ساعت و ' . $minutes . ' دقیقه' : $minutes . ' دقیقه';
 	}
-	$seconds = max( 0, (int) $seconds );
-	$hours   = floor( $seconds / HOUR_IN_SECONDS );
-	$minutes = floor( ( $seconds % HOUR_IN_SECONDS ) / MINUTE_IN_SECONDS );
-	return $hours > 0 ? $hours . ' ساعت و ' . $minutes . ' دقیقه' : $minutes . ' دقیقه';
 }
+
+if ( ! function_exists( 'crpcrm_reports_label' ) ) {
+	function crpcrm_reports_label( $value, $fallback = '—' ) {
+		$value = trim( (string) $value );
+		return '' !== $value ? $value : $fallback;
+	}
 }
 
 if ( ! function_exists( 'crpcrm_reports_owner_label' ) ) {
-function crpcrm_reports_owner_label( $owner_id ) {
-	$owner_id = absint( $owner_id );
-	if ( ! $owner_id ) {
-		return 'بدون مسئول';
+	function crpcrm_reports_owner_label( $owner_id ) {
+		$owner_id = absint( $owner_id );
+		if ( ! $owner_id ) {
+			return 'بدون مسئول';
+		}
+		$user = get_userdata( $owner_id );
+		return $user ? $user->display_name : 'کاربر حذف‌شده';
 	}
-	$user = get_userdata( $owner_id );
-	return $user ? $user->display_name : 'کاربر حذف‌شده';
-}
 }
 
-if ( ! function_exists( 'crpcrm_reports_close_reason_label' ) ) {
-function crpcrm_reports_close_reason_label( $reason ) {
-	$labels = array(
-		'price_not_suitable'              => 'قیمت مناسب نبود',
-		'customer_cancelled'              => 'مشتری منصرف شد',
-		'no_response'                     => 'پاسخگو نبود',
-		'not_real_need'                   => 'نیاز واقعی نداشت',
-		'wrong_time'                      => 'زمان خرید مناسب نبود',
-		'unavailable_service_or_product'  => 'موجودی/خدمت قابل ارائه نبود',
-		'duplicate_or_wrong'              => 'تکراری یا اشتباه ثبت شده',
-		'other'                           => 'سایر',
-	);
-	return isset( $labels[ $reason ] ) ? $labels[ $reason ] : sanitize_text_field( $reason );
-}
-}
-
-if ( ! function_exists( 'crpcrm_reports_invalid_reason_label' ) ) {
-function crpcrm_reports_invalid_reason_label( $reason ) {
-	$labels = array(
-		'wrong_number'       => 'شماره اشتباه',
-		'fake_data'          => 'اطلاعات غیرواقعی',
-		'spam'               => 'اسپم',
-		'irrelevant_request' => 'درخواست نامرتبط',
-		'other'              => 'سایر',
-	);
-	return isset( $labels[ $reason ] ) ? $labels[ $reason ] : sanitize_text_field( $reason );
-}
+if ( ! function_exists( 'crpcrm_reports_status_class' ) ) {
+	function crpcrm_reports_status_class( $status ) {
+		$status = sanitize_key( (string) $status );
+		$map    = array(
+			'new'         => 'new',
+			'in_progress' => 'pending',
+			'no_answer'   => 'muted',
+			'follow_up'   => 'pending',
+			'won'         => 'success',
+			'lost'        => 'failed',
+			'invalid'     => 'failed',
+			'closed'      => 'archived',
+		);
+		return isset( $map[ $status ] ) ? $map[ $status ] : 'muted';
+	}
 }
 
-$GLOBALS['filters'] = $filters;
+if ( ! function_exists( 'crpcrm_reports_chart_has_data' ) ) {
+	function crpcrm_reports_chart_has_data( $chart ) {
+		if ( empty( $chart ) || empty( $chart['datasets'] ) || ! is_array( $chart['datasets'] ) ) {
+			return false;
+		}
+		foreach ( $chart['datasets'] as $dataset ) {
+			$values = isset( $dataset['data'] ) && is_array( $dataset['data'] ) ? $dataset['data'] : array();
+			foreach ( $values as $value ) {
+				if ( absint( $value ) > 0 ) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+}
+
+$dashboard          = isset( $dashboard ) && is_array( $dashboard ) ? $dashboard : array();
+$overview           = isset( $dashboard['overview'] ) && is_array( $dashboard['overview'] ) ? $dashboard['overview'] : array();
+$charts             = isset( $dashboard['charts'] ) && is_array( $dashboard['charts'] ) ? $dashboard['charts'] : array();
+$campaign_summary   = isset( $dashboard['campaign_summary'] ) && is_array( $dashboard['campaign_summary'] ) ? $dashboard['campaign_summary'] : array();
+$landing_performance = isset( $dashboard['landing_performance'] ) && is_array( $dashboard['landing_performance'] ) ? $dashboard['landing_performance'] : array();
+$staff_performance  = isset( $dashboard['staff_performance'] ) && is_array( $dashboard['staff_performance'] ) ? $dashboard['staff_performance'] : array();
+$request_details    = isset( $dashboard['request_details'] ) && is_array( $dashboard['request_details'] ) ? $dashboard['request_details'] : array();
+$request_total      = isset( $dashboard['request_total'] ) ? absint( $dashboard['request_total'] ) : 0;
+$landing_enabled    = ! empty( $landing_enabled );
+$staff_enabled      = ! empty( $staff_enabled );
+$GLOBALS['filters']  = isset( $filters ) && is_array( $filters ) ? $filters : array();
+
 $date_ranges = array(
 	'today'         => 'امروز',
 	'yesterday'     => 'دیروز',
@@ -106,147 +130,404 @@ $date_ranges = array(
 	'last_month'    => 'ماه قبل',
 	'custom'        => 'بازه دلخواه',
 );
-$request_types        = array( '' => 'همه' ) + CRPCRM_Request_Type_Registry::get_request_types();
-$active_request_types = CRPCRM_Request_Type_Registry::get_request_types();
-$sources       = array( '' => 'همه', 'direct' => 'مستقیم', 'instagram' => 'اینستاگرام', 'whatsapp' => 'واتساپ', 'google' => 'گوگل', 'telegram' => 'تلگرام', 'other' => 'سایر' );
-$statuses      = array( '' => 'همه', 'new' => 'جدید', 'in_progress' => 'در حال پیگیری', 'no_answer' => 'پاسخ نداد', 'follow_up' => 'پیگیری بعدی', 'won' => 'موفق', 'lost' => 'ناموفق', 'invalid' => 'نامعتبر' );
-$total_for_percent = max( 1, absint( $kpis['total'] ) );
-$known_source_keys = array( 'direct', 'instagram', 'whatsapp', 'google', 'telegram', 'bing' );
+$request_types = array( '' => 'همه' ) + CRPCRM_Request_Type_Registry::get_request_types();
+$sources = array(
+	''          => 'همه',
+	'direct'    => 'مستقیم',
+	'instagram' => 'اینستاگرام',
+	'whatsapp'  => 'واتساپ',
+	'google'    => 'گوگل',
+	'telegram'  => 'تلگرام',
+	'bing'      => 'بینگ',
+	'referral'  => 'ارجاعی',
+	'organic'   => 'ارگانیک',
+	'utm'       => 'کمپین UTM',
+	'other'     => 'سایر',
+);
+$statuses = array(
+	''            => 'همه',
+	'new'         => 'جدید',
+	'in_progress' => 'در حال پیگیری',
+	'no_answer'   => 'پاسخ داده نشده',
+	'follow_up'   => 'پیگیری بعدی',
+	'won'         => 'موفق',
+	'lost'        => 'ناموفق',
+	'invalid'     => 'نامعتبر',
+);
+
+$overview_cards = array(
+	array( 'label' => 'کل درخواست‌ها', 'value' => absint( $overview['total_requests'] ?? 0 ), 'meta' => 'همه درخواست‌های ثبت‌شده' ),
+	array( 'label' => 'درخواست‌های جدید', 'value' => absint( $overview['new_requests'] ?? 0 ), 'meta' => 'وضعیت جدید' ),
+	array( 'label' => 'در حال پیگیری', 'value' => absint( $overview['in_progress'] ?? 0 ) + absint( $overview['follow_up'] ?? 0 ), 'meta' => 'در صف پیگیری تیم' ),
+	array( 'label' => 'موفق', 'value' => absint( $overview['won_requests'] ?? 0 ), 'meta' => 'تبدیل‌های موفق' ),
+	array( 'label' => 'ناموفق', 'value' => absint( $overview['lost_requests'] ?? 0 ) + absint( $overview['invalid_requests'] ?? 0 ), 'meta' => 'نتیجه نهایی ناموفق یا نامعتبر' ),
+	array( 'label' => 'نرخ موفقیت', 'value' => isset( $overview['success_rate'] ) && null !== $overview['success_rate'] ? $overview['success_rate'] . '%' : '—', 'meta' => 'نسبت موفق به بسته‌شده' ),
+	array( 'label' => 'پیگیری‌های امروز', 'value' => absint( $overview['followups_today'] ?? 0 ), 'meta' => 'موارد برنامه‌ریزی‌شده برای امروز' ),
+);
+
+$csv_args = array(
+	'action'       => 'crpcrm_reports_csv',
+	'date_range'   => $filters['date_range'],
+	'date_from'    => $filters['date_from'],
+	'date_to'      => $filters['date_to'],
+	'request_type' => $filters['request_type'],
+	'source'       => $filters['source'],
+	'campaign'     => $filters['campaign'],
+	'content'      => $filters['content'],
+	'landing'      => $filters['landing'],
+	'status'       => $filters['status'],
+	'owner_filter' => $filters['owner_filter'],
+);
+$csv_args = array_filter(
+	$csv_args,
+	static function ( $value ) {
+		return '' !== $value && null !== $value;
+	}
+);
+
+$selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_ranges[ $filters['date_range'] ] : $date_ranges['today'];
 ?>
 <div class="wrap crpcrm-admin-wrap crpcrm-reports-admin" dir="rtl">
-	<h1><?php echo esc_html( 'گزارش‌های مدیریتی' ); ?></h1>
+	<div class="crpcrm-page-header">
+		<div class="crpcrm-page-header__content">
+			<h1><?php echo esc_html( 'گزارشات' ); ?></h1>
+			<p><?php echo esc_html( 'نمای کلی درخواست‌ها، منابع ورودی، عملکرد کارشناسان و کمپین‌ها' ); ?></p>
+		</div>
+		<div class="crpcrm-page-header__actions">
+			<span class="crpcrm-badge crpcrm-badge-muted"><?php echo esc_html( 'بازه: ' . $selected_range_label ); ?></span>
+			<?php if ( $request_total > 0 ) : ?>
+				<span class="crpcrm-badge crpcrm-badge-success"><?php echo esc_html( number_format_i18n( $request_total ) . ' درخواست' ); ?></span>
+			<?php endif; ?>
+		</div>
+	</div>
 
-	<form method="get" class="crpcrm-request-filters crpcrm-reports-filters">
+	<form method="get" class="crpcrm-filter-bar crpcrm-reports-filter-bar">
 		<input type="hidden" name="page" value="crpcrm-reports">
-		<h2><?php echo esc_html( 'فیلترهای کلی' ); ?></h2>
-		<div class="crpcrm-filter-grid">
-			<label><?php echo esc_html( 'بازه زمانی' ); ?>
+		<div class="crpcrm-form-grid crpcrm-filter-grid">
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'بازه زمانی' ); ?></span>
 				<select name="date_range">
 					<?php foreach ( $date_ranges as $key => $label ) : ?>
 						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['date_range'], $key ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</label>
-			<label><?php echo esc_html( 'از تاریخ' ); ?><?php echo CRPCRM_Helpers::jalali_date_input( 'date_from', $filters['date_from'] ); ?></label>
-			<label><?php echo esc_html( 'تا تاریخ' ); ?><?php echo CRPCRM_Helpers::jalali_date_input( 'date_to', $filters['date_to'] ); ?></label>
-			<label><?php echo esc_html( 'نوع درخواست' ); ?><select name="request_type"><?php foreach ( $request_types as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['request_type'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label>
-			<label><?php echo esc_html( 'منبع' ); ?><select name="source"><?php foreach ( $sources as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['source'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label>
-			<label><?php echo esc_html( 'کمپین' ); ?><input type="text" name="campaign" value="<?php echo esc_attr( $filters['campaign'] ); ?>" placeholder="request_campaign"></label>
-			<label><?php echo esc_html( 'محتوا' ); ?><input type="text" name="content" value="<?php echo esc_attr( $filters['content'] ); ?>" placeholder="request_content"></label>
-			<label><?php echo esc_html( 'وضعیت' ); ?><select name="status"><?php foreach ( $statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></label>
-			<?php if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
-			<label><?php echo esc_html( 'کارشناس' ); ?>
-				<select name="owner_filter">
-					<option value="all" <?php selected( $filters['owner_filter'], 'all' ); ?>><?php echo esc_html( 'همه' ); ?></option>
-					<option value="unassigned" <?php selected( $filters['owner_filter'], 'unassigned' ); ?>><?php echo esc_html( 'بدون مسئول' ); ?></option>
-					<?php foreach ( $assignable_users as $user ) : ?><option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( (string) $filters['owner_filter'], (string) $user->ID ); ?>><?php echo esc_html( $user->display_name ); ?></option><?php endforeach; ?>
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'از تاریخ' ); ?></span>
+				<?php echo CRPCRM_Helpers::jalali_date_input( 'date_from', $filters['date_from'] ); ?>
+			</label>
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'تا تاریخ' ); ?></span>
+				<?php echo CRPCRM_Helpers::jalali_date_input( 'date_to', $filters['date_to'] ); ?>
+			</label>
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'نوع درخواست' ); ?></span>
+				<select name="request_type">
+					<?php foreach ( $request_types as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['request_type'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
 				</select>
 			</label>
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'منبع ورودی' ); ?></span>
+				<select name="source">
+					<?php foreach ( $sources as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['source'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</label>
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'کمپین' ); ?></span>
+				<input type="text" name="campaign" value="<?php echo esc_attr( $filters['campaign'] ); ?>" placeholder="<?php echo esc_attr( 'نام یا کد کمپین' ); ?>">
+			</label>
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'محتوا' ); ?></span>
+				<input type="text" name="content" value="<?php echo esc_attr( $filters['content'] ); ?>" placeholder="<?php echo esc_attr( 'کد محتوا یا جایگاه' ); ?>">
+			</label>
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'لندینگ' ); ?></span>
+				<input type="text" name="landing" value="<?php echo esc_attr( $filters['landing'] ); ?>" placeholder="<?php echo esc_attr( 'slug لندینگ' ); ?>">
+			</label>
+			<label class="crpcrm-form-row">
+				<span><?php echo esc_html( 'وضعیت' ); ?></span>
+				<select name="status">
+					<?php foreach ( $statuses as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $filters['status'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</label>
+			<?php if ( $staff_enabled ) : ?>
+				<label class="crpcrm-form-row">
+					<span><?php echo esc_html( 'کارشناس' ); ?></span>
+					<select name="owner_filter">
+						<option value="all" <?php selected( $filters['owner_filter'], 'all' ); ?>><?php echo esc_html( 'همه' ); ?></option>
+						<option value="unassigned" <?php selected( $filters['owner_filter'], 'unassigned' ); ?>><?php echo esc_html( 'بدون مسئول' ); ?></option>
+						<?php foreach ( $assignable_users as $user ) : ?>
+							<option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( (string) $filters['owner_filter'], (string) $user->ID ); ?>><?php echo esc_html( $user->display_name ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</label>
 			<?php endif; ?>
 		</div>
-		<p class="submit">
-			<button type="submit" class="button button-primary"><?php echo esc_html( 'اعمال فیلتر' ); ?></button>
-			<a class="button" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-reports' ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'پاک کردن فیلترها' ); ?></a>
-		</p>
+		<div class="crpcrm-filter-actions">
+			<button type="submit" class="crpcrm-btn crpcrm-btn-primary"><?php echo esc_html( 'اعمال فیلتر' ); ?></button>
+			<a class="crpcrm-btn crpcrm-btn-ghost" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-reports' ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'پاک کردن فیلترها' ); ?></a>
+		</div>
 	</form>
 
-	<div class="crpcrm-summary-cards crpcrm-kpi-cards">
-		<?php foreach ( array(
-			'total' => 'تعداد کل درخواست‌ها', 'today' => 'درخواست‌های امروز', 'this_week' => 'درخواست‌های این هفته', 'this_month' => 'درخواست‌های این ماه', 'open_total' => 'درخواست‌های باز', 'closed_total' => 'درخواست‌های بسته‌شده', 'unassigned' => 'درخواست‌های بدون مسئول', 'followups_today' => 'پیگیری‌های امروز', 'overdue_followups' => 'پیگیری‌های عقب‌افتاده', 'won' => 'درخواست‌های موفق', 'lost' => 'درخواست‌های ناموفق', 'invalid' => 'درخواست‌های نامعتبر'
-		) as $key => $label ) : ?>
-			<div><strong><?php echo esc_html( number_format_i18n( absint( $kpis[ $key ] ) ) ); ?></strong><span><?php echo esc_html( $label ); ?></span></div>
+	<div class="crpcrm-kpi-grid crpcrm-kpi-grid--reports">
+		<?php foreach ( $overview_cards as $card ) : ?>
+			<div class="crpcrm-stat-card crpcrm-report-stat-card">
+				<div class="crpcrm-stat-label"><?php echo esc_html( $card['label'] ); ?></div>
+				<div class="crpcrm-stat-value"><?php echo esc_html( is_numeric( $card['value'] ) ? number_format_i18n( $card['value'] ) : $card['value'] ); ?></div>
+				<div class="crpcrm-stat-meta"><?php echo esc_html( $card['meta'] ); ?></div>
+			</div>
 		<?php endforeach; ?>
-		<div><strong><?php echo esc_html( null === $kpis['success_rate'] ? 'قابل محاسبه نیست' : $kpis['success_rate'] . '%' ); ?></strong><span><?php echo esc_html( 'نرخ موفقیت' ); ?></span></div>
-		<div><strong><?php echo esc_html( crpcrm_reports_duration( $kpis['avg_first_action_seconds'] ) ); ?></strong><span><?php echo esc_html( 'میانگین زمان اولین اقدام' ); ?></span></div>
 	</div>
 
-	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'منابع ورودی' ); ?></h2>
-		<table class="widefat striped"><thead><tr><th>منبع</th><th>تعداد درخواست</th><th>درصد از کل</th><th>موفق</th><th>ناموفق</th><th>نامعتبر</th><th>باز</th><th>نرخ موفقیت</th><th>میانگین زمان اولین اقدام</th><th>لینک</th></tr></thead><tbody>
-		<?php if ( empty( $source_report ) ) : ?><tr><td colspan="10"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
-		<?php foreach ( $source_report as $row ) : $closed = absint( $row['won'] ) + absint( $row['lost'] ) + absint( $row['invalid'] ); ?>
-			<tr><td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $row['request_source'] ) ); ?></span></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_percent( $row['total'], $kpis['total'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['won'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['lost'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['invalid'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['open_total'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_rate( $row['won'], $closed ) ); ?></td><td><?php echo esc_html( crpcrm_reports_duration( $row['avg_first_action_seconds'] ) ); ?></td><td><a href="<?php echo esc_url( crpcrm_reports_url( array( 'source' => in_array( $row['request_source'], $known_source_keys, true ) ? $row['request_source'] : 'other', 'paged' => 1 ) ) ); ?>"><?php echo esc_html( 'مشاهده درخواست‌ها' ); ?></a></td></tr>
-		<?php endforeach; ?>
-		</tbody></table>
+	<div class="crpcrm-dashboard-grid crpcrm-dashboard-grid--charts">
+		<section class="crpcrm-section-card crpcrm-chart-card">
+			<div class="crpcrm-section-header">
+				<h2><?php echo esc_html( 'روند درخواست‌ها' ); ?></h2>
+				<p><?php echo esc_html( 'تعداد درخواست‌های ثبت‌شده در بازه انتخاب‌شده' ); ?></p>
+			</div>
+			<?php if ( crpcrm_reports_chart_has_data( $charts['requestsTrend'] ?? array() ) ) : ?>
+				<div class="crpcrm-chart-shell">
+					<canvas class="crpcrm-chart" data-chart="requestsTrend"></canvas>
+				</div>
+			<?php else : ?>
+				<div class="crpcrm-empty-state">
+					<p><?php echo esc_html( 'در بازه انتخاب‌شده هنوز درخواستی ثبت نشده است.' ); ?></p>
+				</div>
+			<?php endif; ?>
+		</section>
+
+		<section class="crpcrm-section-card crpcrm-chart-card">
+			<div class="crpcrm-section-header">
+				<h2><?php echo esc_html( 'درخواست‌ها بر اساس منبع ورودی' ); ?></h2>
+				<p><?php echo esc_html( 'منابع پرتکرار در همین بازه زمانی' ); ?></p>
+			</div>
+			<?php if ( crpcrm_reports_chart_has_data( $charts['sourceBreakdown'] ?? array() ) ) : ?>
+				<div class="crpcrm-chart-shell">
+					<canvas class="crpcrm-chart" data-chart="sourceBreakdown"></canvas>
+				</div>
+			<?php else : ?>
+				<div class="crpcrm-empty-state">
+					<p><?php echo esc_html( 'برای این فیلتر، داده‌ای برای نمایش نمودار وجود ندارد.' ); ?></p>
+				</div>
+			<?php endif; ?>
+		</section>
+
+		<section class="crpcrm-section-card crpcrm-chart-card">
+			<div class="crpcrm-section-header">
+				<h2><?php echo esc_html( 'وضعیت درخواست‌ها' ); ?></h2>
+				<p><?php echo esc_html( 'توزیع وضعیت‌ها در بازه انتخاب‌شده' ); ?></p>
+			</div>
+			<?php if ( crpcrm_reports_chart_has_data( $charts['statusBreakdown'] ?? array() ) ) : ?>
+				<div class="crpcrm-chart-shell">
+					<canvas class="crpcrm-chart" data-chart="statusBreakdown"></canvas>
+				</div>
+			<?php else : ?>
+				<div class="crpcrm-empty-state">
+					<p><?php echo esc_html( 'هنوز داده‌ای برای وضعیت درخواست‌ها وجود ندارد.' ); ?></p>
+				</div>
+			<?php endif; ?>
+		</section>
+
+		<?php if ( $staff_enabled ) : ?>
+			<section class="crpcrm-section-card crpcrm-chart-card">
+				<div class="crpcrm-section-header">
+					<h2><?php echo esc_html( 'عملکرد کارشناسان' ); ?></h2>
+					<p><?php echo esc_html( 'درخواست‌های در جریان و موفق برای هر کارشناس' ); ?></p>
+				</div>
+				<?php if ( crpcrm_reports_chart_has_data( $charts['staffPerformance'] ?? array() ) ) : ?>
+					<div class="crpcrm-chart-shell">
+						<canvas class="crpcrm-chart" data-chart="staffPerformance"></canvas>
+					</div>
+				<?php else : ?>
+					<div class="crpcrm-empty-state">
+						<p><?php echo esc_html( 'هنوز داده‌ای برای عملکرد کارشناسان ثبت نشده است.' ); ?></p>
+					</div>
+				<?php endif; ?>
+			</section>
+		<?php endif; ?>
 	</div>
 
-	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'کمپین‌ها و محتوا' ); ?></h2>
-		<h3><?php echo esc_html( 'گزارش کمپین‌ها' ); ?></h3>
-		<table class="widefat striped"><thead><tr><th>کمپین</th><th>تعداد درخواست</th><?php foreach ( $active_request_types as $request_type_label ) : ?><th><?php echo esc_html( $request_type_label ); ?></th><?php endforeach; ?><th>موفق</th><th>ناموفق</th><th>نامعتبر</th><th>باز</th><th>نرخ موفقیت</th></tr></thead><tbody>
-		<?php if ( empty( $campaign_report ) ) : ?><tr><td colspan="<?php echo esc_attr( count( $active_request_types ) + 7 ); ?>"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
-		<?php foreach ( $campaign_report as $row ) : $campaign = $row['request_campaign']; $closed = absint( $row['won'] ) + absint( $row['lost'] ) + absint( $row['invalid'] ); ?>
-			<tr><td><a href="<?php echo esc_url( crpcrm_reports_url( array( 'campaign' => $campaign, 'paged' => 1 ) ) ); ?>"><?php echo esc_html( $campaign ? $campaign : 'بدون کمپین' ); ?></a></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td><?php foreach ( $active_request_types as $request_type => $request_type_label ) : ?><td><?php echo esc_html( number_format_i18n( isset( $row[ $request_type ] ) ? $row[ $request_type ] : 0 ) ); ?></td><?php endforeach; ?><td><?php echo esc_html( number_format_i18n( $row['won'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['lost'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['invalid'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['open_total'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_rate( $row['won'], $closed ) ); ?></td></tr>
-		<?php endforeach; ?>
-		</tbody></table>
+	<div class="crpcrm-dashboard-grid crpcrm-dashboard-grid--tables">
+		<section class="crpcrm-section-card">
+			<div class="crpcrm-section-header crpcrm-section-header--inline">
+				<div>
+					<h2><?php echo esc_html( 'خلاصه کمپین‌ها و منابع' ); ?></h2>
+					<p><?php echo esc_html( 'ترکیب منبع، کمپین و لندینگ برای درخواست‌های مهم' ); ?></p>
+				</div>
+			</div>
+			<div class="crpcrm-table-wrap">
+				<table class="crpcrm-table">
+					<thead>
+						<tr>
+							<th><?php echo esc_html( 'منبع' ); ?></th>
+							<th><?php echo esc_html( 'کمپین' ); ?></th>
+							<?php if ( $landing_enabled ) : ?>
+								<th><?php echo esc_html( 'لندینگ' ); ?></th>
+								<th><?php echo esc_html( 'کلیک معتبر' ); ?></th>
+							<?php endif; ?>
+							<th><?php echo esc_html( 'درخواست' ); ?></th>
+							<th><?php echo esc_html( 'موفق' ); ?></th>
+							<th><?php echo esc_html( 'ناموفق' ); ?></th>
+							<th><?php echo esc_html( 'نرخ تبدیل درخواست' ); ?></th>
+							<th><?php echo esc_html( 'آخرین درخواست' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php if ( empty( $campaign_summary ) ) : ?>
+							<tr>
+								<td colspan="<?php echo esc_attr( $landing_enabled ? 9 : 7 ); ?>">
+									<div class="crpcrm-empty-state crpcrm-empty-state--inline"><?php echo esc_html( 'برای این فیلتر داده‌ای برای نمایش وجود ندارد.' ); ?></div>
+								</td>
+							</tr>
+						<?php else : ?>
+							<?php foreach ( $campaign_summary as $row ) : ?>
+								<tr>
+									<td><?php echo esc_html( CRPCRM_Helpers::get_source_label( $row['request_source'] ?? '' ) ); ?></td>
+									<td><?php echo esc_html( crpcrm_reports_label( $row['request_campaign'] ?? '' ) ); ?></td>
+									<?php if ( $landing_enabled ) : ?>
+										<td>
+											<div class="crpcrm-table-primary"><?php echo esc_html( crpcrm_reports_label( $row['landing_title'] ?? '' ) ); ?></div>
+											<div class="crpcrm-table-secondary"><?php echo esc_html( crpcrm_reports_label( $row['landing_slug'] ?? '' ) ); ?></div>
+										</td>
+										<td><?php echo esc_html( number_format_i18n( absint( $row['clicks'] ?? 0 ) ) ); ?></td>
+									<?php endif; ?>
+									<td><?php echo esc_html( number_format_i18n( absint( $row['request_count'] ?? 0 ) ) ); ?></td>
+									<td><?php echo esc_html( number_format_i18n( absint( $row['won_total'] ?? 0 ) ) ); ?></td>
+									<td><?php echo esc_html( number_format_i18n( absint( $row['lost_total'] ?? 0 ) + absint( $row['invalid_total'] ?? 0 ) ) ); ?></td>
+									<td><?php echo esc_html( crpcrm_reports_rate( $row['won_total'] ?? 0, absint( $row['request_count'] ?? 0 ) ) ); ?></td>
+									<td><?php echo esc_html( ! empty( $row['last_request_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $row['last_request_at'] ) : '—' ); ?></td>
+								</tr>
+							<?php endforeach; ?>
+						<?php endif; ?>
+					</tbody>
+				</table>
+			</div>
+		</section>
 
-		<h3><?php echo esc_html( 'گزارش محتوا' ); ?></h3>
-		<table class="widefat striped"><thead><tr><th>محتوا</th><th>تعداد درخواست</th><th>منبع غالب</th><th>نوع درخواست غالب</th><th>موفق</th><th>ناموفق</th><th>باز</th><th>نرخ موفقیت</th></tr></thead><tbody>
-		<?php if ( empty( $content_report ) ) : ?><tr><td colspan="8"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
-		<?php foreach ( $content_report as $row ) : $content = $row['request_content']; $closed = absint( $row['won'] ) + absint( $row['lost'] ); ?>
-			<tr><td><a href="<?php echo esc_url( crpcrm_reports_url( array( 'content' => $content, 'paged' => 1 ) ) ); ?>"><?php echo esc_html( $content ? $content : 'بدون محتوا' ); ?></a></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td><td><?php echo esc_html( CRPCRM_Helpers::get_source_label( $row['top_source'] ) ); ?></td><td><?php echo esc_html( CRPCRM_Helpers::get_request_type_label( $row['top_type'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['won'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['lost'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['open_total'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_rate( $row['won'], $closed ) ); ?></td></tr>
-		<?php endforeach; ?>
-		</tbody></table>
+		<?php if ( $landing_enabled ) : ?>
+			<section class="crpcrm-section-card">
+				<div class="crpcrm-section-header crpcrm-section-header--inline">
+					<div>
+						<h2><?php echo esc_html( 'عملکرد لندینگ‌ها' ); ?></h2>
+						<p><?php echo esc_html( 'برترین لندینگ‌ها بر اساس درخواست ثبت‌شده و کلیک معتبر' ); ?></p>
+					</div>
+				</div>
+				<div class="crpcrm-table-wrap">
+					<table class="crpcrm-table">
+						<thead>
+							<tr>
+								<th><?php echo esc_html( 'لندینگ' ); ?></th>
+								<th><?php echo esc_html( 'Slug' ); ?></th>
+								<th><?php echo esc_html( 'کلیک معتبر' ); ?></th>
+								<th><?php echo esc_html( 'درخواست' ); ?></th>
+								<th><?php echo esc_html( 'نرخ تبدیل' ); ?></th>
+								<th><?php echo esc_html( 'آخرین درخواست' ); ?></th>
+							</tr>
+						</thead>
+						<tbody>
+							<?php if ( empty( $landing_performance ) ) : ?>
+								<tr>
+									<td colspan="6">
+										<div class="crpcrm-empty-state crpcrm-empty-state--inline"><?php echo esc_html( 'هنوز لندینگی با درخواست ثبت‌شده وجود ندارد.' ); ?></div>
+									</td>
+								</tr>
+							<?php else : ?>
+								<?php foreach ( $landing_performance as $row ) : ?>
+									<tr>
+										<td><?php echo esc_html( crpcrm_reports_label( $row['title'] ?? '' ) ); ?></td>
+										<td><?php echo esc_html( crpcrm_reports_label( $row['slug'] ?? '' ) ); ?></td>
+										<td><?php echo esc_html( number_format_i18n( absint( $row['valid_clicks'] ?? 0 ) ) ); ?></td>
+										<td><?php echo esc_html( number_format_i18n( absint( $row['request_count'] ?? 0 ) ) ); ?></td>
+										<td><?php echo esc_html( isset( $row['conversion_rate'] ) && null !== $row['conversion_rate'] ? $row['conversion_rate'] . '%' : '—' ); ?></td>
+										<td><?php echo esc_html( ! empty( $row['last_request_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $row['last_request_at'] ) : '—' ); ?></td>
+									</tr>
+								<?php endforeach; ?>
+							<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</section>
+		<?php endif; ?>
 	</div>
 
-	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'نوع درخواست و ماتریس منبع' ); ?></h2>
-		<table class="widefat striped"><thead><tr><th>نوع درخواست</th><th>تعداد کل</th><th>باز</th><th>موفق</th><th>ناموفق</th><th>نامعتبر</th><th>نرخ موفقیت</th><th>منبع اول</th><th>کمپین اول</th></tr></thead><tbody>
-		<?php if ( empty( $request_type_report ) ) : ?><tr><td colspan="9"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
-		<?php foreach ( $request_type_report as $row ) : $closed = absint( $row['won'] ) + absint( $row['lost'] ) + absint( $row['invalid'] ); ?>
-			<tr><td><a href="<?php echo esc_url( crpcrm_reports_url( array( 'request_type' => $row['request_type'], 'paged' => 1 ) ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_request_type_label( $row['request_type'] ) ); ?></a></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['open_total'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['won'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['lost'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['invalid'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_rate( $row['won'], $closed ) ); ?></td><td><?php echo esc_html( CRPCRM_Helpers::get_source_label( $row['top_source'] ) ); ?></td><td><?php echo esc_html( $row['top_campaign'] ? $row['top_campaign'] : 'بدون کمپین' ); ?></td></tr>
-		<?php endforeach; ?>
-		</tbody></table>
-		<h3><?php echo esc_html( 'Source × Request Type' ); ?></h3>
-		<table class="widefat striped"><thead><tr><th>منبع</th><?php foreach ( $active_request_types as $request_type_label ) : ?><th><?php echo esc_html( $request_type_label ); ?></th><?php endforeach; ?><th>جمع کل</th></tr></thead><tbody>
-		<?php foreach ( $source_type_matrix as $row ) : ?><tr><td><?php echo esc_html( CRPCRM_Helpers::get_source_label( $row['request_source'] ) ); ?></td><?php foreach ( $active_request_types as $request_type => $request_type_label ) : ?><td><?php echo esc_html( number_format_i18n( isset( $row[ $request_type ] ) ? $row[ $request_type ] : 0 ) ); ?></td><?php endforeach; ?><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td></tr><?php endforeach; ?>
-		<?php if ( empty( $source_type_matrix ) ) : ?><tr><td colspan="<?php echo esc_attr( count( $active_request_types ) + 2 ); ?>"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?>
-		</tbody></table>
-	</div>
+	<section class="crpcrm-section-card">
+		<div class="crpcrm-section-header crpcrm-section-header--inline">
+			<div>
+				<h2><?php echo esc_html( 'آخرین درخواست‌ها' ); ?></h2>
+				<p><?php echo esc_html( 'نمایش خلاصه درخواست‌های ثبت‌شده با امکان رفتن به جزئیات' ); ?></p>
+			</div>
+			<p>
+				<a class="crpcrm-btn crpcrm-btn-secondary" href="<?php echo esc_url( wp_nonce_url( add_query_arg( $csv_args, admin_url( 'admin-post.php' ) ), 'crpcrm_reports_csv' ) ); ?>"><?php echo esc_html( 'خروجی CSV' ); ?></a>
+			</p>
+		</div>
+		<div class="crpcrm-table-wrap">
+			<table class="crpcrm-table crpcrm-requests-table">
+				<thead>
+					<tr>
+						<th><?php echo esc_html( 'کد پیگیری' ); ?></th>
+						<th><?php echo esc_html( 'تاریخ ثبت' ); ?></th>
+						<th><?php echo esc_html( 'مشتری' ); ?></th>
+						<th><?php echo esc_html( 'موبایل' ); ?></th>
+						<th><?php echo esc_html( 'نوع درخواست' ); ?></th>
+						<th><?php echo esc_html( 'خلاصه درخواست' ); ?></th>
+						<th><?php echo esc_html( 'منبع' ); ?></th>
+						<th><?php echo esc_html( 'کمپین' ); ?></th>
+						<th><?php echo esc_html( 'محتوا' ); ?></th>
+						<th><?php echo esc_html( 'وضعیت' ); ?></th>
+						<th><?php echo esc_html( 'مسئول' ); ?></th>
+						<th><?php echo esc_html( 'آخرین فعالیت' ); ?></th>
+						<th><?php echo esc_html( 'عملیات' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php if ( empty( $request_details ) ) : ?>
+						<tr>
+							<td colspan="13">
+								<div class="crpcrm-empty-state crpcrm-empty-state--inline"><?php echo esc_html( 'درخواستی مطابق فیلترها یافت نشد.' ); ?></div>
+							</td>
+						</tr>
+					<?php else : ?>
+						<?php foreach ( $request_details as $request ) : ?>
+							<tr>
+								<td><?php echo esc_html( $request['request_code'] ?? '—' ); ?></td>
+								<td><?php echo esc_html( ! empty( $request['created_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) : '—' ); ?></td>
+								<td><?php echo esc_html( crpcrm_reports_label( $request['customer_name'] ?? '' ) ); ?></td>
+								<td><?php echo esc_html( crpcrm_reports_label( $request['customer_phone'] ?? '' ) ); ?></td>
+								<td><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'] ?? '', $request ) ); ?></td>
+								<td><?php echo esc_html( wp_trim_words( $request['request_summary'] ?? '', 18, '…' ) ); ?></td>
+								<td><span class="crpcrm-badge crpcrm-badge-muted"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $request['request_source'] ?? '' ) ); ?></span></td>
+								<td><?php echo esc_html( crpcrm_reports_label( $request['request_campaign'] ?? '' ) ); ?></td>
+								<td><?php echo esc_html( crpcrm_reports_label( $request['request_content'] ?? '' ) ); ?></td>
+								<td><span class="crpcrm-badge crpcrm-badge-<?php echo esc_attr( crpcrm_reports_status_class( $request['status'] ?? '' ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ?? '' ) ); ?></span></td>
+								<td><?php echo esc_html( crpcrm_reports_owner_label( $request['owner_id'] ?? 0 ) ); ?></td>
+								<td><?php echo esc_html( ! empty( $request['last_activity_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $request['last_activity_at'] ) : '—' ); ?></td>
+								<td>
+									<a class="crpcrm-link" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-requests', 'request_id' => absint( $request['id'] ) ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'مشاهده درخواست' ); ?></a>
+									<span class="crpcrm-separator">|</span>
+									<a class="crpcrm-link" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-customer-profile', 'customer_id' => absint( $request['customer_id'] ?? 0 ), 'return_request_id' => absint( $request['id'] ) ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'پروفایل مشتری' ); ?></a>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					<?php endif; ?>
+				</tbody>
+			</table>
+		</div>
 
-	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'قیف فروش' ); ?></h2><div class="crpcrm-status-funnel">
-		<?php foreach ( $status_funnel as $row ) : ?>
-			<a class="crpcrm-funnel-card" href="<?php echo esc_url( crpcrm_reports_url( array( 'status' => $row['status'], 'paged' => 1 ) ) ); ?>"><strong><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></strong><span><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $row['status'] ) ); ?></span><em><?php echo esc_html( crpcrm_reports_percent( $row['total'], $kpis['total'] ) ); ?></em></a>
-		<?php endforeach; ?>
-	</div></div>
-
-	<?php if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
-	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'عملکرد کارشناسان' ); ?></h2>
-		<table class="widefat striped"><thead><tr><th>نام کارشناس</th><th>فعلی تحت مسئولیت</th><th>برداشته در بازه</th><th>اقدامات</th><th>تماس پاسخ داده</th><th>تماس پاسخ داده نشد</th><th>واتساپ</th><th>پیگیری تنظیم‌شده</th><th>موفق</th><th>ناموفق</th><th>نامعتبر</th><th>پیگیری عقب‌افتاده</th><th>میانگین اولین اقدام</th><th>نرخ موفقیت</th></tr></thead><tbody>
-		<?php foreach ( $agent_performance as $row ) : ?><tr><td><?php echo esc_html( $row['display_name'] ); ?></td><td><?php echo esc_html( number_format_i18n( $row['current_owned'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['claimed'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['activities'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['call_answered'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['call_no_answer'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['whatsapp_sent'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['follow_up_scheduled'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['won'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['lost'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['invalid'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['overdue_followups'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_duration( $row['avg_first_action_seconds'] ) ); ?></td><td><?php echo esc_html( null === $row['success_rate'] ? 'قابل محاسبه نیست' : $row['success_rate'] . '%' ); ?></td></tr><?php endforeach; ?>
-		</tbody></table>
-	</div>
-	<?php endif; ?>
-
-	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'پیگیری‌ها و موارد عقب‌افتاده' ); ?></h2><div class="crpcrm-summary-cards">
-		<?php foreach ( $followup_report as $item ) : ?><div><strong><?php echo esc_html( number_format_i18n( $item['total'] ) ); ?></strong><span><?php echo esc_html( $item['label'] ); ?></span><a href="<?php echo esc_url( crpcrm_reports_url( array( 'workflow_filter' => $item['key'], 'paged' => 1 ) ) ); ?>"><?php echo esc_html( 'مشاهده لیست' ); ?></a></div><?php endforeach; ?>
-	</div></div>
-
-	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'دلایل ناموفق و نامعتبر' ); ?></h2><div class="crpcrm-two-columns">
-		<div><h3><?php echo esc_html( 'دلایل ناموفق' ); ?></h3><table class="widefat striped"><thead><tr><th>دلیل</th><th>تعداد</th><th>درصد</th></tr></thead><tbody><?php $lost_total = array_sum( wp_list_pluck( $close_reason_report, 'total' ) ); foreach ( $close_reason_report as $row ) : ?><tr><td><?php echo esc_html( crpcrm_reports_close_reason_label( $row['reason'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_percent( $row['total'], $lost_total ) ); ?></td></tr><?php endforeach; ?><?php if ( empty( $close_reason_report ) ) : ?><tr><td colspan="3"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?></tbody></table></div>
-		<div><h3><?php echo esc_html( 'دلایل نامعتبر' ); ?></h3><table class="widefat striped"><thead><tr><th>دلیل</th><th>تعداد</th><th>درصد</th></tr></thead><tbody><?php $invalid_total = array_sum( wp_list_pluck( $invalid_reason_report, 'total' ) ); foreach ( $invalid_reason_report as $row ) : ?><tr><td><?php echo esc_html( crpcrm_reports_invalid_reason_label( $row['reason'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( $row['total'] ) ); ?></td><td><?php echo esc_html( crpcrm_reports_percent( $row['total'], $invalid_total ) ); ?></td></tr><?php endforeach; ?><?php if ( empty( $invalid_reason_report ) ) : ?><tr><td colspan="3"><?php echo esc_html( 'داده‌ای یافت نشد.' ); ?></td></tr><?php endif; ?></tbody></table></div>
-	</div></div>
-
-	<div class="crpcrm-report-section"><h2><?php echo esc_html( 'جزئیات درخواست‌ها' ); ?></h2>
-		<?php
-		$csv_args = array(
-			'action'       => 'crpcrm_reports_csv',
-			'date_range'   => $filters['date_range'],
-			'date_from'    => $filters['date_from'],
-			'date_to'      => $filters['date_to'],
-			'request_type' => $filters['request_type'],
-			'source'       => $filters['source'],
-			'campaign'     => $filters['campaign'],
-			'content'      => $filters['content'],
-			'status'       => $filters['status'],
-			'owner_filter' => $filters['owner_filter'],
-		);
-		$csv_args = array_filter( $csv_args, static function( $value ) { return '' !== $value && null !== $value; } );
-		?>
-		<p><a class="button" href="<?php echo esc_url( wp_nonce_url( add_query_arg( $csv_args, admin_url( 'admin-post.php' ) ), 'crpcrm_reports_csv' ) ); ?>"><?php echo esc_html( 'خروجی CSV' ); ?></a></p>
-		<table class="widefat striped crpcrm-requests-table"><thead><tr><th>کد پیگیری</th><th>تاریخ ثبت</th><th>مشتری</th><th>موبایل</th><th>نوع درخواست</th><th>خلاصه درخواست</th><th>منبع</th><th>کمپین</th><th>محتوا</th><th>وضعیت</th><th>مسئول</th><th>آخرین فعالیت</th><th>عملیات</th></tr></thead><tbody>
-		<?php if ( empty( $request_details ) ) : ?><tr><td colspan="13"><?php echo esc_html( 'درخواستی مطابق فیلترها یافت نشد.' ); ?></td></tr><?php endif; ?>
-		<?php foreach ( $request_details as $request ) : ?>
-			<tr><td><?php echo esc_html( $request['request_code'] ); ?></td><td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td><td><?php echo esc_html( $request['customer_name'] ? $request['customer_name'] : '—' ); ?></td><td><?php echo esc_html( $request['customer_phone'] ? $request['customer_phone'] : '—' ); ?></td><td><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?></td><td><?php echo esc_html( wp_trim_words( $request['request_summary'], 18, '…' ) ); ?></td><td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $request['request_source'] ) ); ?></span></td><td><?php echo esc_html( $request['request_campaign'] ? $request['request_campaign'] : '—' ); ?></td><td><?php echo esc_html( $request['request_content'] ? $request['request_content'] : '—' ); ?></td><td><span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( $request['status'] ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></td><td><?php echo esc_html( crpcrm_reports_owner_label( $request['owner_id'] ) ); ?></td><td><?php echo esc_html( $request['last_activity_at'] ? CRPCRM_Helpers::format_jalali_datetime( $request['last_activity_at'] ) : '—' ); ?></td><td><a href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-requests', 'request_id' => absint( $request['id'] ) ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'مشاهده درخواست' ); ?></a><br><a href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-customer-profile', 'customer_id' => absint( $request['customer_id'] ), 'return_request_id' => absint( $request['id'] ) ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'مشاهده پروفایل مشتری' ); ?></a></td></tr>
-		<?php endforeach; ?>
-		</tbody></table>
-		<div class="tablenav"><div class="tablenav-pages"><span class="displaying-num"><?php echo esc_html( number_format_i18n( $total ) . ' مورد' ); ?></span><?php if ( $total_pages > 1 ) : ?><a class="button" href="<?php echo esc_url( crpcrm_reports_url( array( 'paged' => max( 1, $page - 1 ) ) ) ); ?>"><?php echo esc_html( 'قبلی' ); ?></a><span class="crpcrm-page-count"><?php echo esc_html( $page . ' / ' . $total_pages ); ?></span><a class="button" href="<?php echo esc_url( crpcrm_reports_url( array( 'paged' => min( $total_pages, $page + 1 ) ) ) ); ?>"><?php echo esc_html( 'بعدی' ); ?></a><?php endif; ?></div></div>
-	</div>
+		<div class="tablenav">
+			<div class="tablenav-pages">
+				<span class="displaying-num"><?php echo esc_html( number_format_i18n( $request_total ) . ' مورد' ); ?></span>
+				<?php if ( $total_pages > 1 ) : ?>
+					<a class="button" href="<?php echo esc_url( crpcrm_reports_url( array( 'paged' => max( 1, $page - 1 ) ) ) ); ?>"><?php echo esc_html( 'قبلی' ); ?></a>
+					<span class="crpcrm-page-count"><?php echo esc_html( $page . ' / ' . $total_pages ); ?></span>
+					<a class="button" href="<?php echo esc_url( crpcrm_reports_url( array( 'paged' => min( $total_pages, $page + 1 ) ) ) ); ?>"><?php echo esc_html( 'بعدی' ); ?></a>
+				<?php endif; ?>
+			</div>
+		</div>
+	</section>
 </div>

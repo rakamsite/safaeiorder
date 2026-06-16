@@ -274,6 +274,9 @@
 - [ ] متن‌های mojibake در فایل‌های تغییرکرده باقی نمانده‌اند.
 - [ ] `staff.php` یا viewهای شکسته fatal error نمی‌دهند.
 - [ ] JS/CSS فقط در صفحات لازم enqueue می‌شوند.
+- [ ] صفحات افزونه از Design System جدید و کلاس‌های prefix‌دار `crpcrm` استفاده می‌کنند.
+- [ ] کارت‌ها، جدول‌ها، badgeها، فیلترها و empty stateها از نظر ظاهری یکدست شده‌اند.
+- [ ] modal فایل و toast notification از نظر ظاهر خام و شلوغ نیستند.
 
 ### Landing Manager
 - [ ] feature `landing_manager` در بخش امکانات دیده می‌شود.
@@ -309,6 +312,18 @@
 - [ ] فایل legacy فقط برای نمایش درخواست‌های قدیمی کار می‌کند و submit جدید را دور نمی‌زند.
 - [ ] uninstall، cron و option مربوط به pending upload cleanup را پاک می‌کند.
 
+## Reports Dashboard
+
+- [ ] The reports page opens only for users with the correct capability.
+- [ ] KPI cards update correctly for the selected date range.
+- [ ] Filters are sanitized and persist across pagination.
+- [ ] Line, source, status, and staff charts render without errors when data exists.
+- [ ] Empty states appear instead of broken charts or empty tables when there is no data.
+- [ ] If `staff` is disabled, staff performance is hidden.
+- [ ] If `landing_manager` is disabled, landing sections are hidden.
+- [ ] Chart.js loads only on the reports page.
+- [ ] The dashboard remains readable on RTL and narrow screens.
+
 ## Customer Landing Attribution
 
 - [ ] attribution معتبر بعد از OTP یا اولین بارگذاری پرتال روی customer ذخیره می‌شود.
@@ -316,3 +331,13 @@
 - [ ] request پیگیری خودکار 24 ساعته attribution ذخیره‌شده روی customer را استفاده می‌کند.
 - [ ] آمار request هر لندینگ از `request_landing_slug` و `request_landing_id` محاسبه می‌شود.
 - [ ] AJAX جستجوی محصول برای کاربر لاگین‌شده نامرتبط CRM در دسترس نیست.
+
+## Staff Operational UI
+
+- [ ] Staff dashboard shows operational KPI cards for new requests, my requests, customer replies, today follow-ups, overdue items, and auto follow-ups.
+- [ ] Quick filters/tabs for all, new, mine, unassigned, customer replies, today follow-ups, overdue follow-ups, and lead follow-up work without breaking existing filters.
+- [ ] Request rows highlight mine, unassigned, customer-reply, overdue, and lead-follow-up states with badges or row emphasis.
+- [ ] Request detail pages keep the compact header, source attribution, attachments, conversation, and action panel visible and readable.
+- [ ] Staff manager pages remain functional while using the cleaner shared design system.
+- [ ] If `staff` is disabled, staff-only operational UI does not fatal.
+- [ ] RTL layout and narrow-screen overflow stay usable for request tables and detail cards.

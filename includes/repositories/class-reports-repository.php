@@ -38,6 +38,7 @@ class CRPCRM_Reports_Repository {
 			'source'          => isset( $input['source'] ) ? sanitize_key( wp_unslash( $input['source'] ) ) : '',
 			'campaign'        => isset( $input['campaign'] ) ? sanitize_text_field( wp_unslash( $input['campaign'] ) ) : '',
 			'content'         => isset( $input['content'] ) ? sanitize_text_field( wp_unslash( $input['content'] ) ) : '',
+			'landing'         => isset( $input['landing'] ) ? sanitize_text_field( wp_unslash( $input['landing'] ) ) : '',
 			'status'          => isset( $input['status'] ) ? sanitize_key( wp_unslash( $input['status'] ) ) : '',
 			'owner_filter'    => isset( $input['owner_filter'] ) ? sanitize_text_field( wp_unslash( $input['owner_filter'] ) ) : 'all',
 			'workflow_filter' => isset( $input['workflow_filter'] ) ? sanitize_key( wp_unslash( $input['workflow_filter'] ) ) : '',
@@ -59,6 +60,9 @@ class CRPCRM_Reports_Repository {
 		}
 		if ( ! in_array( $filters['workflow_filter'], array( '', 'followups_today', 'overdue_followups', 'stale', 'unassigned' ), true ) ) {
 			$filters['workflow_filter'] = '';
+		}
+		if ( '' !== $filters['landing'] ) {
+			$filters['landing'] = sanitize_text_field( $filters['landing'] );
 		}
 
 		$filters = array_merge( $filters, $this->resolve_date_range( $filters ) );
@@ -417,6 +421,16 @@ class CRPCRM_Reports_Repository {
 		if ( ! empty( $filters['content'] ) ) {
 			$where[]  = "$p.request_content LIKE %s";
 			$values[] = '%' . $wpdb->esc_like( sanitize_text_field( $filters['content'] ) ) . '%';
+		}
+		if ( ! empty( $filters['landing'] ) ) {
+			$landing = sanitize_text_field( $filters['landing'] );
+			if ( preg_match( '/^\d+$/', $landing ) ) {
+				$where[]  = "$p.request_landing_id = %d";
+				$values[] = absint( $landing );
+			} else {
+				$where[]  = "$p.request_landing_slug = %s";
+				$values[] = sanitize_key( $landing );
+			}
 		}
 		if ( ! empty( $filters['status'] ) && in_array( $filters['status'], $this->statuses, true ) ) {
 			$where[]  = "$p.status = %s";

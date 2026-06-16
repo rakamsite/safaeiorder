@@ -14,6 +14,7 @@ class CRPCRM_Admin_Pages {
 	private $customer_repository;
 	private $workflow_service;
 	private $reports_repository;
+	private $reports_service;
 	private $staff_repository;
 	private $sales_daily_stats_service;
 	private $notification_service;
@@ -23,6 +24,7 @@ class CRPCRM_Admin_Pages {
 		$this->customer_repository = new CRPCRM_Customer_Repository();
 		$this->workflow_service    = new CRPCRM_Request_Workflow_Service( $this->request_repository );
 		$this->reports_repository = new CRPCRM_Reports_Repository();
+		$this->reports_service = new CRPCRM_Reports_Service( $this->reports_repository, $this->request_repository, new CRPCRM_Landing_Manager(), new CRPCRM_Staff_Repository() );
 		$this->staff_repository = new CRPCRM_Staff_Repository();
 		$this->sales_daily_stats_service = new CRPCRM_Sales_Daily_Stats_Service( $this->staff_repository );
 		$this->notification_service = new CRPCRM_Notification_Service();
@@ -178,34 +180,42 @@ class CRPCRM_Admin_Pages {
 		}
 		$pagination = array( 'limit' => $per_page, 'offset' => ( $page - 1 ) * $per_page );
 
-		if ( ! empty( $_GET ) && count( array_intersect( array_keys( $_GET ), array( 'date_range', 'request_type', 'source', 'campaign', 'content', 'status', 'owner_filter', 'workflow_filter' ) ) ) ) {
+		if ( ! empty( $_GET ) && count( array_intersect( array_keys( $_GET ), array( 'date_range', 'date_from', 'date_to', 'request_type', 'source', 'campaign', 'content', 'landing', 'status', 'owner_filter', 'workflow_filter' ) ) ) ) {
 			CRPCRM_Logger::info( 'reports_filters_applied', 'reports_filters_applied', array( 'user_id' => get_current_user_id(), 'filters' => $filters ) );
 		} else {
 			CRPCRM_Logger::info( 'reports_viewed', 'reports_viewed', array( 'user_id' => get_current_user_id(), 'filters' => $filters ) );
 		}
 
-		$total = $this->reports_repository->count_request_details( $filters );
+		$dashboard = $this->reports_service->get_dashboard_data(
+			$filters,
+			$pagination,
+			array(
+				'include_staff'   => CRPCRM_Feature_Manager::is_enabled( 'staff' ),
+				'include_landings'=> CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ),
+			)
+		);
+		$total = absint( $dashboard['request_total'] ?? 0 );
+		wp_add_inline_script(
+			'crpcrm-admin-reports',
+			'window.crpcrmReportsData = ' . wp_json_encode(
+				array(
+					'charts' => isset( $dashboard['charts'] ) ? $dashboard['charts'] : array(),
+				)
+			) . ';',
+			'before'
+		);
 		$this->render(
 			'reports.php',
 			array(
-				'filters'               => $filters,
-				'kpis'                  => $this->reports_repository->get_kpis( $filters ),
-				'source_report'         => $this->reports_repository->get_source_report( $filters ),
-				'campaign_report'       => $this->reports_repository->get_campaign_report( $filters ),
-				'content_report'        => $this->reports_repository->get_content_report( $filters ),
-				'request_type_report'   => $this->reports_repository->get_request_type_report( $filters ),
-				'source_type_matrix'    => $this->reports_repository->get_source_type_matrix( $filters ),
-				'status_funnel'         => $this->reports_repository->get_status_funnel( $filters ),
-				'agent_performance'     => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->reports_repository->get_agent_performance( $filters ) : array(),
-				'followup_report'       => $this->reports_repository->get_followup_report( $filters ),
-				'close_reason_report'   => $this->reports_repository->get_close_reason_report( $filters ),
-				'invalid_reason_report' => $this->reports_repository->get_invalid_reason_report( $filters ),
-				'request_details'       => $this->reports_repository->get_request_details( $filters, $pagination ),
-				'assignable_users'      => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->get_assignable_users() : array(),
-				'page'                  => $page,
-				'per_page'              => $per_page,
-				'total'                 => $total,
-				'total_pages'           => max( 1, (int) ceil( $total / $per_page ) ),
+				'filters'        => $filters,
+				'dashboard'      => $dashboard,
+				'page'           => $page,
+				'per_page'       => $per_page,
+				'total'          => $total,
+				'total_pages'    => max( 1, (int) ceil( $total / $per_page ) ),
+				'landing_enabled'=> CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ),
+				'staff_enabled'  => CRPCRM_Feature_Manager::is_enabled( 'staff' ),
+				'assignable_users' => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->get_assignable_users() : array(),
 			)
 		);
 	}
@@ -448,6 +458,10 @@ class CRPCRM_Admin_Pages {
 			'not_reported_users' => array_values( array_diff( $staff_ids, $reported ) ),
 			'attention_reports' => $this->staff_repository->count_daily_reports( array( 'needs_manager_attention' => 1 ) ),
 			'new_requests' => $this->staff_repository->count_staff_requests( array( 'status' => 'new' ) ),
+			'my_open_requests' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'status_group' => 'open' ) ),
+			'unassigned_requests' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ),
+			'customer_replies' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'customer_replies', 'status_group' => 'open' ) ),
+			'lead_follow_ups' => $this->request_repository->count_for_admin( array( 'user_id' => $user_id, 'request_type' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP, 'status_group' => 'open' ) ),
 			'all_open_issues' => $this->staff_repository->count_issues( array( 'open' => 1 ) ),
 			'all_overdue_tasks' => $this->staff_repository->count_overdue_tasks(),
 			'all_unread_announcements' => 0,
@@ -456,6 +470,7 @@ class CRPCRM_Admin_Pages {
 			foreach ( $staff_ids as $id ) { $counts['all_unread_announcements'] += $this->staff_repository->count_unread_announcements_for_user( $id ); }
 			$counts['sales_today_summary'] = $this->get_sales_today_summary( $reported );
 		} else {
+			$counts['unassigned_requests'] = 0;
 			$counts['sales_today_summary'] = array();
 		}
 		return $counts;

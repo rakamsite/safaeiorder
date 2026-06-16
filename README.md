@@ -10,6 +10,7 @@
 - `landing_manager` یک feature مستقل برای ساخت لینک داخلی کمپین با پارامتر `?u=slug` است؛ در نسخه اول redirect `/u/slug` وجود ندارد. در فاز ۲ همین پارامتر در فرانت رهگیری می‌شود و first-touch / last-touch به‌صورت cookie ذخیره می‌گردد.
 - attribution لندینگ فقط در cookie نمی‌ماند؛ بعد از OTP یا اولین بارگذاری پرتال روی customer هم ذخیره می‌شود تا requestهای بعدی و پیگیری خودکار 24 ساعته منبع درست را حفظ کنند.
 - `request_type` اکنون با `form_id` فرم‌ها هماهنگ است.
+- UI افزونه باید از کلاس‌های prefix‌دار `crpcrm` استفاده کند و CSS عمومی بدون scope ممنوع است.
 - سیستم اعلانات مرکزی و گفت‌وگوی درخواست‌ها در افزونه فعال است.
 - آپلودهای `file_upload` در مسیر اختصاصی `uploads/crpcrm-request-files/YYYY/MM/` ذخیره می‌شوند.
 
@@ -294,3 +295,8 @@
 > Before development or architecture changes, read and follow [docs/ARCHITECTURE_RULES.md](docs/ARCHITECTURE_RULES.md).
 
 > Business Profile حذف شده است و توسعه جدید باید بر اساس Feature Manager، Default Forms و Form Builder انجام شود. `vehicle_catalog` نیز نباید به معماری فعلی برگردد.
+
+## Reports Dashboard
+
+- The reports screen is now a managerial dashboard with KPI cards, filters, charts, and summary tables.
+- Chart.js is loaded locally and only on the reports page.
