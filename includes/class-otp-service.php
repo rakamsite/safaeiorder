@@ -55,7 +55,7 @@ class CRPCRM_OTP_Service {
 		$code          = (string) wp_rand( 100, 999 );
 		$token         = wp_generate_password( 48, false, false );
 		$expiration    = max( 1, absint( CRPCRM_Settings::get( 'otp_expiration_minutes', 2 ) ) );
-		$expires_stamp = current_time( 'timestamp' ) + ( $expiration * MINUTE_IN_SECONDS );
+		$expires_at    = CRPCRM_Helpers::add_seconds_to_now( $expiration * MINUTE_IN_SECONDS );
 		$ip_hash       = $this->current_ip_hash();
 		$ua_hash       = $this->current_user_agent_hash();
 
@@ -68,7 +68,7 @@ class CRPCRM_OTP_Service {
 				'provider'                => $this->provider ? sanitize_key( $this->provider->get_id() ) : $this->provider_registry->get_active_provider_id(),
 				'ip_hash'                 => $ip_hash,
 				'user_agent_hash'         => $ua_hash,
-				'expires_at'              => date( 'Y-m-d H:i:s', $expires_stamp ),
+				'expires_at'              => $expires_at,
 			)
 		);
 
@@ -159,7 +159,7 @@ class CRPCRM_OTP_Service {
 			return new WP_Error( 'invalid_otp_status', $message );
 		}
 
-		if ( ! empty( $otp['expires_at'] ) && strtotime( $otp['expires_at'] ) < current_time( 'timestamp' ) ) {
+		if ( ! empty( $otp['expires_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $otp['expires_at'] ) < CRPCRM_Helpers::current_timestamp() ) {
 			$this->repository->update( $otp['id'], array( 'status' => 'expired' ) );
 			return new WP_Error( 'expired', 'کد تأیید منقضی شده است.' );
 		}
@@ -330,15 +330,15 @@ class CRPCRM_OTP_Service {
 	}
 
 	private function check_rate_limit( $phone_normalized ) {
-		$now            = current_time( 'timestamp' );
+		$now            = CRPCRM_Helpers::current_timestamp();
 		$resend_seconds = max( 1, absint( CRPCRM_Settings::get( 'otp_resend_seconds', 60 ) ) );
 		$latest         = $this->repository->find_latest_active_by_phone( $phone_normalized );
 
-		if ( $latest && ! empty( $latest['created_at'] ) && ( $now - strtotime( $latest['created_at'] ) ) < $resend_seconds ) {
+		if ( $latest && ! empty( $latest['created_at'] ) && ( $now - CRPCRM_Helpers::datetime_to_timestamp( $latest['created_at'] ) ) < $resend_seconds ) {
 			return new WP_Error( 'rate_limited', 'تعداد درخواست‌های کد تأیید زیاد است. لطفاً کمی بعد دوباره تلاش کنید.' );
 		}
 
-		$since = date( 'Y-m-d H:i:s', $now - ( self::WINDOW_MINUTES * MINUTE_IN_SECONDS ) );
+		$since = CRPCRM_Helpers::subtract_seconds_from_now( self::WINDOW_MINUTES * MINUTE_IN_SECONDS );
 		if ( $this->repository->count_recent_by_phone( $phone_normalized, $since ) >= self::PHONE_WINDOW_LIMIT ) {
 			return new WP_Error( 'rate_limited', 'تعداد درخواست‌های کد تأیید زیاد است. لطفاً کمی بعد دوباره تلاش کنید.' );
 		}

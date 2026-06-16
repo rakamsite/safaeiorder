@@ -604,8 +604,9 @@ class CRPCRM_Request_Repository {
 			if ( 'followups_today' === $workflow_filter ) {
 				$where[]  = 'r.status = %s AND r.next_follow_up_at >= %s AND r.next_follow_up_at <= %s';
 				$values[] = 'follow_up';
-				$values[] = wp_date( 'Y-m-d 00:00:00', current_time( 'timestamp' ) );
-				$values[] = wp_date( 'Y-m-d 23:59:59', current_time( 'timestamp' ) );
+				$today    = CRPCRM_Helpers::get_today_range();
+				$values[] = $today['start'];
+				$values[] = $today['end'];
 			} elseif ( 'overdue_followups' === $workflow_filter ) {
 				$where[]  = 'r.status = %s AND r.next_follow_up_at < %s';
 				$values[] = 'follow_up';
@@ -617,7 +618,7 @@ class CRPCRM_Request_Repository {
 				if ( CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 					$stale_hours = max( 1, absint( $args['stale_hours'] ) );
 					$where[]     = "r.status IN ('new','in_progress','no_answer','follow_up') AND r.owner_id IS NOT NULL AND (r.last_activity_at IS NULL OR r.last_activity_at < %s)";
-					$values[]    = wp_date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( HOUR_IN_SECONDS * $stale_hours ) );
+					$values[]    = CRPCRM_Helpers::subtract_seconds_from_now( HOUR_IN_SECONDS * $stale_hours );
 				} else {
 					$where[] = '1=0';
 				}

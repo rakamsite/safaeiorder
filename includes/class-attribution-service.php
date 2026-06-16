@@ -69,7 +69,7 @@ class CRPCRM_Attribution_Service {
 		$landing_page = $this->get_current_url();
 		$referrer     = $this->get_http_referrer();
 		$detected_at  = CRPCRM_Helpers::current_datetime();
-		$expires_at   = date( 'Y-m-d H:i:s', current_time( 'timestamp' ) + $this->get_window_seconds() );
+		$expires_at   = CRPCRM_Helpers::add_seconds_to_now( $this->get_window_seconds() );
 
 		$utm_source = $this->get_request_text( 'utm_source' );
 		$has_utm    = $this->request_has_any_utm();
@@ -168,7 +168,7 @@ class CRPCRM_Attribution_Service {
 			return null;
 		}
 
-		if ( strtotime( $data['expires_at'] ) < current_time( 'timestamp' ) ) {
+		if ( CRPCRM_Helpers::datetime_to_timestamp( $data['expires_at'] ) < CRPCRM_Helpers::current_timestamp() ) {
 			return null;
 		}
 
@@ -186,7 +186,7 @@ class CRPCRM_Attribution_Service {
 			'sig'  => $this->sign_attribution( $data ),
 		);
 		$value   = base64_encode( wp_json_encode( $payload ) );
-		$expire  = strtotime( $data['expires_at'] );
+		$expire  = CRPCRM_Helpers::datetime_to_timestamp( $data['expires_at'] );
 
 		$_COOKIE[ self::COOKIE_NAME ] = $value;
 		$this->set_cookie_compat( self::COOKIE_NAME, $value, $expire );
@@ -196,7 +196,7 @@ class CRPCRM_Attribution_Service {
 
 	public function clear_current_attribution() {
 		unset( $_COOKIE[ self::COOKIE_NAME ] );
-		$this->set_cookie_compat( self::COOKIE_NAME, '', time() - HOUR_IN_SECONDS );
+		$this->set_cookie_compat( self::COOKIE_NAME, '', CRPCRM_Helpers::current_timestamp() - HOUR_IN_SECONDS );
 	}
 
 	public function apply_to_customer( $customer_id, $user_id, $attribution ) {
@@ -447,7 +447,7 @@ class CRPCRM_Attribution_Service {
 			'landing_page' => $this->get_current_url(),
 			'referrer'     => '',
 			'detected_at'  => $now,
-			'expires_at'   => date( 'Y-m-d H:i:s', current_time( 'timestamp' ) + $this->get_window_seconds() ),
+			'expires_at'   => CRPCRM_Helpers::add_seconds_to_now( $this->get_window_seconds() ),
 		);
 	}
 
@@ -549,7 +549,7 @@ class CRPCRM_Attribution_Service {
 			return false;
 		}
 
-		return (bool) strtotime( $data['detected_at'] ) && (bool) strtotime( $data['expires_at'] );
+		return CRPCRM_Helpers::is_valid_datetime( $data['detected_at'] ) && CRPCRM_Helpers::is_valid_datetime( $data['expires_at'] );
 	}
 
 	private function get_current_url() {

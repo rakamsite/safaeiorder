@@ -316,7 +316,7 @@ class CRPCRM_Staff_Repository {
 	}
 
 	public function today() {
-		return current_time( 'Y-m-d' );
+		return CRPCRM_Helpers::current_date();
 	}
 
 	public function get_audience_user_ids( $announcement ) {

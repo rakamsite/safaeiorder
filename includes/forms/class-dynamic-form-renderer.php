@@ -202,6 +202,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 				'label' => sanitize_text_field( $meta['label'] ?? $key ),
 				'value' => self::display_value( $request_data[ $key ], $meta['type'] ?? 'text' ),
 				'type'  => sanitize_key( $meta['type'] ?? 'text' ),
+				'key'   => $key,
 				'raw'   => $request_data[ $key ],
 			);
 		}
@@ -216,6 +217,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 					'label' => $label,
 					'value' => self::display_value( $request_data[ $key ], $type ? $type : 'text' ),
 					'type'  => $type ? $type : 'text',
+					'key'   => $key,
 					'raw'   => $request_data[ $key ],
 				);
 			}
@@ -234,6 +236,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 				'label' => $label,
 				'value' => self::display_value( $value ),
 				'type'  => 'text',
+				'key'   => $key,
 				'raw'   => $value,
 			);
 		}
@@ -301,7 +304,8 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		$context = 'public' === $context ? 'public' : 'admin';
 		$out     = array();
-		foreach ( $files as $file ) {
+		foreach ( array_values( $files ) as $index => $file ) {
+			$field['file_index'] = absint( $index );
 			$out[] = self::render_single_uploaded_file( $file, $field, $context );
 		}
 
@@ -550,7 +554,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 	}
 
 	private static function get_request_upload_subdir() {
-		return '/crpcrm-request-files/' . current_time( 'Y' ) . '/' . current_time( 'm' );
+		return '/crpcrm-request-files/' . CRPCRM_Helpers::now()->format( 'Y' ) . '/' . CRPCRM_Helpers::now()->format( 'm' );
 	}
 
 	private static function get_request_upload_dir() {
@@ -564,6 +568,29 @@ class CRPCRM_Dynamic_Form_Renderer {
 			'path'    => trailingslashit( $uploads['basedir'] ) . ltrim( $subdir, '/' ),
 			'url'     => trailingslashit( $uploads['baseurl'] ) . ltrim( $subdir, '/' ),
 		);
+	}
+
+	private static function get_request_upload_root_dir() {
+		$uploads = wp_get_upload_dir();
+		return trailingslashit( $uploads['basedir'] ) . 'crpcrm-request-files';
+	}
+
+	private static function ensure_request_upload_root_protection() {
+		$root_dir = self::get_request_upload_root_dir();
+		if ( empty( $root_dir ) || ( ! file_exists( $root_dir ) && ! wp_mkdir_p( $root_dir ) ) ) {
+			return;
+		}
+
+		$index_file = trailingslashit( $root_dir ) . 'index.php';
+		if ( ! file_exists( $index_file ) ) {
+			wp_put_contents( $index_file, "<?php\n// Silence is golden.\n" );
+		}
+
+		$htaccess_file = trailingslashit( $root_dir ) . '.htaccess';
+		if ( ! file_exists( $htaccess_file ) ) {
+			$rules = "Options -Indexes\n<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n";
+			wp_put_contents( $htaccess_file, $rules );
+		}
 	}
 
 	private static function normalize_single_uploaded_file_meta( $file ) {
@@ -668,16 +695,11 @@ class CRPCRM_Dynamic_Form_Renderer {
 	}
 
 	private static function render_single_uploaded_file( $file, $field = array(), $context = 'admin' ) {
-		$file = self::normalize_single_uploaded_file_meta( $file );
-		if ( empty( $file['url'] ) && empty( $file['download_url'] ) ) {
-			return '';
-		}
-
+		$file          = self::normalize_single_uploaded_file_meta( $file );
+		$download_url  = CRPCRM_Request_File_Access_Service::build_file_url( $file, $field, 'download' );
+		$full_url      = CRPCRM_Request_File_Access_Service::build_file_url( $file, $field, 'preview' );
 		$filename      = ! empty( $file['filename'] ) ? $file['filename'] : ( ! empty( $file['name'] ) ? $file['name'] : '' );
-		$download_url  = ! empty( $file['download_url'] ) ? $file['download_url'] : $file['url'];
-		$download_url  = self::get_safe_download_url( $download_url );
-		$full_url      = self::get_safe_download_url( $file['url'] );
-		$filename_attr  = esc_attr( $filename );
+		$filename_attr = esc_attr( $filename );
 		$mime_type     = esc_attr( $file['mime_type'] ?? '' );
 
 		if ( ! $download_url ) {
@@ -685,22 +707,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		}
 
 		if ( ! empty( $file['is_image'] ) ) {
-			$thumb = '';
-			if ( ! empty( $file['attachment_id'] ) ) {
-				$thumb = wp_get_attachment_image(
-					absint( $file['attachment_id'] ),
-					'thumbnail',
-					false,
-					array(
-						'class'   => 'crpcrm-file-thumb-image',
-						'loading' => 'lazy',
-						'alt'     => $filename_attr,
-					)
-				);
-			}
-			if ( '' === $thumb ) {
-				$thumb = '<img class="crpcrm-file-thumb-image" src="' . esc_url( $full_url ? $full_url : $download_url ) . '" alt="' . $filename_attr . '" loading="lazy">';
-			}
+			$thumb = '<img class="crpcrm-file-thumb-image" src="' . esc_url( $full_url ? $full_url : $download_url ) . '" alt="' . $filename_attr . '" loading="lazy">';
 
 			return '<div class="crpcrm-file-item crpcrm-file-item-image"><button type="button" class="crpcrm-file-thumb" data-crpcrm-file-preview="1" data-full-url="' . esc_url( $full_url ? $full_url : $download_url ) . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '" data-mime-type="' . $mime_type . '">' . $thumb . '</button><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '">' . esc_html__( 'دانلود فایل', 'customer-request-portal-crm' ) . '</a></div>';
 		}
@@ -843,6 +850,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 
 		$upload_dir = self::get_request_upload_dir();
+		self::ensure_request_upload_root_protection();
 		if ( empty( $upload_dir['path'] ) || ! wp_mkdir_p( $upload_dir['path'] ) ) {
 			error_log( '[CRPCRM] request_file_upload_dir_failed: ' . wp_json_encode( $upload_dir ) );
 			return new WP_Error( 'crpcrm_upload_dir_failed', 'بارگذاری فایل انجام نشد.' );
@@ -867,8 +875,8 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		$base = wp_get_upload_dir();
 		$path = str_replace( trailingslashit( $base['basedir'] ), '', $result['file'] );
-		$year  = current_time( 'Y' );
-		$month = current_time( 'm' );
+		$year  = CRPCRM_Helpers::now()->format( 'Y' );
+		$month = CRPCRM_Helpers::now()->format( 'm' );
 		$mime  = sanitize_text_field( $result['type'] ?? '' );
 		$name  = sanitize_file_name( wp_basename( $result['file'] ) );
 		$file_type = self::is_pdf_mime_type( $mime, $name ) ? 'pdf' : ( self::is_image_mime_type( $mime, $name ) ? 'image' : 'file' );
@@ -926,7 +934,25 @@ class CRPCRM_Dynamic_Form_Renderer {
 			return new WP_Error( 'crpcrm_upload_missing', 'فایلی برای بارگذاری ارسال نشده است.' );
 		}
 
-		return $uploaded[0];
+		$file = self::normalize_single_uploaded_file_meta( $uploaded[0] );
+		$file['url'] = CRPCRM_Request_File_Access_Service::build_file_url(
+			$file,
+			array(
+				'source_type'  => 'pending',
+				'source_field' => sanitize_key( $field_key ),
+			),
+			'preview'
+		);
+		$file['download_url'] = CRPCRM_Request_File_Access_Service::build_file_url(
+			$file,
+			array(
+				'source_type'  => 'pending',
+				'source_field' => sanitize_key( $field_key ),
+			),
+			'download'
+		);
+
+		return $file;
 	}
 
 	private static function parse_uploaded_files_payload( $payload, $field_key = '' ) {
@@ -1037,12 +1063,10 @@ class CRPCRM_Dynamic_Form_Renderer {
 	private static function register_pending_upload( $file ) {
 		$file = is_array( $file ) ? $file : array();
 		$token = wp_generate_password( 32, false, false );
-		$now   = current_time( 'timestamp' );
-
 		$pending = $file;
 		$pending['upload_token']    = $token;
 		$pending['created_at']      = CRPCRM_Helpers::current_datetime();
-		$pending['expires_at']      = wp_date( 'Y-m-d H:i:s', $now + self::PENDING_UPLOAD_TTL );
+		$pending['expires_at']      = CRPCRM_Helpers::add_seconds_to_now( self::PENDING_UPLOAD_TTL );
 		$pending['current_user_id'] = get_current_user_id();
 		$pending['status']          = 'pending';
 
@@ -1063,7 +1087,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		$index = get_option( self::PENDING_UPLOAD_OPTION, array() );
 		$index = is_array( $index ) ? $index : array();
 		$index[ $token ] = array(
-			'expires_at'      => strtotime( $file['expires_at'] ?? '' ) ? strtotime( $file['expires_at'] ) : ( current_time( 'timestamp' ) + self::PENDING_UPLOAD_TTL ),
+			'expires_at'      => CRPCRM_Helpers::is_valid_datetime( $file['expires_at'] ?? '' ) ? CRPCRM_Helpers::datetime_to_timestamp( $file['expires_at'] ) : ( CRPCRM_Helpers::current_timestamp() + self::PENDING_UPLOAD_TTL ),
 			'current_user_id' => absint( $file['current_user_id'] ?? 0 ),
 			'field_key'      => sanitize_key( $file['field_key'] ?? '' ),
 			'relative_path'  => sanitize_text_field( $file['relative_path'] ?? '' ),
@@ -1125,7 +1149,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 	public static function schedule_pending_upload_cleanup() {
 		if ( ! wp_next_scheduled( 'crpcrm_pending_upload_cleanup' ) ) {
-			wp_schedule_event( current_time( 'timestamp' ) + HOUR_IN_SECONDS, 'twicedaily', 'crpcrm_pending_upload_cleanup' );
+			wp_schedule_event( CRPCRM_Helpers::current_timestamp() + HOUR_IN_SECONDS, 'twicedaily', 'crpcrm_pending_upload_cleanup' );
 		}
 	}
 
@@ -1138,7 +1162,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		$index = get_option( self::PENDING_UPLOAD_OPTION, array() );
 		$index = is_array( $index ) ? $index : array();
-		$now   = current_time( 'timestamp' );
+		$now   = CRPCRM_Helpers::current_timestamp();
 
 		foreach ( $index as $token => $item ) {
 			$token = sanitize_text_field( $token );
@@ -1214,6 +1238,56 @@ class CRPCRM_Dynamic_Form_Renderer {
 		}
 
 		return $final;
+	}
+
+	public static function finalize_record_uploaded_files( $value, $source_type = '', $source_id = 0, $field_key = '', $owner_user_id = 0 ) {
+		$files   = self::normalize_uploaded_file_payload( $value );
+		$final   = array();
+		$user_id = $owner_user_id ? absint( $owner_user_id ) : get_current_user_id();
+
+		foreach ( $files as $file ) {
+			$file  = is_array( $file ) ? $file : array();
+			$token = ! empty( $file['upload_token'] ) ? sanitize_text_field( $file['upload_token'] ) : '';
+			if ( $token ) {
+				$pending = self::get_pending_upload( $token );
+				if ( ! $pending || absint( $pending['current_user_id'] ?? 0 ) !== $user_id ) {
+					continue;
+				}
+
+				$file = self::normalize_single_uploaded_file_meta( $pending );
+				self::finalize_pending_upload( $token );
+			}
+
+			unset( $file['upload_token'], $file['status'], $file['current_user_id'], $file['created_at'], $file['expires_at'] );
+			if ( $field_key ) {
+				$file['field_key'] = sanitize_key( $field_key );
+			}
+			if ( $source_type ) {
+				$file['source_type'] = sanitize_key( $source_type );
+			}
+			if ( $source_id ) {
+				$file['source_id'] = absint( $source_id );
+			}
+			$final[] = self::normalize_single_uploaded_file_meta( $file );
+		}
+
+		return $final;
+	}
+
+	public static function get_uploaded_file_payload( $value ) {
+		return self::normalize_uploaded_file_payload( $value );
+	}
+
+	public static function normalize_uploaded_file_meta( $file ) {
+		return self::normalize_single_uploaded_file_meta( $file );
+	}
+
+	public static function get_pending_upload_meta( $token ) {
+		return self::get_pending_upload( $token );
+	}
+
+	public static function resolve_uploaded_file_real_path( $file ) {
+		return self::resolve_uploaded_file_path( $file );
 	}
 
 	private static function resolve_uploaded_file_path( $file ) {

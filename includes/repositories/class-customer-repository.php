@@ -296,7 +296,7 @@ class CRPCRM_Customer_Repository {
 			ARRAY_A
 		);
 		$activity_last = $wpdb->get_var( $wpdb->prepare( "SELECT MAX(a.created_at) FROM {$activities} a INNER JOIN {$requests} r ON r.id = a.request_id WHERE a.customer_id = %d", $customer_id ) );
-		if ( $activity_last && ( empty( $row['last_activity_at'] ) || strtotime( $activity_last ) > strtotime( $row['last_activity_at'] ) ) ) {
+		if ( $activity_last && ( empty( $row['last_activity_at'] ) || CRPCRM_Helpers::datetime_to_timestamp( $activity_last ) > CRPCRM_Helpers::datetime_to_timestamp( $row['last_activity_at'] ) ) ) {
 			$row['last_activity_at'] = $activity_last;
 		}
 		$row                        = array_map( function( $value ) { return null === $value ? 0 : $value; }, $row ? $row : array() );

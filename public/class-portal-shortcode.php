@@ -764,7 +764,7 @@ class CRPCRM_Portal_Shortcode {
 	private function is_request_rate_limited( $customer_id, $user_id ) {
 		$limit   = max( 1, absint( CRPCRM_Settings::get( 'request_rate_limit_count', 5 ) ) );
 		$minutes = max( 1, absint( CRPCRM_Settings::get( 'request_rate_limit_minutes', 10 ) ) );
-		$since   = date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $minutes * MINUTE_IN_SECONDS ) );
+		$since   = CRPCRM_Helpers::subtract_seconds_from_now( $minutes * MINUTE_IN_SECONDS );
 		$count   = $this->request_repository->count_recent_for_customer_user( $customer_id, $user_id, $since );
 
 		return $count >= $limit;

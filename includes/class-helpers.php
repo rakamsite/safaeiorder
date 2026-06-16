@@ -10,6 +10,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Helpers {
+	public static function now() {
+		return new DateTimeImmutable( 'now', wp_timezone() );
+	}
+
+	public static function current_timestamp() {
+		return self::now()->getTimestamp();
+	}
+
 	public static function normalize_iran_phone( $phone ) {
 		$phone = self::convert_persian_digits( (string) $phone );
 		$phone = preg_replace( '/[^0-9+]/', '', $phone );
@@ -34,7 +42,114 @@ class CRPCRM_Helpers {
 	}
 
 	public static function current_datetime() {
-		return current_time( 'mysql' );
+		return self::now()->format( 'Y-m-d H:i:s' );
+	}
+
+	public static function current_date() {
+		return self::now()->format( 'Y-m-d' );
+	}
+
+	public static function datetime_to_timestamp( $value ) {
+		if ( empty( $value ) || '0000-00-00' === $value || '0000-00-00 00:00:00' === $value ) {
+			return false;
+		}
+
+		$date = self::parse_local_datetime( (string) $value, wp_timezone() );
+		return $date ? $date->getTimestamp() : false;
+	}
+
+	public static function is_valid_datetime( $value ) {
+		return false !== self::datetime_to_timestamp( $value );
+	}
+
+	public static function format_datetime_for_db( DateTimeInterface $datetime ) {
+		return $datetime->setTimezone( wp_timezone() )->format( 'Y-m-d H:i:s' );
+	}
+
+	public static function add_seconds_to_now( $seconds ) {
+		return self::format_datetime_for_db( self::now()->modify( sprintf( '%+d seconds', (int) $seconds ) ) );
+	}
+
+	public static function subtract_seconds_from_now( $seconds ) {
+		return self::add_seconds_to_now( 0 - absint( $seconds ) );
+	}
+
+	public static function add_seconds_to_datetime( $value, $seconds ) {
+		$timestamp = self::datetime_to_timestamp( $value );
+		if ( false === $timestamp ) {
+			return '';
+		}
+
+		return self::format_datetime_for_db(
+			( new DateTimeImmutable( '@' . $timestamp ) )
+				->setTimezone( wp_timezone() )
+				->modify( sprintf( '%+d seconds', (int) $seconds ) )
+		);
+	}
+
+	public static function start_of_today() {
+		return self::format_datetime_for_db( self::now()->setTime( 0, 0, 0 ) );
+	}
+
+	public static function end_of_today() {
+		return self::format_datetime_for_db( self::now()->setTime( 23, 59, 59 ) );
+	}
+
+	public static function get_today_range() {
+		return array(
+			'start' => self::start_of_today(),
+			'end'   => self::end_of_today(),
+		);
+	}
+
+	public static function build_date_range( $preset, $from = '', $to = '' ) {
+		$timezone = wp_timezone();
+		$now      = self::now();
+		$start    = null;
+		$end      = null;
+
+		switch ( sanitize_key( $preset ) ) {
+			case 'yesterday':
+				$start = $now->modify( 'yesterday' )->setTime( 0, 0, 0 );
+				$end   = $now->modify( 'yesterday' )->setTime( 23, 59, 59 );
+				break;
+			case 'last_7_days':
+				$start = $now->modify( '-6 days' )->setTime( 0, 0, 0 );
+				$end   = $now->setTime( 23, 59, 59 );
+				break;
+			case 'last_30_days':
+				$start = $now->modify( '-29 days' )->setTime( 0, 0, 0 );
+				$end   = $now->setTime( 23, 59, 59 );
+				break;
+			case 'current_month':
+				$range = self::get_jalali_month_range();
+				$start = self::parse_local_datetime( $range['start'], $timezone );
+				$end   = self::parse_local_datetime( $range['end'], $timezone );
+				break;
+			case 'last_month':
+				$range = self::get_jalali_month_range( -1 );
+				$start = self::parse_local_datetime( $range['start'], $timezone );
+				$end   = self::parse_local_datetime( $range['end'], $timezone );
+				break;
+			case 'custom':
+				if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $from ) ) {
+					$start = self::parse_local_datetime( $from . ' 00:00:00', $timezone );
+				}
+				if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $to ) ) {
+					$end = self::parse_local_datetime( $to . ' 23:59:59', $timezone );
+				}
+				break;
+			case 'today':
+			default:
+				$start = $now->setTime( 0, 0, 0 );
+				$end   = $now->setTime( 23, 59, 59 );
+				break;
+		}
+
+		return array(
+			'start' => $start ? self::format_datetime_for_db( $start ) : '',
+			'end'   => $end ? self::format_datetime_for_db( $end ) : '',
+		);
 	}
 
 
@@ -67,9 +182,9 @@ class CRPCRM_Helpers {
 	/**
 	 * Parse database DATETIME values as site-local time.
 	 *
-	 * CRPCRM stores current_time( 'mysql' ), which WordPress documents as local
-	 * site time. Parsing that value with strtotime() would use PHP's server
-	 * timezone and then incorrectly apply the site offset a second time.
+	 * CRPCRM stores DATETIME values in site-local WordPress time.
+	 * Parsing those values with strtotime() would use PHP's server timezone and
+	 * can shift comparisons or report ranges unexpectedly.
 	 *
 	 * @param string       $value    Date or datetime value.
 	 * @param DateTimeZone $timezone WordPress site timezone.
@@ -149,8 +264,8 @@ class CRPCRM_Helpers {
 			}
 		}
 
-		$timestamp = strtotime( $value );
-		return $timestamp ? wp_date( 'Y-m-d', $timestamp ) : '';
+		$date = self::parse_local_datetime( $value, wp_timezone() );
+		return $date ? $date->format( 'Y-m-d' ) : '';
 	}
 
 	public static function normalize_datetime_input( $value ) {
@@ -168,8 +283,8 @@ class CRPCRM_Helpers {
 			}
 		}
 
-		$timestamp = strtotime( $value );
-		return $timestamp ? wp_date( 'Y-m-d H:i:s', $timestamp ) : '';
+		$date = self::parse_local_datetime( $value, wp_timezone() );
+		return $date ? $date->format( 'Y-m-d H:i:s' ) : '';
 	}
 
 	public static function jalali_date_input( $name, $value = '', $args = array() ) {
@@ -244,9 +359,13 @@ class CRPCRM_Helpers {
 		}
 		$current = self::jalali_to_gregorian( $year, 1, 1 );
 		$next    = self::jalali_to_gregorian( $year + 1, 1, 1 );
-		$start   = strtotime( sprintf( '%04d-%02d-%02d 00:00:00', $current[0], $current[1], $current[2] ) );
-		$end     = strtotime( sprintf( '%04d-%02d-%02d 00:00:00', $next[0], $next[1], $next[2] ) );
-		return ( ( $end - $start ) / DAY_IN_SECONDS ) === 366 ? 30 : 29;
+		$timezone = wp_timezone();
+		$start    = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', sprintf( '%04d-%02d-%02d 00:00:00', $current[0], $current[1], $current[2] ), $timezone );
+		$end      = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', sprintf( '%04d-%02d-%02d 00:00:00', $next[0], $next[1], $next[2] ), $timezone );
+		if ( ! $start || ! $end ) {
+			return 29;
+		}
+		return ( ( $end->getTimestamp() - $start->getTimestamp() ) / DAY_IN_SECONDS ) === 366 ? 30 : 29;
 	}
 
 	private static function gregorian_to_jalali( $gy, $gm, $gd ) {

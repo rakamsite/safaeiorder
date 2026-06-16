@@ -390,7 +390,7 @@ class CRPCRM_Admin_Pages {
 
 	private function get_admin_dashboard_cards() {
 		$user_id = get_current_user_id();
-		$today   = wp_date( 'Y-m-d', current_time( 'timestamp' ) );
+		$today   = CRPCRM_Helpers::current_date();
 		$jalali_month = CRPCRM_Helpers::get_jalali_month_range();
 		$month_start = substr( $jalali_month['start'], 0, 10 );
 		$stale_hours = absint( CRPCRM_Settings::get( 'stale_request_hours', 48 ) );
@@ -564,11 +564,25 @@ class CRPCRM_Admin_Pages {
 			if ( is_wp_error( $request_attachment ) ) {
 				$this->staff_redirect( $tab, 'attachment_upload_failed' );
 			}
-			if ( ! empty( $request_attachment ) ) {
-				$data['request_attachment'] = array( $request_attachment );
+			if ( $id ) {
+				if ( ! empty( $request_attachment ) ) {
+					$data['request_attachment'] = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array( $request_attachment ), 'staff_request', $id, 'request_attachment', $user_id );
+				}
+				$this->staff_repository->update_staff_request( $id, $data );
+				CRPCRM_Logger::info( 'staff_request_updated', 'staff_request_updated', array( 'user_id' => $user_id, 'request_id' => $id ) );
+			} else {
+				$id = $this->staff_repository->create_staff_request( $data );
+				if ( ! empty( $request_attachment ) ) {
+					$this->staff_repository->update_staff_request(
+						$id,
+						array(
+							'request_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array( $request_attachment ), 'staff_request', $id, 'request_attachment', $user_id ),
+						)
+					);
+				}
+				CRPCRM_Logger::info( 'staff_request_created', 'staff_request_created', array( 'user_id' => $user_id, 'request_id' => $id ) );
+				$this->notification_service->notify_staff_request_created( $id, $user_id, $data['title'] );
 			}
-			if ( $id ) { $this->staff_repository->update_staff_request( $id, $data ); CRPCRM_Logger::info( 'staff_request_updated', 'staff_request_updated', array( 'user_id' => $user_id, 'request_id' => $id ) ); }
-			else { $id = $this->staff_repository->create_staff_request( $data ); CRPCRM_Logger::info( 'staff_request_created', 'staff_request_created', array( 'user_id' => $user_id, 'request_id' => $id ) ); $this->notification_service->notify_staff_request_created( $id, $user_id, $data['title'] ); }
 		} elseif ( 'manage_staff_request' === $action && $can_manage ) {
 			$tab = 'requests'; $id = absint( $_POST['request_id'] ?? 0 );
 			$manager_response = sanitize_textarea_field( wp_unslash( $_POST['manager_response'] ?? '' ) );
@@ -581,7 +595,7 @@ class CRPCRM_Admin_Pages {
 				'manager_response' => $manager_response,
 			);
 			if ( ! empty( $manager_response_attachment ) ) {
-				$update_data['manager_response_attachment'] = array( $manager_response_attachment );
+				$update_data['manager_response_attachment'] = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array( $manager_response_attachment ), 'staff_request', $id, 'manager_response_attachment', $user_id );
 			}
 			$this->staff_repository->update_staff_request( $id, $update_data );
 			$this->notify_about_staff_request_update( $id, $manager_response, $manager_response_attachment );
@@ -714,7 +728,7 @@ class CRPCRM_Admin_Pages {
 
 		$csv = new CRPCRM_CSV_Exporter();
 		$csv->output_csv(
-			'crpcrm-report-' . gmdate( 'Ymd-His' ) . '.csv',
+			'crpcrm-report-' . CRPCRM_Helpers::now()->format( 'Ymd-His' ) . '.csv',
 			array( 'کد پیگیری', 'تاریخ ثبت', 'نام مشتری', 'موبایل', 'نوع درخواست', 'خلاصه درخواست', 'منبع', 'کمپین', 'محتوا', 'وضعیت', 'مسئول', 'آخرین فعالیت' ),
 			$rows
 		);

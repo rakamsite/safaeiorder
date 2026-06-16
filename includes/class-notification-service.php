@@ -482,7 +482,7 @@ class CRPCRM_Notification_Service {
 			return '';
 		}
 
-		return wp_date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $hours * HOUR_IN_SECONDS ) );
+		return CRPCRM_Helpers::subtract_seconds_from_now( $hours * HOUR_IN_SECONDS );
 	}
 
 	public function mark_seen( $ids, $user_id ) {

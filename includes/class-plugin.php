@@ -21,6 +21,7 @@ class CRPCRM_Plugin {
 	private $form_builder_admin;
 	private $landing_manager_admin;
 	private $notification_service;
+	private $request_file_access_service;
 
 	public function __construct() {
 		$this->settings            = new CRPCRM_Settings();
@@ -34,6 +35,7 @@ class CRPCRM_Plugin {
 		$this->form_builder_admin         = new CRPCRM_Form_Builder_Admin();
 		$this->landing_manager_admin      = new CRPCRM_Landing_Manager_Admin();
 		$this->notification_service       = new CRPCRM_Notification_Service();
+		$this->request_file_access_service = new CRPCRM_Request_File_Access_Service();
 	}
 
 	public function run() {
@@ -46,6 +48,7 @@ class CRPCRM_Plugin {
 		$this->form_builder_admin->register_hooks();
 		$this->landing_manager_admin->register_hooks();
 		$this->public->register_hooks();
+		$this->request_file_access_service->register_hooks();
 		add_action( 'crpcrm_pending_upload_cleanup', array( 'CRPCRM_Dynamic_Form_Renderer', 'cleanup_pending_uploads' ) );
 		CRPCRM_Dynamic_Form_Renderer::schedule_pending_upload_cleanup();
 		if ( CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {

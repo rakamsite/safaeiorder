@@ -85,8 +85,9 @@ class CRPCRM_Reports_Repository {
 		);
 
 		$today_filters                = $filters;
-		$today_filters['start_date']  = wp_date( 'Y-m-d 00:00:00', current_time( 'timestamp' ) );
-		$today_filters['end_date']    = wp_date( 'Y-m-d 23:59:59', current_time( 'timestamp' ) );
+		$today_range                  = CRPCRM_Helpers::get_today_range();
+		$today_filters['start_date']  = $today_range['start'];
+		$today_filters['end_date']    = $today_range['end'];
 		$today_where                  = $this->build_request_filters_where( $today_filters );
 		$timezone                     = wp_timezone();
 		$now                          = new DateTimeImmutable( 'now', $timezone );
@@ -448,15 +449,16 @@ class CRPCRM_Reports_Repository {
 			$workflow_filter = sanitize_key( $filters['workflow_filter'] );
 			if ( 'followups_today' === $workflow_filter ) {
 				$where[]  = "$p.status = 'follow_up' AND $p.next_follow_up_at >= %s AND $p.next_follow_up_at <= %s";
-				$values[] = wp_date( 'Y-m-d 00:00:00', current_time( 'timestamp' ) );
-				$values[] = wp_date( 'Y-m-d 23:59:59', current_time( 'timestamp' ) );
+				$today    = CRPCRM_Helpers::get_today_range();
+				$values[] = $today['start'];
+				$values[] = $today['end'];
 			} elseif ( 'overdue_followups' === $workflow_filter ) {
 				$where[]  = "$p.status = 'follow_up' AND $p.next_follow_up_at < %s";
 				$values[] = CRPCRM_Helpers::current_datetime();
 			} elseif ( 'stale' === $workflow_filter ) {
 				$stale_hours = absint( CRPCRM_Settings::get( 'stale_request_hours', 48 ) );
 				$where[]     = "$p.status IN ('new','in_progress','no_answer','follow_up') AND ($p.last_activity_at IS NULL OR $p.last_activity_at < %s)";
-				$values[]    = wp_date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( HOUR_IN_SECONDS * max( 1, $stale_hours ) ) );
+				$values[]    = CRPCRM_Helpers::subtract_seconds_from_now( HOUR_IN_SECONDS * max( 1, $stale_hours ) );
 			} elseif ( 'unassigned' === $workflow_filter ) {
 				$where[] = "$p.owner_id IS NULL";
 			}
@@ -504,52 +506,10 @@ class CRPCRM_Reports_Repository {
 	}
 
 	private function resolve_date_range( $filters ) {
-		$timezone = wp_timezone();
-		$now      = new DateTimeImmutable( 'now', $timezone );
-		$start    = null;
-		$end      = null;
-
-		switch ( $filters['date_range'] ) {
-			case 'yesterday':
-				$start = $now->modify( 'yesterday' )->setTime( 0, 0, 0 );
-				$end   = $now->modify( 'yesterday' )->setTime( 23, 59, 59 );
-				break;
-			case 'last_7_days':
-				$start = $now->modify( '-6 days' )->setTime( 0, 0, 0 );
-				$end   = $now->setTime( 23, 59, 59 );
-				break;
-			case 'last_30_days':
-				$start = $now->modify( '-29 days' )->setTime( 0, 0, 0 );
-				$end   = $now->setTime( 23, 59, 59 );
-				break;
-			case 'current_month':
-				$range = CRPCRM_Helpers::get_jalali_month_range();
-				$start = new DateTimeImmutable( $range['start'], $timezone );
-				$end   = new DateTimeImmutable( $range['end'], $timezone );
-				break;
-			case 'last_month':
-				$range = CRPCRM_Helpers::get_jalali_month_range( -1 );
-				$start = new DateTimeImmutable( $range['start'], $timezone );
-				$end   = new DateTimeImmutable( $range['end'], $timezone );
-				break;
-			case 'custom':
-				if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $filters['date_from'] ) ) {
-					$start = new DateTimeImmutable( $filters['date_from'] . ' 00:00:00', $timezone );
-				}
-				if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $filters['date_to'] ) ) {
-					$end = new DateTimeImmutable( $filters['date_to'] . ' 23:59:59', $timezone );
-				}
-				break;
-			case 'today':
-			default:
-				$start = $now->setTime( 0, 0, 0 );
-				$end   = $now->setTime( 23, 59, 59 );
-				break;
-		}
-
+		$range = CRPCRM_Helpers::build_date_range( $filters['date_range'], $filters['date_from'], $filters['date_to'] );
 		return array(
-			'start_date' => $start ? $start->format( 'Y-m-d H:i:s' ) : '',
-			'end_date'   => $end ? $end->format( 'Y-m-d H:i:s' ) : '',
+			'start_date' => $range['start'],
+			'end_date'   => $range['end'],
 		);
 	}
 
