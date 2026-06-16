@@ -105,6 +105,7 @@ class CRPCRM_Roles {
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 		return 0 === strpos( $page, 'crpcrm-' );
 	}
+
 	public static function get_capabilities() {
 		return array(
 			'crpcrm_use_customer_portal',
@@ -118,6 +119,7 @@ class CRPCRM_Roles {
 			'crpcrm_assign_requests',
 			'crpcrm_view_reports',
 			'crpcrm_view_notifications',
+			'crpcrm_manage_landings',
 			'crpcrm_manage_plugin',
 			'crpcrm_manage_settings',
 			'crpcrm_manage_staff_portal',
@@ -136,7 +138,7 @@ class CRPCRM_Roles {
 			),
 			'sales_manager'     => array(
 				'label' => 'مدیر فروش',
-				'caps'  => array( 'read', 'crpcrm_view_all_requests', 'crpcrm_claim_requests', 'crpcrm_create_requests', 'crpcrm_manage_requests', 'crpcrm_assign_requests', 'crpcrm_view_reports', 'crpcrm_use_staff_portal', 'crpcrm_manage_staff_portal', 'crpcrm_view_notifications' ),
+				'caps'  => array( 'read', 'crpcrm_view_all_requests', 'crpcrm_claim_requests', 'crpcrm_create_requests', 'crpcrm_manage_requests', 'crpcrm_assign_requests', 'crpcrm_view_reports', 'crpcrm_use_staff_portal', 'crpcrm_manage_staff_portal', 'crpcrm_view_notifications', 'crpcrm_manage_landings' ),
 			),
 			'internal_employee' => array(
 				'label' => 'کارمند داخلی',
@@ -144,7 +146,7 @@ class CRPCRM_Roles {
 			),
 			'crm_admin'         => array(
 				'label' => 'مدیر CRM',
-				'caps'  => array( 'read', 'crpcrm_manage_plugin', 'crpcrm_manage_settings', 'crpcrm_view_all_requests', 'crpcrm_claim_requests', 'crpcrm_create_requests', 'crpcrm_manage_requests', 'crpcrm_assign_requests', 'crpcrm_view_reports', 'crpcrm_use_staff_portal', 'crpcrm_manage_staff_portal', 'crpcrm_view_notifications' ),
+				'caps'  => array( 'read', 'crpcrm_manage_plugin', 'crpcrm_manage_settings', 'crpcrm_view_all_requests', 'crpcrm_claim_requests', 'crpcrm_create_requests', 'crpcrm_manage_requests', 'crpcrm_assign_requests', 'crpcrm_view_reports', 'crpcrm_use_staff_portal', 'crpcrm_manage_staff_portal', 'crpcrm_view_notifications', 'crpcrm_manage_landings' ),
 			),
 		);
 	}

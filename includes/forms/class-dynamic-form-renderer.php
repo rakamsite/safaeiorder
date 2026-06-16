@@ -223,7 +223,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		foreach ( $request_data as $key => $value ) {
 			$key = sanitize_key( $key );
-			if ( ! $key || isset( $items[ $key ] ) || 0 === strpos( $key, '_submitted_' ) || in_array( $key, array( 'form_id', 'form_version', 'request_type', 'fields', 'submitted_fields', 'display_html' ), true ) ) {
+			if ( ! $key || isset( $items[ $key ] ) || 0 === strpos( $key, '_submitted_' ) || in_array( $key, array( 'form_id', 'form_version', 'request_type', 'fields', 'submitted_fields', 'display_html', '_landing_attribution' ), true ) ) {
 				continue;
 			}
 			if ( is_array( $value ) && empty( $value ) ) {

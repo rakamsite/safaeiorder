@@ -187,3 +187,11 @@ request_data
 - فایل‌های PHP تغییرکرده باید با `php -l` بررسی شوند.
 - تست‌ها باید متناسب با دامنه تغییر اجرا شوند.
 - فایل‌های تغییرکرده، تست‌های اجراشده و محدودیت‌های تست باید گزارش شوند.
+### Landing Manager
+
+- `landing_manager` is an independent feature for creating internal campaign links.
+- The first version must generate the final URL with `?u=slug`.
+- `/u/slug` routing is not part of this version and should be implemented later if needed.
+- Tracking, cookies, click logging, and conversion reporting must remain out of phase 1.
+- In phase 2, the same `u` parameter may be tracked on the destination page without redirecting, and only internal pages that match the configured landing should be recorded.
+- `landing_manager` must remain independent from `portal`, `staff`, `notifications`, and `form_builder`.

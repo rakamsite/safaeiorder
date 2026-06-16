@@ -23,6 +23,7 @@ class CRPCRM_Feature_Manager {
 			'tracking'              => 'رهگیری ورودی‌ها',
 			'lead_followup'         => 'پیگیری لیدها',
 			'form_builder'          => 'فرم‌ساز',
+			'landing_manager'       => 'مدیریت لندینگ‌ها',
 			'notifications'         => 'اعلانات مرکزی',
 			'admin_tools'           => 'ابزارهای مدیریتی',
 		);

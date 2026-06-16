@@ -29,6 +29,8 @@ class CRPCRM_DB {
 			'manager_announcements'       => self::table( 'manager_announcements' ),
 			'announcement_reads'          => self::table( 'announcement_reads' ),
 			'notifications'               => self::table( 'notifications' ),
+			'landing_links'               => self::table( 'landing_links' ),
+			'landing_clicks'              => self::table( 'landing_clicks' ),
 			'plugin_logs'                 => self::table( 'plugin_logs' ),
 		);
 	}
@@ -67,6 +69,8 @@ class CRPCRM_DB {
 		$manager_announcements      = self::table( 'manager_announcements' );
 		$announcement_reads         = self::table( 'announcement_reads' );
 		$notifications              = self::table( 'notifications' );
+		$landing_links              = self::table( 'landing_links' );
+		$landing_clicks             = self::table( 'landing_clicks' );
 		$plugin_logs                = self::table( 'plugin_logs' );
 
 		return array(
@@ -349,6 +353,67 @@ class CRPCRM_DB {
 				KEY type (type),
 				KEY target_ref (target_type,target_id),
 				KEY created_at (created_at)
+			) $charset_collate;",
+			"CREATE TABLE $landing_links (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				title VARCHAR(190) NOT NULL,
+				slug VARCHAR(100) NOT NULL,
+				destination_post_id BIGINT UNSIGNED NULL,
+				destination_url TEXT NULL,
+				source_label VARCHAR(190) NOT NULL,
+				source_code VARCHAR(100) NOT NULL,
+				medium_label VARCHAR(190) NOT NULL,
+				medium_code VARCHAR(100) NOT NULL,
+				campaign_label VARCHAR(190) NOT NULL,
+				campaign_code VARCHAR(100) NOT NULL,
+				content_label VARCHAR(190) NULL,
+				content_code VARCHAR(100) NULL,
+				term_label VARCHAR(190) NULL,
+				term_code VARCHAR(100) NULL,
+				append_standard_utm TINYINT(1) NOT NULL DEFAULT 0,
+				status VARCHAR(20) NOT NULL DEFAULT 'active',
+				created_by BIGINT UNSIGNED NULL,
+				updated_by BIGINT UNSIGNED NULL,
+				created_at DATETIME NOT NULL,
+				updated_at DATETIME NOT NULL,
+				PRIMARY KEY  (id),
+				UNIQUE KEY slug (slug),
+				KEY status (status),
+				KEY destination_post_id (destination_post_id),
+				KEY source_code (source_code),
+				KEY medium_code (medium_code),
+				KEY campaign_code (campaign_code)
+			) $charset_collate;",
+			"CREATE TABLE $landing_clicks (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				landing_id BIGINT UNSIGNED NOT NULL,
+				landing_slug VARCHAR(100) NOT NULL,
+				visitor_id VARCHAR(100) NULL,
+				click_hash VARCHAR(190) NULL,
+				source_code VARCHAR(100) NULL,
+				medium_code VARCHAR(100) NULL,
+				campaign_code VARCHAR(100) NULL,
+				content_code VARCHAR(100) NULL,
+				term_code VARCHAR(100) NULL,
+				source_label VARCHAR(190) NULL,
+				medium_label VARCHAR(190) NULL,
+				campaign_label VARCHAR(190) NULL,
+				content_label VARCHAR(190) NULL,
+				term_label VARCHAR(190) NULL,
+				current_url TEXT NULL,
+				referrer TEXT NULL,
+				user_agent TEXT NULL,
+				ip_hash VARCHAR(190) NULL,
+				created_at DATETIME NOT NULL,
+				converted_request_id BIGINT UNSIGNED NULL,
+				converted_at DATETIME NULL,
+				PRIMARY KEY  (id),
+				KEY landing_id (landing_id),
+				KEY landing_slug (landing_slug),
+				KEY visitor_id (visitor_id),
+				KEY click_hash (click_hash),
+				KEY created_at (created_at),
+				KEY converted_request_id (converted_request_id)
 			) $charset_collate;",
 			"CREATE TABLE $plugin_logs (
 				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

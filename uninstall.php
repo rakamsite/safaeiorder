@@ -31,6 +31,8 @@ if ( isset( $settings['delete_data_on_uninstall'] ) && 'yes' === $settings['dele
 		'manager_announcements',
 		'announcement_reads',
 		'notifications',
+		'landing_links',
+		'landing_clicks',
 		'plugin_logs',
 	);
 

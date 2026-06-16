@@ -19,6 +19,7 @@ class CRPCRM_Plugin {
 	private $lead_follow_up_service;
 	private $customer_deletion_service;
 	private $form_builder_admin;
+	private $landing_manager_admin;
 	private $notification_service;
 
 	public function __construct() {
@@ -31,6 +32,7 @@ class CRPCRM_Plugin {
 		$this->lead_follow_up_service = new CRPCRM_Lead_Follow_Up_Service();
 		$this->customer_deletion_service = new CRPCRM_Customer_Deletion_Service();
 		$this->form_builder_admin         = new CRPCRM_Form_Builder_Admin();
+		$this->landing_manager_admin      = new CRPCRM_Landing_Manager_Admin();
 		$this->notification_service       = new CRPCRM_Notification_Service();
 	}
 
@@ -42,6 +44,7 @@ class CRPCRM_Plugin {
 		$this->settings->register_hooks();
 		$this->admin_menu->register_hooks();
 		$this->form_builder_admin->register_hooks();
+		$this->landing_manager_admin->register_hooks();
 		$this->public->register_hooks();
 		add_action( 'crpcrm_pending_upload_cleanup', array( 'CRPCRM_Dynamic_Form_Renderer', 'cleanup_pending_uploads' ) );
 		CRPCRM_Dynamic_Form_Renderer::schedule_pending_upload_cleanup();

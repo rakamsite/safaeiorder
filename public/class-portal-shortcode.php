@@ -333,6 +333,15 @@ class CRPCRM_Portal_Shortcode {
 		$request_type     = $request_type ? $request_type : $form_id;
 		$request_data     = array_merge( $request_data, CRPCRM_Dynamic_Form_Renderer::get_submission_snapshot( $form ) );
 		$attribution      = $this->attribution_service->get_attribution_for_new_request();
+		$landing_attribution = $this->attribution_service->get_landing_attribution_for_new_request(
+			array(
+				'request_url' => function_exists( 'wp_get_referer' ) ? wp_get_referer() : '',
+				'referrer'    => function_exists( 'wp_get_referer' ) ? wp_get_referer() : '',
+			)
+		);
+		if ( ! empty( $landing_attribution ) ) {
+			$request_data['_landing_attribution'] = $landing_attribution;
+		}
 		$now             = CRPCRM_Helpers::current_datetime();
 
 		$request_id = $this->request_repository->create(
@@ -363,6 +372,22 @@ class CRPCRM_Portal_Shortcode {
 		if ( ! $request_id ) {
 			CRPCRM_Logger::error( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'reason' => 'request_insert_failed' ) );
 			$this->redirect_with_notice( $redirect_to, 'error', 'در ثبت درخواست خطایی رخ داد. لطفاً دوباره تلاش کنید.' );
+		}
+
+		if ( ! empty( $landing_attribution ) ) {
+			$this->request_repository->save_landing_attribution( $request_id, $landing_attribution );
+			if ( class_exists( 'CRPCRM_Landing_Manager' ) ) {
+				( new CRPCRM_Landing_Manager() )->record_conversion_for_request(
+					$request_id,
+					array(
+						'click_id'     => absint( $landing_attribution['last_touch']['click_id'] ?? 0 ),
+						'visitor_id'   => sanitize_text_field( $landing_attribution['visitor_id'] ?? '' ),
+						'landing_id'   => absint( $landing_attribution['last_touch']['landing_id'] ?? ( $landing_attribution['first_touch']['landing_id'] ?? 0 ) ),
+						'landing_slug' => sanitize_key( $landing_attribution['last_touch']['landing_slug'] ?? ( $landing_attribution['first_touch']['landing_slug'] ?? '' ) ),
+						'converted_at' => $landing_attribution['converted_at'] ?? $now,
+					)
+				);
+			}
 		}
 
 		$request      = $this->request_repository->get( $request_id );

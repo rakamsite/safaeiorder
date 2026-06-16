@@ -74,6 +74,34 @@ class CRPCRM_Request_Repository {
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE request_code = %s LIMIT 1", sanitize_text_field( $request_code ) ), ARRAY_A );
 	}
 
+	public function save_landing_attribution( $request_id, array $landing_attribution ) {
+		$request_id = absint( $request_id );
+		$request    = $request_id ? $this->get( $request_id ) : null;
+		if ( ! $request ) {
+			return false;
+		}
+
+		$request_data                           = self::get_merged_request_data( $request );
+		$request_data['_landing_attribution']    = self::normalize_landing_attribution( $landing_attribution );
+		return $this->update( $request_id, array( 'request_data' => $request_data ) );
+	}
+
+	public function save_request_attribution( $request_id, array $request_attribution ) {
+		return $this->save_landing_attribution( $request_id, $request_attribution );
+	}
+
+	public static function get_landing_attribution( $request ) {
+		$request = is_array( $request ) ? $request : array();
+		$data    = self::get_merged_request_data( $request );
+		$landing = isset( $data['_landing_attribution'] ) && is_array( $data['_landing_attribution'] ) ? $data['_landing_attribution'] : array();
+
+		return self::normalize_landing_attribution( $landing );
+	}
+
+	public static function get_request_attribution( $request ) {
+		return self::get_landing_attribution( $request );
+	}
+
 	public function delete_permanently( $request_id ) {
 		global $wpdb;
 
@@ -640,5 +668,45 @@ class CRPCRM_Request_Repository {
 			}
 		}
 		return $data;
+	}
+
+	private static function normalize_landing_attribution( $attribution ) {
+		$attribution = is_array( $attribution ) ? $attribution : array();
+		$touch_keys  = array( 'landing_id', 'landing_slug', 'landing_title', 'destination_url', 'source_code', 'source_label', 'medium_code', 'medium_label', 'campaign_code', 'campaign_label', 'content_code', 'content_label', 'term_code', 'term_label', 'clicked_at', 'click_id' );
+		$touch       = static function ( $value ) use ( $touch_keys ) {
+			$clean = array();
+			$value = is_array( $value ) ? $value : array();
+			foreach ( $touch_keys as $key ) {
+				if ( ! array_key_exists( $key, $value ) ) {
+					continue;
+				}
+				if ( 'landing_id' === $key || 'click_id' === $key ) {
+					$clean[ $key ] = absint( $value[ $key ] );
+					continue;
+				}
+				if ( in_array( $key, array( 'destination_url' ), true ) ) {
+					$clean[ $key ] = esc_url_raw( $value[ $key ] );
+					continue;
+				}
+				if ( 'clicked_at' === $key ) {
+					$clean[ $key ] = sanitize_text_field( $value[ $key ] );
+					continue;
+				}
+				$clean[ $key ] = sanitize_text_field( $value[ $key ] );
+			}
+
+			return $clean;
+		};
+
+		$first_touch = isset( $attribution['first_touch'] ) ? $touch( $attribution['first_touch'] ) : array();
+		$last_touch   = isset( $attribution['last_touch'] ) ? $touch( $attribution['last_touch'] ) : array();
+
+		return array(
+			'visitor_id'      => isset( $attribution['visitor_id'] ) ? sanitize_text_field( $attribution['visitor_id'] ) : '',
+			'conversion_page' => isset( $attribution['conversion_page'] ) ? esc_url_raw( $attribution['conversion_page'] ) : '',
+			'converted_at'    => isset( $attribution['converted_at'] ) ? sanitize_text_field( $attribution['converted_at'] ) : '',
+			'first_touch'     => $first_touch,
+			'last_touch'      => $last_touch,
+		);
 	}
 }

@@ -11,9 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Public {
 	private $portal_shortcode;
+	private $landing_tracking_service;
 
 	public function __construct() {
 		$this->portal_shortcode = new CRPCRM_Portal_Shortcode();
+		$this->landing_tracking_service = new CRPCRM_Landing_Tracking_Service();
 	}
 
 	public function register_hooks() {
@@ -21,6 +23,7 @@ class CRPCRM_Public {
 		add_action( 'wp_ajax_crpcrm_search_products', array( $this, 'handle_search_products' ) );
 		add_action( 'wp_ajax_crpcrm_upload_request_file', array( $this, 'handle_upload_request_file' ) );
 		$this->portal_shortcode->register_hooks();
+		$this->landing_tracking_service->register_hooks();
 	}
 
 	public function enqueue_assets() {

@@ -7,6 +7,7 @@
 - فرم‌ساز، جایگزین فعلی Business Profile برای تعریف فرم‌ها و request typeها است.
 - Business Profile نباید در توسعه جدید برگردد.
 - `vehicle_catalog` از معماری فعلی حذف شده و نباید به core یا UI برگردد.
+- `landing_manager` یک feature مستقل برای ساخت لینک داخلی کمپین با پارامتر `?u=slug` است؛ در نسخه اول redirect `/u/slug` وجود ندارد. در فاز ۲ همین پارامتر در فرانت رهگیری می‌شود و first-touch / last-touch به‌صورت cookie ذخیره می‌گردد.
 - `request_type` اکنون با `form_id` فرم‌ها هماهنگ است.
 - سیستم اعلانات مرکزی و گفت‌وگوی درخواست‌ها در افزونه فعال است.
 - آپلودهای `file_upload` در مسیر اختصاصی `uploads/crpcrm-request-files/YYYY/MM/` ذخیره می‌شوند.
