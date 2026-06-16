@@ -50,8 +50,8 @@ class CRPCRM_Reports_Service {
 		$staff_performance  = ! empty( $options['include_staff'] ) ? $this->get_staff_performance( $filters ) : array();
 		$landing_performance = ! empty( $options['include_landings'] ) ? $this->get_landing_performance( $filters ) : array();
 		$campaign_summary   = $this->get_campaign_summary( $filters, ! empty( $options['include_landings'] ) );
-		$request_details    = $this->request_repository->get_request_details( $filters, $pagination );
-		$request_total      = $this->request_repository->count_request_details( $filters );
+		$request_details    = $this->reports_repository->get_request_details( $filters, $pagination );
+		$request_total      = $this->reports_repository->count_request_details( $filters );
 
 		return array(
 			'filters'            => $filters,

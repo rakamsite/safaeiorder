@@ -31,7 +31,7 @@ class CRPCRM_Reports_Repository {
 
 	public function normalize_filters( $input ) {
 		$filters = array(
-			'date_range'      => isset( $input['date_range'] ) ? sanitize_key( wp_unslash( $input['date_range'] ) ) : 'today',
+			'date_range'      => isset( $input['date_range'] ) ? sanitize_key( wp_unslash( $input['date_range'] ) ) : 'last_30_days',
 			'date_from'       => isset( $input['date_from'] ) ? CRPCRM_Helpers::normalize_date_input( wp_unslash( $input['date_from'] ) ) : '',
 			'date_to'         => isset( $input['date_to'] ) ? CRPCRM_Helpers::normalize_date_input( wp_unslash( $input['date_to'] ) ) : '',
 			'request_type'    => isset( $input['request_type'] ) ? sanitize_key( wp_unslash( $input['request_type'] ) ) : '',
@@ -46,7 +46,7 @@ class CRPCRM_Reports_Repository {
 
 		$allowed_ranges = array( 'today', 'yesterday', 'last_7_days', 'last_30_days', 'current_month', 'last_month', 'custom' );
 		if ( ! in_array( $filters['date_range'], $allowed_ranges, true ) ) {
-			$filters['date_range'] = 'today';
+			$filters['date_range'] = 'last_30_days';
 		}
 		if ( $filters['request_type'] && ! in_array( $filters['request_type'], $this->get_request_types(), true ) ) {
 			$filters['request_type'] = '';
