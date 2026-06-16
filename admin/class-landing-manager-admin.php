@@ -68,7 +68,8 @@ class CRPCRM_Landing_Manager_Admin {
 		$css_path = CRPCRM_PLUGIN_DIR . 'assets/css/landing-manager.css';
 		$js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/landing-manager.js';
 
-		wp_enqueue_style( 'crpcrm-landing-manager', CRPCRM_PLUGIN_URL . 'assets/css/landing-manager.css', array( 'crpcrm-admin' ), file_exists( $css_path ) ? filemtime( $css_path ) : CRPCRM_VERSION );
+		wp_enqueue_style( 'crpcrm-admin-ui', CRPCRM_PLUGIN_URL . 'assets/css/admin-ui.css', array( 'crpcrm-admin' ), file_exists( CRPCRM_PLUGIN_DIR . 'assets/css/admin-ui.css' ) ? filemtime( CRPCRM_PLUGIN_DIR . 'assets/css/admin-ui.css' ) : CRPCRM_VERSION );
+		wp_enqueue_style( 'crpcrm-landing-manager', CRPCRM_PLUGIN_URL . 'assets/css/landing-manager.css', array( 'crpcrm-admin-ui' ), file_exists( $css_path ) ? filemtime( $css_path ) : CRPCRM_VERSION );
 		wp_enqueue_script( 'crpcrm-landing-manager', CRPCRM_PLUGIN_URL . 'assets/js/landing-manager.js', array( 'jquery' ), file_exists( $js_path ) ? filemtime( $js_path ) : CRPCRM_VERSION, true );
 		wp_localize_script(
 			'crpcrm-landing-manager',

@@ -109,6 +109,94 @@ function crpcrm_request_landing_touch_datetime( $touch ) {
 }
 }
 
+if ( ! function_exists( 'crpcrm_request_focus_url' ) ) {
+function crpcrm_request_focus_url( $focus_args, $filters ) {
+	$base_args = array();
+	foreach ( array( 'search', 'date_from', 'date_to', 'source', 'campaign', 'status_group' ) as $key ) {
+		if ( ! empty( $filters[ $key ] ) ) {
+			$base_args[ $key ] = $filters[ $key ];
+		}
+	}
+
+	return crpcrm_admin_requests_url( array_merge( $base_args, $focus_args ) );
+}
+}
+
+if ( ! function_exists( 'crpcrm_request_row_classes' ) ) {
+function crpcrm_request_row_classes( $item, $current_user_id ) {
+	$classes = array( 'crpcrm-request-row' );
+	if ( empty( $item['owner_id'] ) ) {
+		$classes[] = 'crpcrm-request-row-unassigned';
+	}
+	if ( ! empty( $item['owner_id'] ) && absint( $item['owner_id'] ) === absint( $current_user_id ) ) {
+		$classes[] = 'crpcrm-request-row-mine';
+	}
+	if ( 'lead_follow_up' === sanitize_key( $item['request_type'] ?? '' ) ) {
+		$classes[] = 'crpcrm-request-row-lead-followup';
+	}
+	if ( 'customer_reply' === sanitize_key( $item['last_action'] ?? '' ) ) {
+		$classes[] = 'crpcrm-request-row-customer-reply';
+	}
+	if ( ! empty( $item['next_follow_up_at'] ) && 'follow_up' === sanitize_key( $item['status'] ?? '' ) && strtotime( $item['next_follow_up_at'] ) < current_time( 'timestamp' ) ) {
+		$classes[] = 'crpcrm-request-row-overdue';
+	}
+
+	return implode( ' ', array_map( 'sanitize_html_class', $classes ) );
+}
+}
+
+if ( ! function_exists( 'crpcrm_request_focus_state' ) ) {
+function crpcrm_request_focus_state( $filters ) {
+	if ( 'new' === ( $filters['status'] ?? '' ) ) {
+		return 'new';
+	}
+	if ( 'me' === ( $filters['owner_filter'] ?? '' ) ) {
+		return 'mine';
+	}
+	if ( 'unassigned' === ( $filters['owner_filter'] ?? '' ) ) {
+		return 'unassigned';
+	}
+	if ( 'customer_replies' === ( $filters['workflow_filter'] ?? '' ) ) {
+		return 'customer_replies';
+	}
+	if ( 'followups_today' === ( $filters['workflow_filter'] ?? '' ) ) {
+		return 'followups_today';
+	}
+	if ( 'overdue_followups' === ( $filters['workflow_filter'] ?? '' ) ) {
+		return 'overdue_followups';
+	}
+	if ( CRPCRM_System_Request_Types::LEAD_FOLLOW_UP === ( $filters['request_type'] ?? '' ) ) {
+		return 'lead_follow_up';
+	}
+
+	return 'all';
+}
+}
+
+if ( ! function_exists( 'crpcrm_request_operational_badges' ) ) {
+function crpcrm_request_operational_badges( $request ) {
+	$badges = array();
+	$last_action = sanitize_key( $request['last_action'] ?? '' );
+	$request_type = sanitize_key( $request['request_type'] ?? '' );
+	$status = sanitize_key( $request['status'] ?? '' );
+
+	if ( 'customer_reply' === $last_action ) {
+		$badges[] = '<span class="crpcrm-badge crpcrm-badge-new">پاسخ جدید مشتری</span>';
+	}
+	if ( 'lead_follow_up' === $request_type ) {
+		$badges[] = '<span class="crpcrm-badge crpcrm-badge-pending">پیگیری خودکار</span>';
+	}
+	if ( empty( $request['owner_id'] ) ) {
+		$badges[] = '<span class="crpcrm-badge crpcrm-badge-muted">بدون مسئول</span>';
+	}
+	if ( 'follow_up' === $status && ! empty( $request['next_follow_up_at'] ) && strtotime( $request['next_follow_up_at'] ) < current_time( 'timestamp' ) ) {
+		$badges[] = '<span class="crpcrm-badge crpcrm-badge-failed">عقب‌افتاده</span>';
+	}
+
+	return implode( ' ', $badges );
+}
+}
+
 if ( ! function_exists( 'crpcrm_admin_owner_form' ) ) {
 function crpcrm_admin_owner_form( $request_id, $owner_id, $assignable_users ) {
 	?>
@@ -221,28 +309,96 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		<div class="notice notice-<?php echo esc_attr( $notice_messages[ $notice ][0] ); ?> is-dismissible"><p><?php echo esc_html( $notice_messages[ $notice ][1] ); ?></p></div>
 	<?php endif; ?>
 
-	<?php if ( 'list' === $mode ) : ?>
-		<p><a class="button button-primary" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'action' => 'new' ) ) ); ?>"><?php echo esc_html( 'ایجاد درخواست جدید' ); ?></a></p>
+<?php if ( 'list' === $mode ) : ?>
+		<?php $focus_state = crpcrm_request_focus_state( $filters ); ?>
+		<div class="crpcrm-page-header crpcrm-request-header">
+			<div>
+				<h1><?php echo esc_html( 'درخواست‌ها' ); ?></h1>
+				<p class="description"><?php echo esc_html( 'همه درخواست‌ها، پاسخ‌های جدید، پیگیری‌ها و موارد بدون مسئول را در یک نما دنبال کنید.' ); ?></p>
+			</div>
+			<div class="crpcrm-page-actions">
+				<a class="button button-primary" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'action' => 'new' ) ) ); ?>"><?php echo esc_html( 'ایجاد درخواست جدید' ); ?></a>
+			</div>
+		</div>
 
+		<?php
+		$focus_tabs = array(
+			'all' => array(
+				'label' => 'همه',
+				'count' => absint( $total ),
+				'url'   => crpcrm_request_focus_url( array(), $filters ),
+			),
+			'new' => array(
+				'label' => 'جدید',
+				'count' => absint( $summary['new_requests'] ?? 0 ),
+				'url'   => crpcrm_request_focus_url( array( 'status' => 'new' ), $filters ),
+			),
+			'mine' => array(
+				'label' => 'درخواست‌های من',
+				'count' => absint( $summary['mine'] ?? 0 ),
+				'url'   => crpcrm_request_focus_url( array( 'owner_filter' => 'me' ), $filters ),
+			),
+			'unassigned' => array(
+				'label' => 'بدون مسئول',
+				'count' => absint( $summary['unassigned'] ?? 0 ),
+				'url'   => crpcrm_request_focus_url( array( 'owner_filter' => 'unassigned' ), $filters ),
+			),
+			'customer_replies' => array(
+				'label' => 'پاسخ جدید مشتری',
+				'count' => absint( $summary['customer_replies'] ?? 0 ),
+				'url'   => crpcrm_request_focus_url( array( 'workflow_filter' => 'customer_replies' ), $filters ),
+			),
+			'followups_today' => array(
+				'label' => 'پیگیری امروز',
+				'count' => absint( $summary['followups_today'] ?? 0 ),
+				'url'   => crpcrm_request_focus_url( array( 'workflow_filter' => 'followups_today' ), $filters ),
+			),
+			'overdue_followups' => array(
+				'label' => 'عقب‌افتاده',
+				'count' => absint( $summary['overdue_followups'] ?? 0 ),
+				'url'   => crpcrm_request_focus_url( array( 'workflow_filter' => 'overdue_followups' ), $filters ),
+			),
+			'lead_follow_up' => array(
+				'label' => 'پیگیری خودکار',
+				'count' => absint( $summary['lead_follow_ups'] ?? 0 ),
+				'url'   => crpcrm_request_focus_url( array( 'request_type' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP ), $filters ),
+			),
+		);
+		?>
+		<div class="crpcrm-operational-tabs">
+			<?php foreach ( $focus_tabs as $focus_key => $focus_tab ) : ?>
+				<a class="crpcrm-operational-tab <?php echo $focus_state === $focus_key ? 'is-active' : ''; ?>" href="<?php echo esc_url( $focus_tab['url'] ); ?>">
+					<strong><?php echo esc_html( $focus_tab['count'] ); ?></strong>
+					<span><?php echo esc_html( $focus_tab['label'] ); ?></span>
+				</a>
+			<?php endforeach; ?>
+		</div>
 
 		<?php if ( ! empty( $summary ) ) : ?>
-			<div class="crpcrm-summary-cards">
+			<div class="crpcrm-kpi-grid crpcrm-request-kpi-grid">
 				<?php if ( $can_manage ) : ?>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['unassigned'] ) ); ?></strong><span><?php echo esc_html( 'درخواست‌های بدون مسئول' ); ?></span></div>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['open'] ) ); ?></strong><span><?php echo esc_html( 'کل درخواست‌های باز' ); ?></span></div>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['followups_today'] ) ); ?></strong><span><?php echo esc_html( 'پیگیری‌های امروز' ); ?></span></div>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['overdue_followups'] ) ); ?></strong><span><?php echo esc_html( 'پیگیری‌های عقب‌افتاده' ); ?></span></div>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['stale'] ) ); ?></strong><span><?php echo esc_html( 'بدون فعالیت در ' . absint( $stale_hours ) . ' ساعت اخیر' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['open'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'کل درخواست‌های باز' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['unassigned'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'بدون مسئول' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['customer_replies'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'پاسخ جدید مشتری' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['followups_today'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'پیگیری‌های امروز' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['overdue_followups'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'پیگیری‌های عقب‌افتاده' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['lead_follow_ups'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'پیگیری خودکار ۲۴ ساعته' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['stale'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'بدون فعالیت در ' . absint( $stale_hours ) . ' ساعت اخیر' ); ?></span></div>
 				<?php else : ?>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['unassigned'] ) ); ?></strong><span><?php echo esc_html( 'درخواست‌های بدون مسئول قابل مشاهده' ); ?></span></div>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['mine'] ) ); ?></strong><span><?php echo esc_html( 'درخواست‌های من' ); ?></span></div>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['followups_today'] ) ); ?></strong><span><?php echo esc_html( 'پیگیری‌های امروز من' ); ?></span></div>
-					<div><strong><?php echo esc_html( number_format_i18n( $summary['overdue_followups'] ) ); ?></strong><span><?php echo esc_html( 'پیگیری‌های عقب‌افتاده من' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['mine'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'درخواست‌های من' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['new_requests'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'درخواست‌های جدید' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['customer_replies'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'پاسخ جدید مشتری' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['followups_today'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'پیگیری‌های امروز من' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['overdue_followups'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'پیگیری‌های عقب‌افتاده من' ); ?></span></div>
+					<div class="crpcrm-stat-card"><span class="crpcrm-stat-value"><?php echo esc_html( number_format_i18n( $summary['lead_follow_ups'] ?? 0 ) ); ?></span><span class="crpcrm-stat-label"><?php echo esc_html( 'پیگیری خودکار ۲۴ ساعته' ); ?></span></div>
 				<?php endif; ?>
 			</div>
 		<?php endif; ?>
 		<form method="get" class="crpcrm-request-filters">
 			<input type="hidden" name="page" value="crpcrm-requests">
+			<?php if ( 'lead_follow_up' === $focus_state ) : ?>
+				<input type="hidden" name="request_type" value="<?php echo esc_attr( CRPCRM_System_Request_Types::LEAD_FOLLOW_UP ); ?>">
+			<?php endif; ?>
 			<div class="crpcrm-filter-grid">
 				<label><?php echo esc_html( 'نوع درخواست' ); ?>
 					<select name="request_type">
@@ -305,47 +461,62 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			<p class="submit"><button type="submit" class="button button-primary"><?php echo esc_html( 'اعمال فیلتر' ); ?></button> <a class="button" href="<?php echo esc_url( crpcrm_admin_requests_url() ); ?>"><?php echo esc_html( 'پاک کردن فیلترها' ); ?></a></p>
 		</form>
 
-		<table class="widefat fixed striped crpcrm-requests-table">
-			<thead><tr>
-				<th><?php echo esc_html( 'کد پیگیری' ); ?></th><th><?php echo esc_html( 'مشتری' ); ?></th><th><?php echo esc_html( 'موبایل' ); ?></th><th><?php echo esc_html( 'نوع درخواست' ); ?></th><th><?php echo esc_html( 'خلاصه درخواست' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'منبع' ); ?></th><th><?php echo esc_html( 'منبع ورودی' ); ?></th><th><?php echo esc_html( 'کمپین' ); ?></th><th><?php echo esc_html( 'مسئول' ); ?></th><th><?php echo esc_html( 'پیگیری بعدی' ); ?></th><th><?php echo esc_html( 'تاریخ ثبت' ); ?></th><th><?php echo esc_html( 'آخرین بروزرسانی' ); ?></th><th><?php echo esc_html( 'عملیات' ); ?></th>
-			</tr></thead>
-			<tbody>
-			<?php if ( empty( $requests ) ) : ?>
-				<tr><td colspan="14"><?php echo esc_html( 'درخواستی یافت نشد.' ); ?></td></tr>
-			<?php else : ?>
-				<?php foreach ( $requests as $item ) : ?>
-					<?php
-					$landing_attribution = CRPCRM_Request_Repository::get_landing_attribution( $item );
-					$landing_touch       = ! empty( $landing_attribution['last_touch'] ) ? $landing_attribution['last_touch'] : ( ! empty( $landing_attribution['first_touch'] ) ? $landing_attribution['first_touch'] : array() );
-					?>
-					<tr>
-						<td><strong><?php echo esc_html( $item['request_code'] ); ?></strong></td>
-						<td><?php echo esc_html( $item['customer_name'] ? $item['customer_name'] : '—' ); ?></td>
-						<td><?php echo esc_html( $item['customer_phone'] ? $item['customer_phone'] : $item['customer_phone_normalized'] ); ?></td>
-						<td><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $item['request_type'], $item ) ); ?></td>
-						<td><?php echo esc_html( wp_trim_words( crpcrm_admin_request_display_summary( $item ), 14, '…' ) ); ?></td>
-						<td><span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( sanitize_html_class( $item['status'] ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $item['status'] ) ); ?></span></td>
-						<td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $item['request_source'] ) ); ?></span></td>
-						<td><?php echo esc_html( ! empty( $landing_touch ) ? crpcrm_request_landing_touch_summary( $landing_touch ) : '—' ); ?></td>
-						<td><?php echo esc_html( $item['request_campaign'] ? $item['request_campaign'] : '—' ); ?></td>
-						<td><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $item['owner_id'] ) ); ?></td>
-						<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && strtotime( $item['next_follow_up_at'] ) < current_time( 'timestamp' ) && 'follow_up' === $item['status'] ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $item['next_follow_up_at'] ) : 'ثبت نشده' ); ?></td>
-						<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['created_at'] ) ); ?></td>
-						<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['updated_at'] ) ); ?></td>
-						<td class="crpcrm-actions">
-							<a class="button button-small" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'request_id' => absint( $item['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده' ); ?></a>
-							<?php if ( empty( $item['owner_id'] ) && CRPCRM_Request_Access_Service::can_claim_request( $item ) ) : ?><?php crpcrm_admin_claim_form( $item['id'] ); ?><?php endif; ?>
-							<?php if ( $can_manage ) : ?>
-								<?php crpcrm_admin_owner_form( $item['id'], $item['owner_id'], $assignable_users ); ?>
-								<?php if ( ! empty( $item['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $item['id'] ); ?><?php endif; ?>
-							<?php endif; ?>
-							<?php if ( $can_delete ) : ?><?php crpcrm_admin_delete_form( $item['id'] ); ?><?php endif; ?>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-			<?php endif; ?>
-			</tbody>
-		</table>
+		<div class="crpcrm-table-wrap">
+			<table class="widefat fixed striped crpcrm-requests-table">
+				<thead><tr>
+					<th><?php echo esc_html( 'کد پیگیری' ); ?></th><th><?php echo esc_html( 'مشتری' ); ?></th><th><?php echo esc_html( 'موبایل' ); ?></th><th><?php echo esc_html( 'نوع درخواست' ); ?></th><th><?php echo esc_html( 'خلاصه درخواست' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'منبع' ); ?></th><th><?php echo esc_html( 'منبع ورودی' ); ?></th><th><?php echo esc_html( 'کمپین' ); ?></th><th><?php echo esc_html( 'مسئول' ); ?></th><th><?php echo esc_html( 'پیگیری بعدی' ); ?></th><th><?php echo esc_html( 'تاریخ ثبت' ); ?></th><th><?php echo esc_html( 'آخرین بروزرسانی' ); ?></th><th><?php echo esc_html( 'عملیات' ); ?></th>
+				</tr></thead>
+				<tbody>
+				<?php if ( empty( $requests ) ) : ?>
+					<tr><td colspan="14"><?php echo esc_html( 'درخواستی یافت نشد.' ); ?></td></tr>
+				<?php else : ?>
+					<?php foreach ( $requests as $item ) : ?>
+						<?php
+						$landing_attribution = CRPCRM_Request_Repository::get_landing_attribution( $item );
+						$landing_touch       = ! empty( $landing_attribution['last_touch'] ) ? $landing_attribution['last_touch'] : ( ! empty( $landing_attribution['first_touch'] ) ? $landing_attribution['first_touch'] : array() );
+						$row_badges          = crpcrm_request_operational_badges( $item );
+						?>
+						<tr class="<?php echo esc_attr( crpcrm_request_row_classes( $item, get_current_user_id() ) ); ?>">
+							<td><strong><?php echo esc_html( $item['request_code'] ); ?></strong></td>
+							<td><?php echo esc_html( $item['customer_name'] ? $item['customer_name'] : '—' ); ?></td>
+							<td><?php echo esc_html( $item['customer_phone'] ? $item['customer_phone'] : $item['customer_phone_normalized'] ); ?></td>
+							<td><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $item['request_type'], $item ) ); ?></td>
+							<td>
+								<div class="crpcrm-request-summary">
+									<strong><?php echo esc_html( wp_trim_words( crpcrm_admin_request_display_summary( $item ), 14, '…' ) ); ?></strong>
+									<?php if ( ! empty( $item['last_action'] ) ) : ?>
+										<small><?php echo esc_html( CRPCRM_Helpers::get_activity_type_label( $item['last_action'] ) ); ?></small>
+									<?php endif; ?>
+								</div>
+							</td>
+							<td>
+								<div class="crpcrm-request-status-stack">
+									<span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( sanitize_html_class( $item['status'] ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $item['status'] ) ); ?></span>
+									<?php if ( $row_badges ) : ?><div class="crpcrm-request-badge-line"><?php echo wp_kses_post( $row_badges ); ?></div><?php endif; ?>
+								</div>
+							</td>
+							<td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $item['request_source'] ) ); ?></span></td>
+							<td><?php echo esc_html( ! empty( $landing_touch ) ? crpcrm_request_landing_touch_summary( $landing_touch ) : '—' ); ?></td>
+							<td><?php echo esc_html( $item['request_campaign'] ? $item['request_campaign'] : '—' ); ?></td>
+							<td><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $item['owner_id'] ) ); ?></td>
+							<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && strtotime( $item['next_follow_up_at'] ) < current_time( 'timestamp' ) && 'follow_up' === $item['status'] ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $item['next_follow_up_at'] ) : 'ثبت نشده' ); ?></td>
+							<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['created_at'] ) ); ?></td>
+							<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['updated_at'] ) ); ?></td>
+							<td class="crpcrm-actions">
+								<a class="button button-small" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'request_id' => absint( $item['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده' ); ?></a>
+								<?php if ( empty( $item['owner_id'] ) && CRPCRM_Request_Access_Service::can_claim_request( $item ) ) : ?><?php crpcrm_admin_claim_form( $item['id'] ); ?><?php endif; ?>
+								<?php if ( $can_manage ) : ?>
+									<?php crpcrm_admin_owner_form( $item['id'], $item['owner_id'], $assignable_users ); ?>
+									<?php if ( ! empty( $item['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $item['id'] ); ?><?php endif; ?>
+								<?php endif; ?>
+								<?php if ( $can_delete ) : ?><?php crpcrm_admin_delete_form( $item['id'] ); ?><?php endif; ?>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				<?php endif; ?>
+				</tbody>
+			</table>
+		</div>
 
 		<?php if ( $total_pages > 1 ) : ?>
 			<div class="tablenav"><div class="tablenav-pages">
@@ -367,10 +538,28 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		$detail_form  = CRPCRM_Request_Forms::get_form_for_request( $request['request_type'], $request_data );
 		$detail_items = CRPCRM_Dynamic_Form_Renderer::get_display_items( $detail_form, $request_data );
 		$landing_attribution = CRPCRM_Request_Repository::get_landing_attribution( $request );
+		$request_badges = crpcrm_request_operational_badges( $request );
 		?>
 		<p><a class="button" href="<?php echo esc_url( crpcrm_admin_requests_url() ); ?>"><?php echo esc_html( 'بازگشت به لیست درخواست‌ها' ); ?></a></p>
+		<div class="crpcrm-page-header crpcrm-request-detail-header">
+			<div>
+				<h1><?php echo esc_html( $request['request_code'] ); ?></h1>
+				<p class="description">
+					<?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?>
+					<span aria-hidden="true">·</span>
+					<?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?>
+				</p>
+			</div>
+			<div class="crpcrm-request-header-badges">
+				<span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( sanitize_html_class( $request['status'] ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span>
+				<span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $request['request_source'] ) ); ?></span>
+				<span class="crpcrm-badge crpcrm-badge-muted"><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $request['owner_id'] ) ); ?></span>
+				<?php if ( ! empty( $request['next_follow_up_at'] ) ) : ?><span class="crpcrm-badge crpcrm-badge-pending"><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['next_follow_up_at'] ) ); ?></span><?php endif; ?>
+				<?php if ( $request_badges ) : ?><div class="crpcrm-request-badge-line"><?php echo wp_kses_post( $request_badges ); ?></div><?php endif; ?>
+			</div>
+		</div>
 		<div class="crpcrm-detail-grid">
-			<div class="crpcrm-card crpcrm-info-card"><h2><?php echo esc_html( 'اطلاعات اصلی درخواست' ); ?></h2><dl>
+			<div class="crpcrm-card crpcrm-info-card crpcrm-request-meta-card"><h2><?php echo esc_html( 'اطلاعات اصلی درخواست' ); ?></h2><dl class="crpcrm-request-meta-list">
 				<dt><?php echo esc_html( 'کد پیگیری' ); ?></dt><dd><?php echo esc_html( $request['request_code'] ); ?></dd>
 				<dt><?php echo esc_html( 'نوع درخواست' ); ?></dt><dd><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?></dd>
 				<dt><?php echo esc_html( 'وضعیت داخلی' ); ?></dt><dd><span class="crpcrm-badge crpcrm-status-badge"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></dd>
@@ -384,7 +573,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<dt><?php echo esc_html( 'landing page' ); ?></dt><dd><?php echo esc_html( $request['request_landing_page'] ? $request['request_landing_page'] : '—' ); ?></dd>
 				<dt><?php echo esc_html( 'referrer' ); ?></dt><dd><?php echo esc_html( $request['request_referrer'] ? $request['request_referrer'] : '—' ); ?></dd>
 			</dl></div>
-			<div class="crpcrm-card crpcrm-customer-card"><h2><?php echo esc_html( 'اطلاعات مشتری' ); ?></h2><dl>
+			<div class="crpcrm-card crpcrm-customer-card crpcrm-request-meta-card"><h2><?php echo esc_html( 'اطلاعات مشتری' ); ?></h2><dl class="crpcrm-request-meta-list">
 				<dt><?php echo esc_html( 'نام و نام خانوادگی' ); ?></dt><dd><?php echo esc_html( $request['customer_name'] ? $request['customer_name'] : '—' ); ?></dd>
 				<dt><?php echo esc_html( 'شماره موبایل' ); ?></dt><dd><?php echo esc_html( $request['customer_phone'] ? $request['customer_phone'] : $request['customer_phone_normalized'] ); ?></dd>
 				<dt><?php echo esc_html( 'استان' ); ?></dt><dd><?php echo esc_html( $request['customer_province'] ? $request['customer_province'] : '—' ); ?></dd>
@@ -393,7 +582,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			</dl></div>
 		</div>
 
-		<div class="crpcrm-card">
+		<div class="crpcrm-card crpcrm-request-section">
 			<h2><?php echo esc_html( 'منبع ورودی' ); ?></h2>
 			<?php if ( ! empty( $landing_attribution ) ) : ?>
 				<dl class="crpcrm-landing-attribution">
@@ -429,13 +618,13 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			<?php endif; ?>
 		</div>
 
-		<div class="crpcrm-card"><h2><?php echo esc_html( 'اطلاعات فرم' ); ?></h2><dl class="crpcrm-form-data">
+		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'اطلاعات فرم' ); ?></h2><dl class="crpcrm-form-data">
 			<?php foreach ( $detail_items as $item ) : ?>
 				<?php echo CRPCRM_Dynamic_Form_Renderer::render_display_item( $item, 'admin' ); ?>
 			<?php endforeach; ?>
 		</dl></div>
 
-		<div class="crpcrm-card"><h2><?php echo esc_html( 'گفت‌وگو' ); ?></h2>
+		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'گفت‌وگو' ); ?></h2>
 			<?php if ( ! empty( $request_conversation ) ) : ?>
 				<ol class="crpcrm-request-conversation">
 					<?php foreach ( $request_conversation as $message ) : ?>
@@ -469,8 +658,8 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			<?php endif; ?>
 		</div>
 
-		<div class="crpcrm-card"><h2><?php echo esc_html( 'عملیات' ); ?></h2>
-			<div class="crpcrm-request-actions">
+		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'عملیات' ); ?></h2>
+			<div class="crpcrm-request-actions crpcrm-request-actions-panel">
 				<?php if ( $can_claim ) : ?><?php crpcrm_admin_claim_form( $request['id'] ); ?><?php endif; ?>
 				<?php if ( $can_manage ) : ?>
 					<?php crpcrm_admin_owner_form( $request['id'], $request['owner_id'], $assignable_users ); ?>

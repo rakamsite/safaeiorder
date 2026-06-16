@@ -125,12 +125,17 @@ class CRPCRM_Admin_Menu {
 		}
 
 		$admin_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/admin.css';
+		$admin_ui_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/admin-ui.css';
 		$admin_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/admin.js';
 		$request_preview_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/request-file-preview.css';
 		$request_preview_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/request-file-preview.js';
+		$reports_css_path         = CRPCRM_PLUGIN_DIR . 'assets/css/reports.css';
+		$reports_js_path          = CRPCRM_PLUGIN_DIR . 'assets/js/admin-reports.js';
+		$chartjs_path             = CRPCRM_PLUGIN_DIR . 'assets/vendor/chartjs/chart.umd.min.js';
 		wp_enqueue_style( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/css/admin.css', array(), file_exists( $admin_css_path ) ? filemtime( $admin_css_path ) : CRPCRM_VERSION );
+		wp_enqueue_style( 'crpcrm-admin-ui', CRPCRM_PLUGIN_URL . 'assets/css/admin-ui.css', array( 'crpcrm-admin' ), file_exists( $admin_ui_css_path ) ? filemtime( $admin_ui_css_path ) : CRPCRM_VERSION );
 		wp_enqueue_script( 'crpcrm-admin', CRPCRM_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'jquery-ui-sortable' ), file_exists( $admin_js_path ) ? filemtime( $admin_js_path ) : CRPCRM_VERSION, true );
-		wp_enqueue_style( 'crpcrm-request-file-preview', CRPCRM_PLUGIN_URL . 'assets/css/request-file-preview.css', array(), file_exists( $request_preview_css_path ) ? filemtime( $request_preview_css_path ) : CRPCRM_VERSION );
+		wp_enqueue_style( 'crpcrm-request-file-preview', CRPCRM_PLUGIN_URL . 'assets/css/request-file-preview.css', array( 'crpcrm-admin-ui' ), file_exists( $request_preview_css_path ) ? filemtime( $request_preview_css_path ) : CRPCRM_VERSION );
 		wp_enqueue_script( 'crpcrm-request-file-preview', CRPCRM_PLUGIN_URL . 'assets/js/request-file-preview.js', array(), file_exists( $request_preview_js_path ) ? filemtime( $request_preview_js_path ) : CRPCRM_VERSION, true );
 		wp_localize_script(
 			'crpcrm-admin',
@@ -152,13 +157,19 @@ class CRPCRM_Admin_Menu {
 			)
 		);
 
+		if ( false !== strpos( $hook_suffix, 'crpcrm-reports' ) ) {
+			wp_enqueue_style( 'crpcrm-reports', CRPCRM_PLUGIN_URL . 'assets/css/reports.css', array( 'crpcrm-admin-ui' ), file_exists( $reports_css_path ) ? filemtime( $reports_css_path ) : CRPCRM_VERSION );
+			wp_enqueue_script( 'crpcrm-chartjs', CRPCRM_PLUGIN_URL . 'assets/vendor/chartjs/chart.umd.min.js', array(), file_exists( $chartjs_path ) ? filemtime( $chartjs_path ) : CRPCRM_VERSION, true );
+			wp_enqueue_script( 'crpcrm-admin-reports', CRPCRM_PLUGIN_URL . 'assets/js/admin-reports.js', array( 'crpcrm-chartjs' ), file_exists( $reports_js_path ) ? filemtime( $reports_js_path ) : CRPCRM_VERSION, true );
+		}
+
 		if ( ! CRPCRM_Notification_Service::is_enabled() || ! is_user_logged_in() || ! CRPCRM_Notification_Service::current_user_can_view_notifications() ) {
 			return;
 		}
 
 		$notifications_css_path = CRPCRM_PLUGIN_DIR . 'assets/css/admin-notifications.css';
 		$notifications_js_path  = CRPCRM_PLUGIN_DIR . 'assets/js/admin-notifications.js';
-		wp_enqueue_style( 'crpcrm-admin-notifications', CRPCRM_PLUGIN_URL . 'assets/css/admin-notifications.css', array( 'crpcrm-admin' ), file_exists( $notifications_css_path ) ? filemtime( $notifications_css_path ) : CRPCRM_VERSION );
+		wp_enqueue_style( 'crpcrm-admin-notifications', CRPCRM_PLUGIN_URL . 'assets/css/admin-notifications.css', array( 'crpcrm-admin-ui' ), file_exists( $notifications_css_path ) ? filemtime( $notifications_css_path ) : CRPCRM_VERSION );
 		wp_enqueue_script( 'crpcrm-admin-notifications', CRPCRM_PLUGIN_URL . 'assets/js/admin-notifications.js', array(), file_exists( $notifications_js_path ) ? filemtime( $notifications_js_path ) : CRPCRM_VERSION, true );
 		wp_localize_script(
 			'crpcrm-admin-notifications',

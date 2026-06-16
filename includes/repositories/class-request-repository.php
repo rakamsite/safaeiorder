@@ -507,8 +507,11 @@ class CRPCRM_Request_Repository {
 	public function count_summary_for_user( $user_id ) {
 		$user_id = absint( $user_id );
 		return array(
+			'new_requests'      => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'status' => 'new' ) ),
 			'unassigned'        => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ),
 			'mine'              => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me' ) ),
+			'customer_replies'   => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'workflow_filter' => 'customer_replies', 'status_group' => 'open' ) ),
+			'lead_follow_ups'    => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'request_type' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP, 'status_group' => 'open' ) ),
 			'followups_today'   => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'workflow_filter' => 'followups_today' ) ),
 			'overdue_followups' => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'workflow_filter' => 'overdue_followups' ) ),
 		);
@@ -517,8 +520,11 @@ class CRPCRM_Request_Repository {
 	public function count_summary_for_manager( $user_id, $stale_hours = 48 ) {
 		$user_id = absint( $user_id );
 		return array(
+			'new_requests'      => $this->count_for_admin( array( 'user_id' => $user_id, 'status' => 'new' ) ),
 			'unassigned'        => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ),
 			'open'              => $this->count_for_admin( array( 'user_id' => $user_id, 'status_group' => 'open' ) ),
+			'customer_replies'   => $this->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'customer_replies', 'status_group' => 'open' ) ),
+			'lead_follow_ups'    => $this->count_for_admin( array( 'user_id' => $user_id, 'request_type' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP, 'status_group' => 'open' ) ),
 			'followups_today'   => $this->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'followups_today' ) ),
 			'overdue_followups' => $this->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'overdue_followups' ) ),
 			'stale'             => $this->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'stale', 'stale_hours' => absint( $stale_hours ) ) ),
@@ -604,6 +610,9 @@ class CRPCRM_Request_Repository {
 				$where[]  = 'r.status = %s AND r.next_follow_up_at < %s';
 				$values[] = 'follow_up';
 				$values[] = CRPCRM_Helpers::current_datetime();
+			} elseif ( 'customer_replies' === $workflow_filter ) {
+				$where[]  = 'r.last_action = %s';
+				$values[] = 'customer_reply';
 			} elseif ( 'stale' === $workflow_filter ) {
 				if ( CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 					$stale_hours = max( 1, absint( $args['stale_hours'] ) );

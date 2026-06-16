@@ -145,6 +145,7 @@ request_data
 - هر نوع فیلد جدید در Form Builder باید چهار بخش را هم‌زمان داشته باشد: validation، sanitize، render و رفتار summary.
 - هر تغییر schema باید `CRPCRM_DB_VERSION` را افزایش دهد و با `dbDelta` هماهنگ باشد.
 - هر upload جدید باید از helper مرکزی upload و مسیر اختصاصی افزونه استفاده کند.
+- UI افزونه باید فقط با کلاس‌های prefix‌دار `crpcrm` و CSS scoped پیاده شود؛ selector عمومی بدون scope ممنوع است.
 - viewهای بزرگ نباید دوباره به فایل‌های بسیار حجیم و سخت‌نگهداری تبدیل شوند؛ در صورت نیاز باید به partialهای کوچک‌تر و امن‌تر تقسیم شوند.
 - خاموش بودن یک feature نباید داده‌های ذخیره‌شده یا فرم‌های فعال را حذف کند.
 
@@ -157,6 +158,19 @@ request_data
 - **Phase 6:** اضافه کردن ماژول سبک Form Builder، انجام‌شده.
 - **Phase 7:** اتصال Form Builder به ثبت درخواست و seed فرم‌های اولیه، انجام‌شده.
 - **Phase 8:** پاکسازی نهایی docs و code.
+
+## Reports Dashboard Rules
+
+- Reports logic must live in a service/repository layer, not directly in the view.
+- Chart libraries must be local assets and only enqueue on the reports page.
+- UI-only changes must keep request, tracking, upload, notification, and workflow logic untouched.
+
+## Operational Staff UI Rules
+
+- Staff and manager operational pages should use the shared `crpcrm` design system classes.
+- List pages should emphasize quick actions, clear status badges, and lightweight operational summaries.
+- UI-only improvements must not change request routing, assignment, reply, notification, or follow-up logic.
+- New staff-facing sections should keep feature toggles, capability checks, and request ownership rules intact.
 
 ### Phase 7A Registry Rules
 
