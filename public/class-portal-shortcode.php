@@ -342,6 +342,17 @@ class CRPCRM_Portal_Shortcode {
 		if ( ! empty( $landing_attribution ) ) {
 			$request_data['_landing_attribution'] = $landing_attribution;
 		}
+		$effective_attribution = $attribution;
+		$landing_touch         = ! empty( $landing_attribution['last_touch'] ) ? $landing_attribution['last_touch'] : ( ! empty( $landing_attribution['first_touch'] ) ? $landing_attribution['first_touch'] : array() );
+		if ( ! empty( $landing_touch ) ) {
+			$effective_attribution['source']       = ! empty( $landing_touch['source_code'] ) ? sanitize_text_field( $landing_touch['source_code'] ) : $effective_attribution['source'];
+			$effective_attribution['medium']       = ! empty( $landing_touch['medium_code'] ) ? sanitize_text_field( $landing_touch['medium_code'] ) : $effective_attribution['medium'];
+			$effective_attribution['campaign']     = ! empty( $landing_touch['campaign_code'] ) ? sanitize_text_field( $landing_touch['campaign_code'] ) : $effective_attribution['campaign'];
+			$effective_attribution['content']      = ! empty( $landing_touch['content_code'] ) ? sanitize_text_field( $landing_touch['content_code'] ) : $effective_attribution['content'];
+			$effective_attribution['term']         = ! empty( $landing_touch['term_code'] ) ? sanitize_text_field( $landing_touch['term_code'] ) : $effective_attribution['term'];
+			$effective_attribution['landing_page'] = ! empty( $landing_attribution['conversion_page'] ) ? esc_url_raw( $landing_attribution['conversion_page'] ) : $effective_attribution['landing_page'];
+			$effective_attribution['referrer']     = ! empty( $landing_attribution['referrer'] ) ? esc_url_raw( $landing_attribution['referrer'] ) : $effective_attribution['referrer'];
+		}
 		$now             = CRPCRM_Helpers::current_datetime();
 
 		$request_id = $this->request_repository->create(
@@ -356,13 +367,13 @@ class CRPCRM_Portal_Shortcode {
 				'request_title'        => $form['title'],
 				'request_summary'      => $request_summary,
 				'request_data'         => $request_data,
-				'request_source'       => $attribution['source'],
-				'request_medium'       => $attribution['medium'],
-				'request_campaign'     => $attribution['campaign'],
-				'request_content'      => $attribution['content'],
-				'request_term'         => $attribution['term'],
-				'request_landing_page' => $attribution['landing_page'],
-				'request_referrer'     => $attribution['referrer'],
+				'request_source'       => $effective_attribution['source'],
+				'request_medium'       => $effective_attribution['medium'],
+				'request_campaign'     => $effective_attribution['campaign'],
+				'request_content'      => $effective_attribution['content'],
+				'request_term'         => $effective_attribution['term'],
+				'request_landing_page' => $effective_attribution['landing_page'],
+				'request_referrer'     => $effective_attribution['referrer'],
 				'last_activity_at'     => $now,
 				'created_at'           => $now,
 				'updated_at'           => $now,
@@ -406,13 +417,13 @@ class CRPCRM_Portal_Shortcode {
 				'meta'          => array(
 					'request_type' => $request_type,
 					'request_code' => $request_code,
-					'source'       => $attribution['source'],
-					'campaign'     => $attribution['campaign'],
+					'source'       => $effective_attribution['source'],
+					'campaign'     => $effective_attribution['campaign'],
 				),
 			)
 		);
 
-		CRPCRM_Logger::info( 'customer_request_created', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code, 'request_type' => $request_type, 'source' => $attribution['source'], 'campaign' => $attribution['campaign'] ) );
+		CRPCRM_Logger::info( 'customer_request_created', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code, 'request_type' => $request_type, 'source' => $effective_attribution['source'], 'campaign' => $effective_attribution['campaign'] ) );
 		$this->notify_sales_team_about_request( $request_id, $form['title'] );
 
 		wp_safe_redirect(

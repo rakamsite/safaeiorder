@@ -42,6 +42,7 @@ class CRPCRM_Admin_Menu {
 			'crpcrm-reports'       => 'reports',
 			'crpcrm-staff'         => 'staff',
 			'crpcrm-notifications' => 'notifications',
+			'crpcrm-landings'      => 'landing_manager',
 		);
 		if ( isset( $page_features[ $page ] ) && ! CRPCRM_Feature_Manager::is_enabled( $page_features[ $page ] ) ) {
 			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
@@ -76,6 +77,11 @@ class CRPCRM_Admin_Menu {
 		$parent_slug         = $crm_ui_enabled ? 'crpcrm-dashboard' : 'crpcrm-settings';
 		$parent_capability   = $crm_ui_enabled ? 'crpcrm_use_staff_portal' : $settings_capability;
 		$parent_callback     = $crm_ui_enabled ? array( $this->admin_pages, 'dashboard' ) : array( $this->admin_pages, 'settings' );
+		if ( CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) && ! current_user_can( 'crpcrm_use_staff_portal' ) && current_user_can( 'crpcrm_manage_landings' ) ) {
+			$parent_slug       = 'crpcrm-settings';
+			$parent_capability = 'crpcrm_manage_landings';
+			$parent_callback   = array( $this->admin_pages, 'settings' );
+		}
 		$unread_count        = CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->get_unread_count( get_current_user_id() ) : 0;
 		$can_view_notifications = CRPCRM_Notification_Service::current_user_can_view_notifications();
 		$notifications_title = 'اعلانات';

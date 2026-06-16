@@ -108,6 +108,15 @@ class CRPCRM_Landing_Tracking_Service {
 			);
 		}
 
+		if ( ! $this->is_same_site_request() ) {
+			wp_send_json_success(
+				array(
+					'tracking' => false,
+					'reason'   => 'cross_site_request',
+				)
+			);
+		}
+
 		$result = $this->track_request(
 			array(
 				'source'      => 'js',
@@ -175,8 +184,18 @@ class CRPCRM_Landing_Tracking_Service {
 		$ip_hash    = $this->current_ip_hash();
 		$ua_hash    = $this->hash_value( $user_agent );
 
+		if ( $this->is_tracking_rate_limited( absint( $landing['id'] ), $visitor_id, $ip_hash, $ua_hash ) ) {
+			return array(
+				'tracking'     => false,
+				'reason'       => 'rate_limited',
+				'landing_id'   => absint( $landing['id'] ),
+				'landing_slug' => $slug,
+			);
+		}
+
 		$duplicate = $this->click_repository->find_recent_duplicate( absint( $landing['id'] ), $visitor_id, $ip_hash, $ua_hash, self::DUPLICATE_WINDOW_MINUTES );
 		if ( $duplicate && ! empty( $duplicate['id'] ) ) {
+			$this->set_tracking_rate_limit( absint( $landing['id'] ), $visitor_id, $ip_hash, $ua_hash );
 			$this->maybe_refresh_touch_cookies( $landing, $duplicate, $current_url, $visitor_id );
 
 			return array(
@@ -206,6 +225,7 @@ class CRPCRM_Landing_Tracking_Service {
 			'current_url'   => $current_url,
 			'referrer'      => isset( $context['referrer'] ) ? $this->normalize_internal_referrer( $context['referrer'] ) : $this->get_http_referrer(),
 			'user_agent'    => $user_agent,
+			'user_agent_hash'=> $ua_hash,
 			'ip_hash'       => $ip_hash,
 			'created_at'    => CRPCRM_Helpers::current_datetime(),
 		);
@@ -215,6 +235,8 @@ class CRPCRM_Landing_Tracking_Service {
 			$this->log_error( 'landing_tracking_insert_failed', array( 'code' => $click_id->get_error_code(), 'landing_id' => absint( $landing['id'] ) ) );
 			return $click_id;
 		}
+
+		$this->set_tracking_rate_limit( absint( $landing['id'] ), $visitor_id, $ip_hash, $ua_hash );
 
 		$this->maybe_set_first_touch_cookie( $landing, absint( $click_id ), $current_url );
 		$this->set_last_touch_cookie( $landing, absint( $click_id ), $current_url );
@@ -483,6 +505,55 @@ class CRPCRM_Landing_Tracking_Service {
 		}
 
 		return $normalized;
+	}
+
+	private function is_same_site_request() {
+		$origin   = ! empty( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
+		$referer  = ! empty( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '';
+		$request  = $this->get_current_url();
+
+		foreach ( array( $origin, $referer, $request ) as $url ) {
+			if ( '' === $url ) {
+				continue;
+			}
+			if ( ! $this->is_same_site_url( $url ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private function is_same_site_url( $url ) {
+		$url = esc_url_raw( (string) $url );
+		if ( '' === $url ) {
+			return false;
+		}
+
+		$site_host = strtolower( wp_parse_url( home_url(), PHP_URL_HOST ) );
+		$url_host  = strtolower( wp_parse_url( $url, PHP_URL_HOST ) );
+		if ( '' === $site_host || '' === $url_host ) {
+			return false;
+		}
+
+		$site_host = preg_replace( '/^www\./', '', $site_host );
+		$url_host  = preg_replace( '/^www\./', '', $url_host );
+
+		return $site_host === $url_host;
+	}
+
+	private function is_tracking_rate_limited( $landing_id, $visitor_id, $ip_hash, $ua_hash ) {
+		$key = 'crpcrm_landing_rl_' . substr( hash( 'sha256', implode( '|', array( absint( $landing_id ), (string) $visitor_id, (string) $ip_hash, (string) $ua_hash ) ) ), 0, 40 );
+		if ( get_transient( $key ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	private function set_tracking_rate_limit( $landing_id, $visitor_id, $ip_hash, $ua_hash ) {
+		$key = 'crpcrm_landing_rl_' . substr( hash( 'sha256', implode( '|', array( absint( $landing_id ), (string) $visitor_id, (string) $ip_hash, (string) $ua_hash ) ) ), 0, 40 );
+		set_transient( $key, 1, self::DUPLICATE_WINDOW_MINUTES * MINUTE_IN_SECONDS );
 	}
 
 	private function get_current_url() {

@@ -102,6 +102,73 @@ class CRPCRM_Request_Repository {
 		return self::get_landing_attribution( $request );
 	}
 
+	public function count_requests_with_landing_attribution() {
+		global $wpdb;
+
+		$like = '%' . $wpdb->esc_like( '"_landing_attribution"' ) . '%';
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$this->table} WHERE request_data LIKE %s",
+				$like
+			)
+		);
+	}
+
+	public function get_landing_request_stats_map( array $landings ) {
+		$landings = array_values( array_filter( $landings, 'is_array' ) );
+		$stats    = array();
+
+		foreach ( $landings as $landing ) {
+			$landing_id   = absint( $landing['id'] ?? 0 );
+			$landing_slug = sanitize_key( $landing['slug'] ?? '' );
+
+			if ( ! $landing_id && '' === $landing_slug ) {
+				continue;
+			}
+
+			$stats[ $landing_id ] = $this->get_landing_request_stats( $landing_id, $landing_slug );
+		}
+
+		return $stats;
+	}
+
+	public function get_landing_request_stats( $landing_id, $landing_slug = '' ) {
+		global $wpdb;
+
+		$landing_id   = absint( $landing_id );
+		$landing_slug = sanitize_key( $landing_slug );
+		$where        = array();
+		$values       = array();
+
+		if ( $landing_id ) {
+			$where[]  = 'request_data LIKE %s';
+			$values[] = '%"landing_id":' . $landing_id . '%';
+		}
+
+		if ( '' !== $landing_slug ) {
+			$where[]  = 'request_data LIKE %s';
+			$values[] = '%"landing_slug":"' . $wpdb->esc_like( $landing_slug ) . '"%';
+		}
+
+		if ( empty( $where ) ) {
+			return array(
+				'landing_id'         => $landing_id,
+				'request_conversions'=> 0,
+				'last_conversion_at' => '',
+			);
+		}
+
+		$sql = "SELECT COUNT(*) AS request_conversions, MAX(created_at) AS last_conversion_at FROM {$this->table} WHERE (" . implode( ' OR ', $where ) . ')';
+		$row = $wpdb->get_row( $wpdb->prepare( $sql, $values ), ARRAY_A );
+
+		return array(
+			'landing_id'          => $landing_id,
+			'request_conversions' => absint( $row['request_conversions'] ?? 0 ),
+			'last_conversion_at'  => ! empty( $row['last_conversion_at'] ) ? sanitize_text_field( $row['last_conversion_at'] ) : '',
+		);
+	}
+
 	public function delete_permanently( $request_id ) {
 		global $wpdb;
 

@@ -579,6 +579,8 @@ class CRPCRM_Attribution_Service {
 		return array(
 			'landing_id'    => isset( $data['landing_id'] ) ? absint( $data['landing_id'] ) : 0,
 			'landing_slug'  => isset( $data['landing_slug'] ) ? sanitize_key( $data['landing_slug'] ) : '',
+			'landing_title' => isset( $data['landing_title'] ) ? sanitize_text_field( $data['landing_title'] ) : '',
+			'destination_url' => isset( $data['destination_url'] ) ? esc_url_raw( $data['destination_url'] ) : '',
 			'source_code'   => isset( $data['source_code'] ) ? sanitize_text_field( $data['source_code'] ) : '',
 			'medium_code'   => isset( $data['medium_code'] ) ? sanitize_text_field( $data['medium_code'] ) : '',
 			'campaign_code' => isset( $data['campaign_code'] ) ? sanitize_text_field( $data['campaign_code'] ) : '',
@@ -612,8 +614,8 @@ class CRPCRM_Attribution_Service {
 			}
 		}
 
-		if ( ! is_array( $landing ) || empty( $landing['id'] ) || 'active' !== ( $landing['status'] ?? '' ) ) {
-			return array();
+		if ( ! is_array( $landing ) || empty( $landing['id'] ) ) {
+			return $touch;
 		}
 
 		$touch['landing_id']     = absint( $landing['id'] );

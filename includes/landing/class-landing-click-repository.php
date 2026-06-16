@@ -37,12 +37,13 @@ class CRPCRM_Landing_Click_Repository {
 				'current_url'        => isset( $data['current_url'] ) ? esc_url_raw( $data['current_url'] ) : null,
 				'referrer'           => isset( $data['referrer'] ) ? esc_url_raw( $data['referrer'] ) : null,
 				'user_agent'         => isset( $data['user_agent'] ) ? sanitize_text_field( $data['user_agent'] ) : null,
+				'user_agent_hash'    => isset( $data['user_agent_hash'] ) ? sanitize_text_field( $data['user_agent_hash'] ) : null,
 				'ip_hash'            => isset( $data['ip_hash'] ) ? sanitize_text_field( $data['ip_hash'] ) : null,
 				'created_at'         => isset( $data['created_at'] ) ? $data['created_at'] : CRPCRM_Helpers::current_datetime(),
 				'converted_request_id' => ! empty( $data['converted_request_id'] ) ? absint( $data['converted_request_id'] ) : null,
 				'converted_at'       => isset( $data['converted_at'] ) ? $data['converted_at'] : null,
 			),
-			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
+			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' )
 		);
 
 		if ( false === $inserted ) {
@@ -85,8 +86,8 @@ class CRPCRM_Landing_Click_Repository {
 			$cutoff = $now;
 		}
 		$table  = $this->table_name();
-		$sql    = "SELECT * FROM {$table} WHERE landing_id = %d AND created_at >= %s AND ((%s <> '' AND visitor_id = %s) OR (ip_hash = %s AND user_agent = %s)) ORDER BY id DESC LIMIT 1";
-		$args   = array( $landing_id, $cutoff, (string) $visitor_id, (string) $visitor_id, (string) $ip_hash, (string) $user_agent_hash );
+		$sql    = "SELECT * FROM {$table} WHERE landing_id = %d AND created_at >= %s AND ((%s <> '' AND visitor_id = %s) OR (ip_hash = %s AND ((user_agent_hash IS NOT NULL AND user_agent_hash = %s) OR (user_agent_hash IS NULL AND user_agent = %s)))) ORDER BY id DESC LIMIT 1";
+		$args   = array( $landing_id, $cutoff, (string) $visitor_id, (string) $visitor_id, (string) $ip_hash, (string) $user_agent_hash, (string) $user_agent_hash );
 		$row    = $wpdb->get_row( call_user_func_array( array( $wpdb, 'prepare' ), array_merge( array( $sql ), $args ) ), ARRAY_A );
 
 		return $row ? $row : null;

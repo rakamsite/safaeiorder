@@ -101,7 +101,7 @@ class CRPCRM_Public {
 	public function handle_upload_request_file() {
 		check_ajax_referer( 'crpcrm_upload_request_file', 'nonce' );
 
-		if ( ! is_user_logged_in() ) {
+		if ( ! is_user_logged_in() || ! $this->current_user_can_upload_request_files() ) {
 			wp_send_json_error( array( 'message' => 'unauthorized' ), 403 );
 		}
 
@@ -116,5 +116,25 @@ class CRPCRM_Public {
 		}
 
 		wp_send_json_success( $file );
+	}
+
+	private function current_user_can_upload_request_files() {
+		if ( current_user_can( 'manage_options' ) || current_user_can( 'crpcrm_manage_plugin' ) || current_user_can( 'crpcrm_manage_settings' ) || current_user_can( 'crpcrm_manage_requests' ) || current_user_can( 'crpcrm_assign_requests' ) || current_user_can( 'crpcrm_view_all_requests' ) || current_user_can( 'crpcrm_manage_staff_portal' ) ) {
+			return true;
+		}
+
+		if ( current_user_can( 'crpcrm_use_staff_portal' ) ) {
+			return CRPCRM_Feature_Manager::is_enabled( 'staff' );
+		}
+
+		if ( current_user_can( 'crpcrm_use_customer_portal' ) ) {
+			return CRPCRM_Feature_Manager::is_enabled( 'portal' );
+		}
+
+		if ( current_user_can( 'crpcrm_create_requests' ) ) {
+			return CRPCRM_Feature_Manager::is_enabled( 'form_builder' );
+		}
+
+		return false;
 	}
 }
