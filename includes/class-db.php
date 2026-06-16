@@ -91,6 +91,8 @@ class CRPCRM_DB {
 				first_landing_page TEXT NULL,
 				first_referrer TEXT NULL,
 				first_seen_at DATETIME NULL,
+				landing_attribution LONGTEXT NULL,
+				visitor_id VARCHAR(100) NULL,
 				last_source VARCHAR(100) NULL,
 				last_medium VARCHAR(100) NULL,
 				last_campaign VARCHAR(190) NULL,
@@ -107,6 +109,7 @@ class CRPCRM_DB {
 				KEY profile_completed (profile_completed),
 				KEY first_source (first_source),
 				KEY last_source (last_source),
+				KEY visitor_id (visitor_id),
 				KEY created_at (created_at)
 			) $charset_collate;",
 			"CREATE TABLE $attribution_events (
@@ -152,6 +155,8 @@ class CRPCRM_DB {
 				request_campaign VARCHAR(190) NULL,
 				request_content VARCHAR(190) NULL,
 				request_term VARCHAR(190) NULL,
+				request_landing_id BIGINT UNSIGNED NULL,
+				request_landing_slug VARCHAR(100) NULL,
 				request_landing_page TEXT NULL,
 				request_referrer TEXT NULL,
 				last_action VARCHAR(100) NULL,
@@ -174,6 +179,8 @@ class CRPCRM_DB {
 				KEY request_source (request_source),
 				KEY request_campaign (request_campaign),
 				KEY request_content (request_content),
+				KEY request_landing_id (request_landing_id),
+				KEY request_landing_slug (request_landing_slug),
 				KEY next_follow_up_at (next_follow_up_at),
 				KEY closed_at (closed_at)
 			) $charset_collate;",

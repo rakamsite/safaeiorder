@@ -81,9 +81,19 @@ class CRPCRM_Request_Repository {
 			return false;
 		}
 
-		$request_data                           = self::get_merged_request_data( $request );
-		$request_data['_landing_attribution']    = self::normalize_landing_attribution( $landing_attribution );
-		return $this->update( $request_id, array( 'request_data' => $request_data ) );
+		$request_data                         = self::get_merged_request_data( $request );
+		$normalized                           = self::normalize_landing_attribution( $landing_attribution );
+		$request_data['_landing_attribution'] = $normalized;
+		$summary                              = self::extract_landing_summary_fields( $normalized );
+
+		return $this->update(
+			$request_id,
+			array(
+				'request_data'         => $request_data,
+				'request_landing_id'   => $summary['request_landing_id'],
+				'request_landing_slug' => $summary['request_landing_slug'],
+			)
+		);
 	}
 
 	public function save_request_attribution( $request_id, array $request_attribution ) {
@@ -105,14 +115,7 @@ class CRPCRM_Request_Repository {
 	public function count_requests_with_landing_attribution() {
 		global $wpdb;
 
-		$like = '%' . $wpdb->esc_like( '"_landing_attribution"' ) . '%';
-
-		return (int) $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table} WHERE request_data LIKE %s",
-				$like
-			)
-		);
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table} WHERE request_landing_slug IS NOT NULL AND request_landing_slug <> ''" );
 	}
 
 	public function get_landing_request_stats_map( array $landings ) {
@@ -141,20 +144,18 @@ class CRPCRM_Request_Repository {
 		$where        = array();
 		$values       = array();
 
-		if ( $landing_id ) {
-			$where[]  = 'request_data LIKE %s';
-			$values[] = '%"landing_id":' . $landing_id . '%';
-		}
-
 		if ( '' !== $landing_slug ) {
-			$where[]  = 'request_data LIKE %s';
-			$values[] = '%"landing_slug":"' . $wpdb->esc_like( $landing_slug ) . '"%';
+			$where[]  = 'request_landing_slug = %s';
+			$values[] = $landing_slug;
+		} elseif ( $landing_id ) {
+			$where[]  = 'request_landing_id = %d';
+			$values[] = $landing_id;
 		}
 
 		if ( empty( $where ) ) {
 			return array(
 				'landing_id'         => $landing_id,
-				'request_conversions'=> 0,
+				'request_conversions' => 0,
 				'last_conversion_at' => '',
 			);
 		}
@@ -670,9 +671,9 @@ class CRPCRM_Request_Repository {
 
 	private function sanitize_data( $data ) {
 		$clean = array();
-		$int_fields = array( 'customer_id', 'user_id', 'owner_id' );
+		$int_fields = array( 'customer_id', 'user_id', 'owner_id', 'request_landing_id' );
 		$key_fields = array( 'request_type', 'form_id' );
-		$text_fields = array( 'request_code', 'form_version', 'status', 'request_title', 'request_source', 'request_medium', 'request_campaign', 'request_content', 'request_term', 'last_action', 'close_reason', 'invalid_reason' );
+		$text_fields = array( 'request_code', 'form_version', 'status', 'request_title', 'request_source', 'request_medium', 'request_campaign', 'request_content', 'request_term', 'request_landing_slug', 'last_action', 'close_reason', 'invalid_reason' );
 		$textarea_fields = array( 'request_summary', 'request_landing_page', 'request_referrer' );
 		$date_fields = array( 'first_assigned_at', 'last_activity_at', 'next_follow_up_at', 'closed_at', 'created_at', 'updated_at' );
 
@@ -719,6 +720,15 @@ class CRPCRM_Request_Repository {
 		}
 		if ( empty( $data['form_version'] ) && ! empty( $request_data['form_version'] ) ) {
 			$data['form_version'] = $request_data['form_version'];
+		}
+		if ( empty( $data['request_landing_id'] ) || empty( $data['request_landing_slug'] ) ) {
+			$summary = self::extract_landing_summary_fields( $request_data['_landing_attribution'] ?? array() );
+			if ( empty( $data['request_landing_id'] ) && ! empty( $summary['request_landing_id'] ) ) {
+				$data['request_landing_id'] = $summary['request_landing_id'];
+			}
+			if ( empty( $data['request_landing_slug'] ) && ! empty( $summary['request_landing_slug'] ) ) {
+				$data['request_landing_slug'] = $summary['request_landing_slug'];
+			}
 		}
 		$data['request_data'] = $request_data;
 
@@ -772,8 +782,19 @@ class CRPCRM_Request_Repository {
 			'visitor_id'      => isset( $attribution['visitor_id'] ) ? sanitize_text_field( $attribution['visitor_id'] ) : '',
 			'conversion_page' => isset( $attribution['conversion_page'] ) ? esc_url_raw( $attribution['conversion_page'] ) : '',
 			'converted_at'    => isset( $attribution['converted_at'] ) ? sanitize_text_field( $attribution['converted_at'] ) : '',
+			'referrer'        => isset( $attribution['referrer'] ) ? esc_url_raw( $attribution['referrer'] ) : '',
 			'first_touch'     => $first_touch,
 			'last_touch'      => $last_touch,
+		);
+	}
+
+	private static function extract_landing_summary_fields( $attribution ) {
+		$attribution = self::normalize_landing_attribution( $attribution );
+		$touch       = ! empty( $attribution['last_touch'] ) ? $attribution['last_touch'] : ( ! empty( $attribution['first_touch'] ) ? $attribution['first_touch'] : array() );
+
+		return array(
+			'request_landing_id'   => absint( $touch['landing_id'] ?? 0 ),
+			'request_landing_slug' => sanitize_key( $touch['landing_slug'] ?? '' ),
 		);
 	}
 }
