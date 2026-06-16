@@ -30,14 +30,19 @@ class CRPCRM_Landing_Manager_Admin {
 			return;
 		}
 
-		add_menu_page(
+		$parent_slug = CRPCRM_Feature_Manager::is_crm_ui_enabled() ? 'crpcrm-dashboard' : 'crpcrm-settings';
+		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) && current_user_can( 'crpcrm_manage_landings' ) ) {
+			$parent_slug = 'crpcrm-settings';
+		}
+		$capability  = current_user_can( 'crpcrm_manage_landings' ) ? 'crpcrm_manage_landings' : 'manage_options';
+
+		add_submenu_page(
+			$parent_slug,
 			'مدیریت لندینگ‌ها',
 			'مدیریت لندینگ‌ها',
-			'crpcrm_manage_landings',
+			$capability,
 			'crpcrm-landings',
-			array( $this, 'render_page' ),
-			'dashicons-admin-links',
-			27
+			array( $this, 'render_page' )
 		);
 	}
 
@@ -69,15 +74,15 @@ class CRPCRM_Landing_Manager_Admin {
 			'crpcrm-landing-manager',
 			'crpcrmLandings',
 			array(
-				'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
-				'nonce'            => wp_create_nonce( 'crpcrm_search_landing_targets' ),
-				'copyLabel'        => 'کپی لینک',
-				'copiedLabel'      => 'کپی شد',
-				'searchingLabel'   => 'در حال جستجو...',
-				'emptyLabel'       => 'نتیجه‌ای پیدا نشد.',
-				'selectLabel'      => 'انتخاب',
-				'previewLabel'     => 'لینک نهایی',
-				'debug'            => defined( 'WP_DEBUG' ) && WP_DEBUG,
+				'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+				'nonce'          => wp_create_nonce( 'crpcrm_search_landing_targets' ),
+				'copyLabel'      => 'کپی لینک',
+				'copiedLabel'    => 'کپی شد',
+				'searchingLabel' => 'در حال جستجو...',
+				'emptyLabel'     => 'نتیجه‌ای پیدا نشد.',
+				'selectLabel'    => 'انتخاب',
+				'previewLabel'   => 'لینک نهایی',
+				'debug'          => defined( 'WP_DEBUG' ) && WP_DEBUG,
 			)
 		);
 	}
@@ -101,13 +106,16 @@ class CRPCRM_Landing_Manager_Admin {
 				'offset' => ( $page - 1 ) * $per_page,
 			)
 		);
-		$stats_map  = $this->manager->get_landing_stats_for_ids( wp_list_pluck( $list['items'], 'id' ) );
 
-		$landing_id = isset( $_GET['landing_id'] ) ? absint( $_GET['landing_id'] ) : 0;
-		$landing    = $landing_id ? $this->manager->get( $landing_id ) : null;
+		$stats_map       = $this->manager->get_landing_stats_for_items( $list['items'] );
+		$overview_stats  = $this->manager->get_overview_stats();
+		$landing_id      = isset( $_GET['landing_id'] ) ? absint( $_GET['landing_id'] ) : 0;
+		$landing         = $landing_id ? $this->manager->get( $landing_id ) : null;
+
 		if ( $landing_id && ! $landing ) {
 			$landing_id = 0;
 		}
+
 		$landing_stats = $landing_id ? $this->manager->get_landing_stats( $landing_id ) : array();
 
 		include CRPCRM_PLUGIN_DIR . 'admin/views/landing-manager.php';
@@ -116,24 +124,24 @@ class CRPCRM_Landing_Manager_Admin {
 	public function handle_save() {
 		$this->verify_action( 'crpcrm_save_landing_link', 'crpcrm_landing_nonce' );
 
-		$input = isset( $_POST['crpcrm_landing'] ) && is_array( $_POST['crpcrm_landing'] ) ? wp_unslash( $_POST['crpcrm_landing'] ) : array();
+		$input      = isset( $_POST['crpcrm_landing'] ) && is_array( $_POST['crpcrm_landing'] ) ? wp_unslash( $_POST['crpcrm_landing'] ) : array();
 		$landing_id = isset( $_POST['landing_id'] ) ? absint( $_POST['landing_id'] ) : 0;
 
 		$result = $landing_id ? $this->manager->update( $landing_id, $input ) : $this->manager->create( $input );
 		if ( is_wp_error( $result ) ) {
 			$this->redirect(
 				array(
-					'landing_id'       => $landing_id,
-					'landing-error'    => $result->get_error_code(),
-					'landing-message'  => $result->get_error_message(),
+					'landing_id'      => $landing_id,
+					'landing-error'   => $result->get_error_code(),
+					'landing-message' => $result->get_error_message(),
 				)
 			);
 		}
 
 		$this->redirect(
 			array(
-				'landing_id'     => absint( $result ),
-				'landing-saved'  => '1',
+				'landing_id'    => absint( $result ),
+				'landing-saved' => '1',
 			)
 		);
 	}
@@ -151,7 +159,7 @@ class CRPCRM_Landing_Manager_Admin {
 		if ( 'archive' === $action_type ) {
 			$result = $this->manager->delete_or_archive( $landing_id, get_current_user_id() );
 		} elseif ( 'toggle' === $action_type ) {
-			$landing = $this->manager->get( $landing_id );
+			$landing    = $this->manager->get( $landing_id );
 			$new_status = 'active';
 			if ( $landing && 'active' === ( $landing['status'] ?? '' ) ) {
 				$new_status = 'inactive';
@@ -164,7 +172,12 @@ class CRPCRM_Landing_Manager_Admin {
 		}
 
 		if ( is_wp_error( $result ) ) {
-			$this->redirect( array( 'landing-error' => $result->get_error_code(), 'landing-message' => $result->get_error_message() ) );
+			$this->redirect(
+				array(
+					'landing-error'   => $result->get_error_code(),
+					'landing-message' => $result->get_error_message(),
+				)
+			);
 		}
 
 		$this->redirect( array( 'landing-updated' => '1' ) );
@@ -185,7 +198,9 @@ class CRPCRM_Landing_Manager_Admin {
 		if ( ! $this->can_manage_landings() ) {
 			wp_die( esc_html( 'شما اجازه مدیریت لندینگ‌ها را ندارید.' ) );
 		}
+
 		check_admin_referer( $action, $nonce_name );
+
 		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
 			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
 		}

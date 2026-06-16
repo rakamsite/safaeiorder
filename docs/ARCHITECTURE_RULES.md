@@ -195,3 +195,6 @@ request_data
 - Tracking, cookies, click logging, and conversion reporting must remain out of phase 1.
 - In phase 2, the same `u` parameter may be tracked on the destination page without redirecting, and only internal pages that match the configured landing should be recorded.
 - `landing_manager` must remain independent from `portal`, `staff`, `notifications`, and `form_builder`.
+- The public landing tracking endpoint must not trust client-provided `current_url` blindly; same-site validation, destination matching, and bot filtering remain server-side.
+- For `file_upload`, legacy payloads that do not carry an `upload_token` may still be rendered for old requests, but new submissions must rely on server-verified pending uploads.
+- Pending upload cleanup cron/option cleanup should be removed during uninstall.

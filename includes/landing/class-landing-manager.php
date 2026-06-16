@@ -12,10 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class CRPCRM_Landing_Manager {
 	private $repository;
 	private $click_repository;
+	private $request_repository;
 
 	public function __construct( CRPCRM_Landing_Repository $repository = null ) {
-		$this->repository = $repository ? $repository : new CRPCRM_Landing_Repository();
-		$this->click_repository = class_exists( 'CRPCRM_Landing_Click_Repository' ) ? new CRPCRM_Landing_Click_Repository() : null;
+		$this->repository         = $repository ? $repository : new CRPCRM_Landing_Repository();
+		$this->click_repository   = class_exists( 'CRPCRM_Landing_Click_Repository' ) ? new CRPCRM_Landing_Click_Repository() : null;
+		$this->request_repository = class_exists( 'CRPCRM_Request_Repository' ) ? new CRPCRM_Request_Repository() : null;
 	}
 
 	public function create( array $data ) {
@@ -56,7 +58,8 @@ class CRPCRM_Landing_Manager {
 	}
 
 	public function get_landing_stats( $landing_id ) {
-		if ( ! $this->click_repository ) {
+		$landing = $this->get( $landing_id );
+		if ( ! is_array( $landing ) || empty( $landing['id'] ) ) {
 			return array(
 				'landing_id'         => absint( $landing_id ),
 				'valid_clicks'       => 0,
@@ -67,15 +70,91 @@ class CRPCRM_Landing_Manager {
 			);
 		}
 
-		return $this->click_repository->get_stats_for_landing( absint( $landing_id ) );
+		$stats = $this->get_landing_stats_for_items( array( $landing ) );
+
+		return isset( $stats[ absint( $landing_id ) ] ) ? $stats[ absint( $landing_id ) ] : array(
+			'landing_id'         => absint( $landing_id ),
+			'valid_clicks'       => 0,
+			'conversions'        => 0,
+			'conversion_rate'    => null,
+			'last_click_at'      => '',
+			'last_conversion_at' => '',
+		);
 	}
 
 	public function get_landing_stats_for_ids( array $landing_ids ) {
+		$landing_ids = array_values( array_filter( array_map( 'absint', $landing_ids ) ) );
+		if ( empty( $landing_ids ) ) {
+			return array();
+		}
+
+		$landings = array();
+		foreach ( $landing_ids as $landing_id ) {
+			$landing = $this->get( $landing_id );
+			if ( is_array( $landing ) && ! empty( $landing['id'] ) ) {
+				$landings[] = $landing;
+			}
+		}
+
+		return $this->get_landing_stats_for_items( $landings );
+	}
+
+	public function get_landing_stats_for_items( array $landings ) {
+		$landings = array_values( array_filter( $landings, 'is_array' ) );
 		if ( ! $this->click_repository ) {
 			return array();
 		}
 
-		return $this->click_repository->get_stats_for_landing_ids( $landing_ids );
+		$landing_ids      = array_values( array_filter( array_map( 'absint', wp_list_pluck( $landings, 'id' ) ) ) );
+		$click_stats_map  = $this->click_repository->get_stats_for_landing_ids( $landing_ids );
+		$request_stats_map = $this->request_repository ? $this->request_repository->get_landing_request_stats_map( $landings ) : array();
+		$stats_map        = array();
+
+		foreach ( $landings as $landing ) {
+			$landing_id    = absint( $landing['id'] ?? 0 );
+			$click_stats   = isset( $click_stats_map[ $landing_id ] ) ? $click_stats_map[ $landing_id ] : array();
+			$request_stats = isset( $request_stats_map[ $landing_id ] ) ? $request_stats_map[ $landing_id ] : array();
+			$valid_clicks  = absint( $click_stats['valid_clicks'] ?? 0 );
+			$conversions   = absint( $request_stats['request_conversions'] ?? 0 );
+
+			$stats_map[ $landing_id ] = array(
+				'landing_id'         => $landing_id,
+				'valid_clicks'       => $valid_clicks,
+				'conversions'        => $conversions,
+				'conversion_rate'    => $valid_clicks > 0 ? round( ( $conversions / $valid_clicks ) * 100, 1 ) : null,
+				'last_click_at'      => ! empty( $click_stats['last_click_at'] ) ? $click_stats['last_click_at'] : '',
+				'last_conversion_at' => ! empty( $request_stats['last_conversion_at'] ) ? $request_stats['last_conversion_at'] : ( ! empty( $click_stats['last_conversion_at'] ) ? $click_stats['last_conversion_at'] : '' ),
+			);
+		}
+
+		return $stats_map;
+	}
+
+	public function get_overview_stats() {
+		$total_requests = $this->request_repository ? $this->request_repository->count_requests_with_landing_attribution() : 0;
+		$all_landings   = $this->list_landings(
+			array(
+				'status' => '',
+				'limit'  => 5000,
+				'offset' => 0,
+			)
+		);
+		$stats_map      = $this->get_landing_stats_for_items( $all_landings['items'] );
+		$total_clicks   = 0;
+
+		foreach ( $stats_map as $stats ) {
+			$total_clicks += absint( $stats['valid_clicks'] ?? 0 );
+		}
+
+		return array(
+			'total'             => $this->repository->count(),
+			'active'            => $this->repository->count( array( 'status' => 'active' ) ),
+			'inactive'          => $this->repository->count( array( 'status' => 'inactive' ) ),
+			'archived'          => $this->repository->count( array( 'status' => 'archived' ) ),
+			'valid_clicks'      => $total_clicks,
+			'request_count'     => absint( $total_requests ),
+			'conversion_rate'   => $total_clicks > 0 ? round( ( $total_requests / $total_clicks ) * 100, 1 ) : null,
+		);
 	}
 
 	public function record_conversion_for_request( $request_id, array $request_context = array() ) {
@@ -223,6 +302,16 @@ class CRPCRM_Landing_Manager {
 		$slug    = $this->validate_slug( isset( $data['slug'] ) ? $data['slug'] : '', $id );
 		if ( is_wp_error( $slug ) ) {
 			return $slug;
+		}
+
+		if ( $id ) {
+			$current = $this->get( $id );
+			if ( is_array( $current ) && ! empty( $current['slug'] ) ) {
+				$current_stats = $this->get_landing_stats( $id );
+				if ( absint( $current_stats['valid_clicks'] ?? 0 ) > 0 && $slug !== sanitize_key( $current['slug'] ) ) {
+					return new WP_Error( 'slug_locked', 'این لندینگ کلیک ثبت‌شده دارد و اسلاگ آن دیگر قابل تغییر نیست.' );
+				}
+			}
 		}
 
 		$title = isset( $data['title'] ) ? sanitize_text_field( $data['title'] ) : '';

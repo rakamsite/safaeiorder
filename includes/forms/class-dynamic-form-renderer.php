@@ -59,7 +59,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 			}
 
 			if ( 'file_upload' === $type ) {
-				$uploaded_files = self::parse_uploaded_files_payload( $posted[ $name . '__uploaded' ] ?? '', $name );
+			$uploaded_files = self::parse_uploaded_files_payload( $posted[ $name . '__uploaded' ] ?? '', $name );
 				if ( is_wp_error( $uploaded_files ) ) {
 					$errors[] = self::field_error( $field, $uploaded_files->get_error_message() );
 					continue;
@@ -973,7 +973,11 @@ class CRPCRM_Dynamic_Form_Renderer {
 				continue;
 			}
 
-			if ( ! self::is_valid_legacy_uploaded_file_meta( $file ) ) {
+			if ( empty( $file['upload_token'] ) ) {
+				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست. لطفاً فایل را دوباره بارگذاری کنید.' );
+			}
+
+			if ( ! self::is_valid_uploaded_file_meta( $file ) ) {
 				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
 			}
 

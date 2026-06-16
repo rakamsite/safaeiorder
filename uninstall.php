@@ -10,8 +10,10 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 }
 
 wp_clear_scheduled_hook( 'crpcrm_daily_log_cleanup' );
+wp_clear_scheduled_hook( 'crpcrm_pending_upload_cleanup' );
 require_once __DIR__ . '/includes/registries/class-system-request-types.php';
 wp_clear_scheduled_hook( CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CRON );
+delete_option( 'crpcrm_pending_upload_tokens' );
 
 $settings = get_option( 'crpcrm_settings', array() );
 

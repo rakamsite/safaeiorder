@@ -3,12 +3,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$items       = isset( $list['items'] ) && is_array( $list['items'] ) ? $list['items'] : array();
-$total       = isset( $list['total'] ) ? absint( $list['total'] ) : 0;
-$total_pages = max( 1, (int) ceil( $total / $per_page ) );
-$page        = min( max( 1, absint( $page ) ), $total_pages );
-$status      = isset( $status ) ? sanitize_key( $status ) : '';
-$form_values  = $landing && is_array( $landing ) ? $landing : array(
+$items          = isset( $list['items'] ) && is_array( $list['items'] ) ? $list['items'] : array();
+$total          = isset( $list['total'] ) ? absint( $list['total'] ) : 0;
+$total_pages    = max( 1, (int) ceil( $total / $per_page ) );
+$page           = min( max( 1, absint( $page ) ), $total_pages );
+$status         = isset( $status ) ? sanitize_key( $status ) : '';
+$overview_stats = isset( $overview_stats ) && is_array( $overview_stats ) ? $overview_stats : array();
+$stats_map      = isset( $stats_map ) && is_array( $stats_map ) ? $stats_map : array();
+$landing_stats  = isset( $landing_stats ) && is_array( $landing_stats ) ? $landing_stats : array();
+$form_values    = $landing && is_array( $landing ) ? $landing : array(
 	'id'                  => 0,
 	'title'               => '',
 	'slug'                => '',
@@ -29,33 +32,11 @@ $form_values  = $landing && is_array( $landing ) ? $landing : array(
 	'final_url'           => '',
 	'destination_label'   => '',
 );
-$status_counts = array(
-	'active'   => 0,
-	'inactive' => 0,
-	'archived' => 0,
-);
-if ( ! isset( $stats_map ) || ! is_array( $stats_map ) ) {
-	$stats_map = array();
-}
-if ( ! isset( $landing_stats ) || ! is_array( $landing_stats ) ) {
-	$landing_stats = array();
-}
-$overview_clicks      = 0;
-$overview_conversions = 0;
-foreach ( $stats_map as $stats ) {
-	$overview_clicks      += absint( $stats['valid_clicks'] ?? 0 );
-	$overview_conversions += absint( $stats['conversions'] ?? 0 );
-}
-foreach ( $items as $item ) {
-	$item_status = isset( $item['status'] ) ? sanitize_key( $item['status'] ) : '';
-	if ( isset( $status_counts[ $item_status ] ) ) {
-		$status_counts[ $item_status ]++;
-	}
-}
+$slug_is_locked = $landing_id && ! empty( $landing_stats['valid_clicks'] );
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
 	<h1><?php echo esc_html( 'مدیریت لندینگ‌ها' ); ?></h1>
-	<p class="description"><?php echo esc_html( 'در این بخش می‌توانید برای صفحات مقصد، لینک داخلی کمپین بسازید؛ مثل example.com/product?u=insta' ); ?></p>
+	<p class="description"><?php echo esc_html( 'در این بخش می‌توانید لندینگ‌های کمپین را بسازید، لینک نهایی را کپی کنید و آمار کلیک و درخواست را ببینید.' ); ?></p>
 
 	<?php if ( isset( $_GET['landing-saved'] ) ) : ?>
 		<div class="notice notice-success"><p><?php echo esc_html( 'لندینگ با موفقیت ذخیره شد.' ); ?></p></div>
@@ -69,14 +50,14 @@ foreach ( $items as $item ) {
 
 	<div class="crpcrm-card crpcrm-landing-summary">
 		<h2><?php echo esc_html( 'خلاصه وضعیت' ); ?></h2>
-		<p><?php echo esc_html( 'نمایش سریع وضعیت فعلی لندینگ‌ها. آمار تفصیلی در فاز بعدی کامل می‌شود.' ); ?></p>
+		<p><?php echo esc_html( 'نمایش خلاصه کلیک‌ها و درخواست‌های ثبت‌شده برای همه لندینگ‌ها.' ); ?></p>
 		<ul class="crpcrm-landing-status-cards">
-			<li><strong><?php echo esc_html( number_format_i18n( $total ) ); ?></strong><span><?php echo esc_html( 'کل لندینگ‌ها' ); ?></span></li>
-			<li><strong><?php echo esc_html( number_format_i18n( $status_counts['active'] ) ); ?></strong><span><?php echo esc_html( 'فعال' ); ?></span></li>
-			<li><strong><?php echo esc_html( number_format_i18n( $status_counts['inactive'] ) ); ?></strong><span><?php echo esc_html( 'غیرفعال' ); ?></span></li>
-			<li><strong><?php echo esc_html( number_format_i18n( $status_counts['archived'] ) ); ?></strong><span><?php echo esc_html( 'آرشیو' ); ?></span></li>
-			<li><strong><?php echo esc_html( number_format_i18n( $overview_clicks ) ); ?></strong><span><?php echo esc_html( 'کلیک معتبر' ); ?></span></li>
-			<li><strong><?php echo esc_html( number_format_i18n( $overview_conversions ) ); ?></strong><span><?php echo esc_html( 'تبدیل' ); ?></span></li>
+			<li><strong><?php echo esc_html( number_format_i18n( absint( $overview_stats['total'] ?? $total ) ) ); ?></strong><span><?php echo esc_html( 'کل لندینگ‌ها' ); ?></span></li>
+			<li><strong><?php echo esc_html( number_format_i18n( absint( $overview_stats['active'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'فعال' ); ?></span></li>
+			<li><strong><?php echo esc_html( number_format_i18n( absint( $overview_stats['inactive'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'غیرفعال' ); ?></span></li>
+			<li><strong><?php echo esc_html( number_format_i18n( absint( $overview_stats['archived'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'آرشیو' ); ?></span></li>
+			<li><strong><?php echo esc_html( number_format_i18n( absint( $overview_stats['valid_clicks'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'کلیک معتبر' ); ?></span></li>
+			<li><strong><?php echo esc_html( number_format_i18n( absint( $overview_stats['request_count'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'درخواست ثبت‌شده' ); ?></span></li>
 		</ul>
 	</div>
 
@@ -114,10 +95,10 @@ foreach ( $items as $item ) {
 							<th><?php echo esc_html( 'منبع / کانال / کمپین' ); ?></th>
 							<th><?php echo esc_html( 'وضعیت' ); ?></th>
 							<th><?php echo esc_html( 'کلیک معتبر' ); ?></th>
-							<th><?php echo esc_html( 'تبدیل' ); ?></th>
+							<th><?php echo esc_html( 'درخواست ثبت‌شده' ); ?></th>
 							<th><?php echo esc_html( 'نرخ تبدیل' ); ?></th>
 							<th><?php echo esc_html( 'آخرین کلیک' ); ?></th>
-							<th><?php echo esc_html( 'آخرین تبدیل' ); ?></th>
+							<th><?php echo esc_html( 'آخرین درخواست' ); ?></th>
 							<th><?php echo esc_html( 'لینک نهایی' ); ?></th>
 							<th><?php echo esc_html( 'عملیات' ); ?></th>
 						</tr>
@@ -125,17 +106,25 @@ foreach ( $items as $item ) {
 					<tbody>
 						<?php foreach ( $items as $item ) : ?>
 							<?php
-							$final_url = isset( $item['final_url'] ) ? $item['final_url'] : '';
-							$status_label = 'active' === ( $item['status'] ?? '' ) ? 'فعال' : ( 'inactive' === ( $item['status'] ?? '' ) ? 'غیرفعال' : 'آرشیو' );
-							$destination_label = isset( $item['destination_label'] ) && '' !== $item['destination_label'] ? $item['destination_label'] : ( isset( $item['destination_url'] ) ? $item['destination_url'] : '' );
-							$meta_bits = array_filter(
+							$item_id            = absint( $item['id'] ?? 0 );
+							$final_url          = isset( $item['final_url'] ) ? $item['final_url'] : '';
+							$item_status        = sanitize_key( $item['status'] ?? '' );
+							$status_label       = 'active' === $item_status ? 'فعال' : ( 'inactive' === $item_status ? 'غیرفعال' : 'آرشیو' );
+							$destination_label  = isset( $item['destination_label'] ) && '' !== $item['destination_label'] ? $item['destination_label'] : ( $item['destination_url'] ?? '' );
+							$meta_bits          = array_filter(
 								array(
-									( $item['source_label'] ?? '' ) ? $item['source_label'] : '',
-									( $item['medium_label'] ?? '' ) ? $item['medium_label'] : '',
-									( $item['campaign_label'] ?? '' ) ? $item['campaign_label'] : '',
+									$item['source_label'] ?? '',
+									$item['medium_label'] ?? '',
+									$item['campaign_label'] ?? '',
 								)
 							);
-							$stats = isset( $stats_map[ absint( $item['id'] ) ] ) ? $stats_map[ absint( $item['id'] ) ] : array( 'valid_clicks' => 0, 'conversions' => 0, 'conversion_rate' => null, 'last_click_at' => '', 'last_conversion_at' => '' );
+							$stats              = isset( $stats_map[ $item_id ] ) ? $stats_map[ $item_id ] : array(
+								'valid_clicks'       => 0,
+								'conversions'        => 0,
+								'conversion_rate'    => null,
+								'last_click_at'      => '',
+								'last_conversion_at' => '',
+							);
 							?>
 							<tr>
 								<td><strong><?php echo esc_html( $item['title'] ?? '' ); ?></strong></td>
@@ -156,11 +145,11 @@ foreach ( $items as $item ) {
 								</td>
 								<td>
 									<div class="crpcrm-actions">
-										<a class="button button-small" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-landings', 'landing_id' => absint( $item['id'] ) ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'ویرایش' ); ?></a>
+										<a class="button button-small" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-landings', 'landing_id' => $item_id ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'ویرایش' ); ?></a>
 
 										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-inline-form">
 											<input type="hidden" name="action" value="crpcrm_landing_action">
-											<input type="hidden" name="landing_id" value="<?php echo esc_attr( absint( $item['id'] ) ); ?>">
+											<input type="hidden" name="landing_id" value="<?php echo esc_attr( $item_id ); ?>">
 											<input type="hidden" name="landing_action_type" value="toggle">
 											<?php wp_nonce_field( 'crpcrm_landing_action', 'crpcrm_landing_action_nonce' ); ?>
 											<button type="submit" class="button button-small"><?php echo esc_html( 'تغییر وضعیت' ); ?></button>
@@ -168,7 +157,7 @@ foreach ( $items as $item ) {
 
 										<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-inline-form" onsubmit="return confirm('<?php echo esc_attr( 'این لندینگ آرشیو شود؟' ); ?>');">
 											<input type="hidden" name="action" value="crpcrm_landing_action">
-											<input type="hidden" name="landing_id" value="<?php echo esc_attr( absint( $item['id'] ) ); ?>">
+											<input type="hidden" name="landing_id" value="<?php echo esc_attr( $item_id ); ?>">
 											<input type="hidden" name="landing_action_type" value="archive">
 											<?php wp_nonce_field( 'crpcrm_landing_action', 'crpcrm_landing_action_nonce' ); ?>
 											<button type="submit" class="button button-secondary button-small"><?php echo esc_html( 'آرشیو' ); ?></button>
@@ -199,26 +188,26 @@ foreach ( $items as $item ) {
 					</div>
 				</div>
 			<?php endif; ?>
-	<?php endif; ?>
-</div>
-
-<?php if ( $landing ) : ?>
-	<div class="crpcrm-card crpcrm-landing-stats-card">
-		<h2><?php echo esc_html( 'آمار همین لندینگ' ); ?></h2>
-		<div class="crpcrm-landing-stats">
-			<div><strong><?php echo esc_html( number_format_i18n( absint( $landing_stats['valid_clicks'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'کلیک معتبر' ); ?></span></div>
-			<div><strong><?php echo esc_html( number_format_i18n( absint( $landing_stats['conversions'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'تبدیل' ); ?></span></div>
-			<div><strong><?php echo esc_html( null === ( $landing_stats['conversion_rate'] ?? null ) ? '—' : number_format_i18n( (float) $landing_stats['conversion_rate'], 1 ) . '%' ); ?></strong><span><?php echo esc_html( 'نرخ تبدیل' ); ?></span></div>
-			<div><strong><?php echo esc_html( ! empty( $landing_stats['last_click_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $landing_stats['last_click_at'] ) : '—' ); ?></strong><span><?php echo esc_html( 'آخرین کلیک' ); ?></span></div>
-			<div><strong><?php echo esc_html( ! empty( $landing_stats['last_conversion_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $landing_stats['last_conversion_at'] ) : '—' ); ?></strong><span><?php echo esc_html( 'آخرین تبدیل' ); ?></span></div>
-			<div><strong><?php echo esc_html( ! empty( $landing['final_url'] ) ? $landing['final_url'] : '—' ); ?></strong><span><?php echo esc_html( 'لینک نهایی قابل کپی' ); ?></span></div>
-		</div>
+		<?php endif; ?>
 	</div>
-<?php endif; ?>
+
+	<?php if ( $landing ) : ?>
+		<div class="crpcrm-card crpcrm-landing-stats-card">
+			<h2><?php echo esc_html( 'آمار همین لندینگ' ); ?></h2>
+			<div class="crpcrm-landing-stats">
+				<div><strong><?php echo esc_html( number_format_i18n( absint( $landing_stats['valid_clicks'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'کلیک معتبر' ); ?></span></div>
+				<div><strong><?php echo esc_html( number_format_i18n( absint( $landing_stats['conversions'] ?? 0 ) ) ); ?></strong><span><?php echo esc_html( 'درخواست ثبت‌شده' ); ?></span></div>
+				<div><strong><?php echo esc_html( null === ( $landing_stats['conversion_rate'] ?? null ) ? '—' : number_format_i18n( (float) $landing_stats['conversion_rate'], 1 ) . '%' ); ?></strong><span><?php echo esc_html( 'نرخ تبدیل' ); ?></span></div>
+				<div><strong><?php echo esc_html( ! empty( $landing_stats['last_click_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $landing_stats['last_click_at'] ) : '—' ); ?></strong><span><?php echo esc_html( 'آخرین کلیک' ); ?></span></div>
+				<div><strong><?php echo esc_html( ! empty( $landing_stats['last_conversion_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $landing_stats['last_conversion_at'] ) : '—' ); ?></strong><span><?php echo esc_html( 'آخرین درخواست' ); ?></span></div>
+				<div><strong><?php echo esc_html( ! empty( $landing['final_url'] ) ? $landing['final_url'] : '—' ); ?></strong><span><?php echo esc_html( 'لینک نهایی قابل کپی' ); ?></span></div>
+			</div>
+		</div>
+	<?php endif; ?>
 
 	<div class="crpcrm-card">
 		<h2><?php echo esc_html( $landing_id ? 'ویرایش لندینگ' : 'ساخت لندینگ جدید' ); ?></h2>
-		<p class="description"><?php echo esc_html( 'انتخاب مقصد فقط از میان پست، برگه یا محصول داخلی انجام می‌شود. URL دستی در این فاز فعال نیست.' ); ?></p>
+		<p class="description"><?php echo esc_html( 'انتخاب مقصد فقط از میان پست، برگه یا محصول داخلی انجام می‌شود.' ); ?></p>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-landing-form">
 			<input type="hidden" name="action" value="crpcrm_save_landing_link">
@@ -235,14 +224,17 @@ foreach ( $items as $item ) {
 					<tr>
 						<th><label for="crpcrm-landing-slug"><?php echo esc_html( 'اسلاگ لینک' ); ?></label></th>
 						<td>
-							<input id="crpcrm-landing-slug" class="regular-text" name="crpcrm_landing[slug]" required pattern="[a-z0-9_-]+" value="<?php echo esc_attr( $form_values['slug'] ); ?>">
+							<input id="crpcrm-landing-slug" class="regular-text" name="crpcrm_landing[slug]" required pattern="[a-z0-9_-]+" value="<?php echo esc_attr( $form_values['slug'] ); ?>" <?php echo $slug_is_locked ? 'readonly' : ''; ?>>
 							<p class="description"><?php echo esc_html( 'فقط حروف لاتین کوچک، عدد، خط تیره و underscore مجاز است.' ); ?></p>
+							<?php if ( $slug_is_locked ) : ?>
+								<p class="description"><?php echo esc_html( 'این لندینگ کلیک یا درخواست ثبت‌شده دارد. اسلاگ آن دیگر قابل تغییر نیست.' ); ?></p>
+							<?php endif; ?>
 						</td>
 					</tr>
 					<tr>
 						<th><?php echo esc_html( 'صفحه مقصد' ); ?></th>
 						<td>
-							<input type="search" class="regular-text" data-destination-search placeholder="<?php echo esc_attr( 'جستجوی صفحه، برگه یا محصول' ); ?>">
+							<input type="search" class="regular-text" data-destination-search placeholder="<?php echo esc_attr( 'جست‌وجوی صفحه، برگه یا محصول' ); ?>">
 							<div class="crpcrm-landing-search-results" data-destination-results></div>
 							<div class="crpcrm-landing-selected-destination" data-selected-destination>
 								<?php if ( ! empty( $form_values['destination_label'] ) ) : ?>
@@ -252,6 +244,9 @@ foreach ( $items as $item ) {
 									<span><?php echo esc_html( 'هنوز مقصدی انتخاب نشده است.' ); ?></span>
 								<?php endif; ?>
 							</div>
+							<?php if ( $landing_id && ! empty( $landing_stats['valid_clicks'] ) ) : ?>
+								<p class="description"><?php echo esc_html( 'این لندینگ کلیک ثبت‌شده دارد. تغییر مقصد می‌تواند رهگیری لینک‌های قبلی را تحت تاثیر قرار دهد.' ); ?></p>
+							<?php endif; ?>
 						</td>
 					</tr>
 					<tr>
@@ -306,7 +301,13 @@ foreach ( $items as $item ) {
 					</tr>
 					<tr>
 						<th><?php echo esc_html( 'افزودن UTM استاندارد' ); ?></th>
-						<td><label><input type="hidden" name="crpcrm_landing[append_standard_utm]" value="0"><input type="checkbox" name="crpcrm_landing[append_standard_utm]" value="1" <?php checked( ! empty( $form_values['append_standard_utm'] ) ); ?>> <?php echo esc_html( 'به لینک مقصد UTM استاندارد اضافه شود' ); ?></label></td>
+						<td>
+							<label>
+								<input type="hidden" name="crpcrm_landing[append_standard_utm]" value="0">
+								<input type="checkbox" name="crpcrm_landing[append_standard_utm]" value="1" <?php checked( ! empty( $form_values['append_standard_utm'] ) ); ?>>
+								<?php echo esc_html( 'به لینک مقصد UTM استاندارد اضافه شود' ); ?>
+							</label>
+						</td>
 					</tr>
 				</tbody>
 			</table>

@@ -295,3 +295,16 @@
 - [ ] `crpcrm_last_touch` در هر landing معتبر به‌روزرسانی می‌شود.
 - [ ] JS fallback فقط وقتی `u` در URL وجود دارد tracking می‌فرستد.
 - [ ] اگر feature `landing_manager` خاموش باشد، هیچ tracking یا cookie جدیدی ساخته نمی‌شود.
+
+## Landing Hardening
+
+- [ ] AJAX fallback با `current_url` معتبر و same-site کلیک را فقط برای مقصد هم‌خوان ثبت می‌کند.
+- [ ] AJAX fallback با `current_url` خارجی یا جعلی هیچ کلیکی ثبت نمی‌کند.
+- [ ] Origin/Referer خارجی یا نامعتبر باعث ignore شدن tracking می‌شود.
+- [ ] dedupe کلیک‌ها بر اساس `user_agent_hash` و `ip_hash` کار می‌کند.
+- [ ] rate limit سبک، درخواست‌های تکراری را بدون خراب کردن صفحه رد می‌کند.
+- [ ] `bot` و `preview` user-agent های واضح ثبت نمی‌شوند.
+- [ ] upload endpoint فقط برای کاربران مجاز CRM باز است.
+- [ ] request جدید با payload فایل بدون `upload_token` رد می‌شود.
+- [ ] فایل legacy فقط برای نمایش درخواست‌های قدیمی کار می‌کند و submit جدید را دور نمی‌زند.
+- [ ] uninstall، cron و option مربوط به pending upload cleanup را پاک می‌کند.
