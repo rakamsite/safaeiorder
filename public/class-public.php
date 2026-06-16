@@ -60,7 +60,7 @@ class CRPCRM_Public {
 	public function handle_search_products() {
 		check_ajax_referer( 'crpcrm_search_products', 'nonce' );
 
-		if ( ! is_user_logged_in() && ! current_user_can( 'manage_options' ) ) {
+		if ( ! is_user_logged_in() || ! $this->current_user_can_access_request_ajax() ) {
 			wp_send_json_error( array( 'message' => 'unauthorized' ), 403 );
 		}
 
@@ -119,6 +119,10 @@ class CRPCRM_Public {
 	}
 
 	private function current_user_can_upload_request_files() {
+		return $this->current_user_can_access_request_ajax();
+	}
+
+	private function current_user_can_access_request_ajax() {
 		if ( current_user_can( 'manage_options' ) || current_user_can( 'crpcrm_manage_plugin' ) || current_user_can( 'crpcrm_manage_settings' ) || current_user_can( 'crpcrm_manage_requests' ) || current_user_can( 'crpcrm_assign_requests' ) || current_user_can( 'crpcrm_view_all_requests' ) || current_user_can( 'crpcrm_manage_staff_portal' ) ) {
 			return true;
 		}

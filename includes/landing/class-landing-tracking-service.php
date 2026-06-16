@@ -616,6 +616,10 @@ class CRPCRM_Landing_Tracking_Service {
 			return true;
 		}
 
+		if ( false !== strpos( $ua, 'whatsapp' ) && ( false !== strpos( $ua, 'preview' ) || false !== strpos( $ua, 'crawler' ) || false !== strpos( $ua, 'bot' ) ) ) {
+			return true;
+		}
+
 		$patterns = array(
 			'facebookexternalhit',
 			'facebot',

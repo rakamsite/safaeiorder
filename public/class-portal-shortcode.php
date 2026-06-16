@@ -798,6 +798,17 @@ class CRPCRM_Portal_Shortcode {
 			return $customer;
 		}
 
+		$this->attribution_service->persist_customer_landing_attribution(
+			absint( $customer['id'] ),
+			absint( $user_id ),
+			array(
+				'request_url' => $this->current_url(),
+				'referrer'    => function_exists( 'wp_get_referer' ) ? wp_get_referer() : '',
+			)
+		);
+
+		$customer = $this->customer_repository->get( absint( $customer['id'] ) );
+
 		return $customer;
 	}
 

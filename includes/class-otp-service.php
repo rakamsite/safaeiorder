@@ -256,10 +256,12 @@ class CRPCRM_OTP_Service {
 		$attribution_service = new CRPCRM_Attribution_Service();
 		$attribution         = $attribution_service->get_current_attribution();
 		if ( ! $attribution ) {
+			$attribution_service->persist_customer_landing_attribution( $customer_id, $user_id );
 			return;
 		}
 
 		$attribution_service->apply_to_customer( $customer_id, $user_id, $attribution );
+		$attribution_service->persist_customer_landing_attribution( $customer_id, $user_id );
 		$attribution_service->record_event( $attribution, $customer_id, $user_id, true );
 	}
 

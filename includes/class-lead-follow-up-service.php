@@ -29,6 +29,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 		if ( ! CRPCRM_Feature_Manager::is_enabled( 'lead_followup' ) ) {
 			return;
 		}
+
 		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', self::CRON_HOOK );
 		}
@@ -54,22 +55,45 @@ class CRPCRM_Lead_Follow_Up_Service {
 			}
 
 			$profile_completed = ! empty( $customer['profile_completed'] );
-			$reason            = $profile_completed ? 'پروفایل تکمیل شده است، اما مشتری هنوز درخواستی ثبت نکرده است.' : 'مشتری پس از ۲۴ ساعت هنوز اطلاعات پروفایل خود را تکمیل نکرده است.';
+			$reason            = $profile_completed
+				? 'پروفایل تکمیل شده است، اما مشتری هنوز درخواستی ثبت نکرده است.'
+				: 'مشتری پس از 24 ساعت هنوز اطلاعات پروفایل خود را تکمیل نکرده است.';
 			$system_metadata   = CRPCRM_System_Request_Types::get_metadata( CRPCRM_System_Request_Types::LEAD_FOLLOW_UP );
-			$request_id        = $this->request_repository->create(
+			$landing_attr      = CRPCRM_Customer_Repository::get_landing_attribution( $customer );
+			$landing_touch     = ! empty( $landing_attr['last_touch'] )
+				? $landing_attr['last_touch']
+				: ( ! empty( $landing_attr['first_touch'] ) ? $landing_attr['first_touch'] : array() );
+			$request_data      = array(
+				'profile_completed' => $profile_completed ? 'yes' : 'no',
+				'lead_reason'       => $reason,
+				'form_id'           => $system_metadata['form_id'],
+				'form_version'      => $system_metadata['form_version'],
+			);
+
+			if ( ! empty( $landing_attr ) ) {
+				$request_data['_landing_attribution'] = $landing_attr;
+			}
+
+			$request_id = $this->request_repository->create(
 				array(
-					'customer_id'      => absint( $customer['id'] ),
-					'user_id'          => absint( $customer['user_id'] ),
-					'request_type'     => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP,
-					'form_id'          => $system_metadata['form_id'],
-					'form_version'     => $system_metadata['form_version'],
-					'request_title'    => 'پیگیری سرنخ',
-					'request_summary'  => $reason,
-					'request_data'     => array( 'profile_completed' => $profile_completed ? 'yes' : 'no', 'lead_reason' => $reason, 'form_id' => $system_metadata['form_id'], 'form_version' => $system_metadata['form_version'] ),
-					'request_source'   => ! empty( $customer['first_source'] ) ? $customer['first_source'] : 'direct',
-					'request_medium'   => ! empty( $customer['first_medium'] ) ? $customer['first_medium'] : 'none',
-					'request_campaign' => isset( $customer['first_campaign'] ) ? $customer['first_campaign'] : '',
-					'last_action'      => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED,
+					'customer_id'          => absint( $customer['id'] ),
+					'user_id'              => absint( $customer['user_id'] ),
+					'request_type'         => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP,
+					'form_id'              => $system_metadata['form_id'],
+					'form_version'         => $system_metadata['form_version'],
+					'request_title'        => 'پیگیری سرنخ',
+					'request_summary'      => $reason,
+					'request_data'         => $request_data,
+					'request_source'       => ! empty( $landing_touch['source_code'] ) ? $landing_touch['source_code'] : ( ! empty( $customer['last_source'] ) ? $customer['last_source'] : ( ! empty( $customer['first_source'] ) ? $customer['first_source'] : 'direct' ) ),
+					'request_medium'       => ! empty( $landing_touch['medium_code'] ) ? $landing_touch['medium_code'] : ( ! empty( $customer['last_medium'] ) ? $customer['last_medium'] : ( ! empty( $customer['first_medium'] ) ? $customer['first_medium'] : 'none' ) ),
+					'request_campaign'     => ! empty( $landing_touch['campaign_code'] ) ? $landing_touch['campaign_code'] : ( ! empty( $customer['last_campaign'] ) ? $customer['last_campaign'] : ( $customer['first_campaign'] ?? '' ) ),
+					'request_content'      => ! empty( $landing_touch['content_code'] ) ? $landing_touch['content_code'] : ( ! empty( $customer['last_content'] ) ? $customer['last_content'] : ( $customer['first_content'] ?? '' ) ),
+					'request_term'         => ! empty( $landing_touch['term_code'] ) ? $landing_touch['term_code'] : ( ! empty( $customer['last_term'] ) ? $customer['last_term'] : ( $customer['first_term'] ?? '' ) ),
+					'request_landing_id'   => absint( $landing_touch['landing_id'] ?? 0 ),
+					'request_landing_slug' => sanitize_key( $landing_touch['landing_slug'] ?? '' ),
+					'request_landing_page' => ! empty( $landing_attr['conversion_page'] ) ? $landing_attr['conversion_page'] : ( ! empty( $landing_touch['destination_url'] ) ? $landing_touch['destination_url'] : '' ),
+					'request_referrer'     => ! empty( $landing_attr['referrer'] ) ? $landing_attr['referrer'] : ( $customer['last_referrer'] ?? '' ),
+					'last_action'          => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED,
 				)
 			);
 
@@ -78,7 +102,35 @@ class CRPCRM_Lead_Follow_Up_Service {
 			}
 
 			$request = $this->request_repository->get( $request_id );
-			CRPCRM_Activity::add( $request_id, CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED, array( 'customer_id' => absint( $customer['id'] ), 'actor_type' => 'system', 'new_status' => 'new', 'note' => $reason, 'is_internal' => 1 ) );
+			CRPCRM_Activity::add(
+				$request_id,
+				CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED,
+				array(
+					'customer_id' => absint( $customer['id'] ),
+					'actor_type'  => 'system',
+					'new_status'  => 'new',
+					'note'        => $reason,
+					'is_internal' => 1,
+				)
+			);
+
+			if ( $request && ! empty( $landing_attr ) ) {
+				$this->request_repository->save_landing_attribution( $request_id, $landing_attr );
+
+				if ( class_exists( 'CRPCRM_Landing_Manager' ) ) {
+					( new CRPCRM_Landing_Manager() )->record_conversion_for_request(
+						$request_id,
+						array(
+							'click_id'     => absint( $landing_touch['click_id'] ?? 0 ),
+							'visitor_id'   => sanitize_text_field( $landing_attr['visitor_id'] ?? '' ),
+							'landing_id'   => absint( $landing_touch['landing_id'] ?? 0 ),
+							'landing_slug' => sanitize_key( $landing_touch['landing_slug'] ?? '' ),
+							'converted_at' => $landing_attr['converted_at'] ?? CRPCRM_Helpers::current_datetime(),
+						)
+					);
+				}
+			}
+
 			if ( $request ) {
 				$notification_service = new CRPCRM_Notification_Service();
 				$notification_service->notify_new_request(
@@ -89,10 +141,20 @@ class CRPCRM_Lead_Follow_Up_Service {
 					admin_url( 'admin.php?page=crpcrm-requests&request_id=' . $request_id )
 				);
 			}
+
 			$created++;
 		}
 
-		CRPCRM_Logger::info( 'system_request_cron_completed', 'request', array( 'request_type' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP, 'eligible' => count( $customers ), 'created' => $created ) );
+		CRPCRM_Logger::info(
+			'system_request_cron_completed',
+			'request',
+			array(
+				'request_type' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP,
+				'eligible'     => count( $customers ),
+				'created'      => $created,
+			)
+		);
+
 		return $created;
 	}
 }

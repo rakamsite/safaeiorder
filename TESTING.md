@@ -308,3 +308,11 @@
 - [ ] request جدید با payload فایل بدون `upload_token` رد می‌شود.
 - [ ] فایل legacy فقط برای نمایش درخواست‌های قدیمی کار می‌کند و submit جدید را دور نمی‌زند.
 - [ ] uninstall، cron و option مربوط به pending upload cleanup را پاک می‌کند.
+
+## Customer Landing Attribution
+
+- [ ] attribution معتبر بعد از OTP یا اولین بارگذاری پرتال روی customer ذخیره می‌شود.
+- [ ] `first_touch` روی customer فقط یک‌بار ثبت می‌شود و `last_touch` با ورود معتبر جدید به‌روزرسانی می‌شود.
+- [ ] request پیگیری خودکار 24 ساعته attribution ذخیره‌شده روی customer را استفاده می‌کند.
+- [ ] آمار request هر لندینگ از `request_landing_slug` و `request_landing_id` محاسبه می‌شود.
+- [ ] AJAX جستجوی محصول برای کاربر لاگین‌شده نامرتبط CRM در دسترس نیست.

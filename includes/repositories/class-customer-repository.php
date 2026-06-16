@@ -179,6 +179,37 @@ class CRPCRM_Customer_Repository {
 		return false !== $wpdb->update( $this->table, $data, array( 'id' => absint( $id ) ) );
 	}
 
+	public function save_landing_attribution( $customer_id, array $landing_attribution ) {
+		$customer_id = absint( $customer_id );
+		if ( ! $customer_id || ! $this->get( $customer_id ) ) {
+			return false;
+		}
+
+		$normalized = self::normalize_landing_attribution( $landing_attribution );
+		return $this->update(
+			$customer_id,
+			array(
+				'visitor_id'          => $normalized['visitor_id'],
+				'landing_attribution' => $normalized,
+			)
+		);
+	}
+
+	public static function get_landing_attribution( $customer ) {
+		$customer = is_array( $customer ) ? $customer : array();
+		$data     = CRPCRM_Helpers::maybe_json_decode( $customer['landing_attribution'] ?? '', true );
+
+		if ( ! is_array( $data ) ) {
+			$data = array();
+		}
+
+		if ( empty( $data['visitor_id'] ) && ! empty( $customer['visitor_id'] ) ) {
+			$data['visitor_id'] = sanitize_text_field( $customer['visitor_id'] );
+		}
+
+		return self::normalize_landing_attribution( $data );
+	}
+
 
 	public function get_with_user( $customer_id ) {
 		global $wpdb;
@@ -411,6 +442,9 @@ class CRPCRM_Customer_Repository {
 		if ( isset( $data['profile_completed'] ) ) {
 			$clean['profile_completed'] = absint( $data['profile_completed'] );
 		}
+		if ( array_key_exists( 'visitor_id', $data ) ) {
+			$clean['visitor_id'] = sanitize_text_field( $data['visitor_id'] );
+		}
 
 		foreach ( $text_fields as $field ) {
 			if ( array_key_exists( $field, $data ) ) {
@@ -427,7 +461,48 @@ class CRPCRM_Customer_Repository {
 				$clean[ $field ] = sanitize_text_field( $data[ $field ] );
 			}
 		}
+		if ( array_key_exists( 'landing_attribution', $data ) ) {
+			$clean['landing_attribution'] = is_string( $data['landing_attribution'] ) ? wp_kses_post( $data['landing_attribution'] ) : CRPCRM_Helpers::maybe_json_encode( self::normalize_landing_attribution( $data['landing_attribution'] ) );
+		}
 
 		return $clean;
+	}
+
+	private static function normalize_landing_attribution( $attribution ) {
+		$attribution = is_array( $attribution ) ? $attribution : array();
+		$touch_keys  = array( 'landing_id', 'landing_slug', 'landing_title', 'destination_url', 'source_code', 'source_label', 'medium_code', 'medium_label', 'campaign_code', 'campaign_label', 'content_code', 'content_label', 'term_code', 'term_label', 'clicked_at', 'click_id' );
+		$touch       = static function ( $value ) use ( $touch_keys ) {
+			$clean = array();
+			$value = is_array( $value ) ? $value : array();
+
+			foreach ( $touch_keys as $key ) {
+				if ( ! array_key_exists( $key, $value ) ) {
+					continue;
+				}
+
+				if ( 'landing_id' === $key || 'click_id' === $key ) {
+					$clean[ $key ] = absint( $value[ $key ] );
+					continue;
+				}
+
+				if ( 'destination_url' === $key ) {
+					$clean[ $key ] = esc_url_raw( $value[ $key ] );
+					continue;
+				}
+
+				$clean[ $key ] = sanitize_text_field( $value[ $key ] );
+			}
+
+			return $clean;
+		};
+
+		return array(
+			'visitor_id'      => isset( $attribution['visitor_id'] ) ? sanitize_text_field( $attribution['visitor_id'] ) : '',
+			'conversion_page' => isset( $attribution['conversion_page'] ) ? esc_url_raw( $attribution['conversion_page'] ) : '',
+			'converted_at'    => isset( $attribution['converted_at'] ) ? sanitize_text_field( $attribution['converted_at'] ) : '',
+			'referrer'        => isset( $attribution['referrer'] ) ? esc_url_raw( $attribution['referrer'] ) : '',
+			'first_touch'     => isset( $attribution['first_touch'] ) ? $touch( $attribution['first_touch'] ) : array(),
+			'last_touch'      => isset( $attribution['last_touch'] ) ? $touch( $attribution['last_touch'] ) : array(),
+		);
 	}
 }

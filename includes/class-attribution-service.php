@@ -247,6 +247,94 @@ class CRPCRM_Attribution_Service {
 		return $result;
 	}
 
+	public function persist_customer_landing_attribution( $customer_id, $user_id = 0, $context = array() ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
+			return false;
+		}
+
+		$customer_id          = absint( $customer_id );
+		$user_id              = absint( $user_id );
+		$landing_attribution  = $this->get_landing_attribution_for_new_request( $context );
+		if ( ! $customer_id || empty( $landing_attribution ) ) {
+			return false;
+		}
+
+		$customer = $this->customer_repository->get( $customer_id );
+		if ( ! $customer ) {
+			return false;
+		}
+
+		$stored = CRPCRM_Customer_Repository::get_landing_attribution( $customer );
+		$first  = ! empty( $stored['first_touch'] ) ? $stored['first_touch'] : array();
+		$last   = ! empty( $stored['last_touch'] ) ? $stored['last_touch'] : array();
+
+		if ( empty( $first ) && ! empty( $landing_attribution['first_touch'] ) ) {
+			$first = $landing_attribution['first_touch'];
+		}
+
+		if ( ! empty( $landing_attribution['last_touch'] ) ) {
+			$last = $landing_attribution['last_touch'];
+		} elseif ( empty( $last ) && ! empty( $first ) ) {
+			$last = $first;
+		}
+
+		if ( empty( $first ) && empty( $last ) ) {
+			return false;
+		}
+
+		$normalized = array(
+			'visitor_id'      => ! empty( $landing_attribution['visitor_id'] ) ? sanitize_text_field( $landing_attribution['visitor_id'] ) : sanitize_text_field( $stored['visitor_id'] ?? '' ),
+			'conversion_page' => ! empty( $landing_attribution['conversion_page'] ) ? esc_url_raw( $landing_attribution['conversion_page'] ) : esc_url_raw( $stored['conversion_page'] ?? '' ),
+			'converted_at'    => ! empty( $landing_attribution['converted_at'] ) ? sanitize_text_field( $landing_attribution['converted_at'] ) : sanitize_text_field( $stored['converted_at'] ?? '' ),
+			'referrer'        => ! empty( $landing_attribution['referrer'] ) ? esc_url_raw( $landing_attribution['referrer'] ) : esc_url_raw( $stored['referrer'] ?? '' ),
+			'first_touch'     => $first,
+			'last_touch'      => $last,
+		);
+
+		$update = array(
+			'visitor_id' => $normalized['visitor_id'],
+		);
+
+		if ( ! empty( $last ) ) {
+			$update['last_source']       = ! empty( $last['source_code'] ) ? sanitize_text_field( $last['source_code'] ) : ( $customer['last_source'] ?? '' );
+			$update['last_medium']       = ! empty( $last['medium_code'] ) ? sanitize_text_field( $last['medium_code'] ) : ( $customer['last_medium'] ?? '' );
+			$update['last_campaign']     = ! empty( $last['campaign_code'] ) ? sanitize_text_field( $last['campaign_code'] ) : ( $customer['last_campaign'] ?? '' );
+			$update['last_content']      = ! empty( $last['content_code'] ) ? sanitize_text_field( $last['content_code'] ) : ( $customer['last_content'] ?? '' );
+			$update['last_term']         = ! empty( $last['term_code'] ) ? sanitize_text_field( $last['term_code'] ) : ( $customer['last_term'] ?? '' );
+			$update['last_landing_page'] = ! empty( $last['destination_url'] ) ? esc_url_raw( $last['destination_url'] ) : ( ! empty( $normalized['conversion_page'] ) ? esc_url_raw( $normalized['conversion_page'] ) : ( $customer['last_landing_page'] ?? '' ) );
+			$update['last_referrer']     = ! empty( $normalized['referrer'] ) ? esc_url_raw( $normalized['referrer'] ) : ( $customer['last_referrer'] ?? '' );
+			$update['last_seen_at']      = ! empty( $last['clicked_at'] ) ? sanitize_text_field( $last['clicked_at'] ) : CRPCRM_Helpers::current_datetime();
+		}
+
+		$first_source_empty = empty( $customer['first_source'] ) || 'direct' === $customer['first_source'];
+		if ( ! empty( $first ) && $first_source_empty ) {
+			$update['first_source']       = ! empty( $first['source_code'] ) ? sanitize_text_field( $first['source_code'] ) : ( $customer['first_source'] ?? '' );
+			$update['first_medium']       = ! empty( $first['medium_code'] ) ? sanitize_text_field( $first['medium_code'] ) : ( $customer['first_medium'] ?? '' );
+			$update['first_campaign']     = ! empty( $first['campaign_code'] ) ? sanitize_text_field( $first['campaign_code'] ) : ( $customer['first_campaign'] ?? '' );
+			$update['first_content']      = ! empty( $first['content_code'] ) ? sanitize_text_field( $first['content_code'] ) : ( $customer['first_content'] ?? '' );
+			$update['first_term']         = ! empty( $first['term_code'] ) ? sanitize_text_field( $first['term_code'] ) : ( $customer['first_term'] ?? '' );
+			$update['first_landing_page'] = ! empty( $first['destination_url'] ) ? esc_url_raw( $first['destination_url'] ) : ( ! empty( $normalized['conversion_page'] ) ? esc_url_raw( $normalized['conversion_page'] ) : ( $customer['first_landing_page'] ?? '' ) );
+			$update['first_referrer']     = ! empty( $normalized['referrer'] ) ? esc_url_raw( $normalized['referrer'] ) : ( $customer['first_referrer'] ?? '' );
+			$update['first_seen_at']      = ! empty( $first['clicked_at'] ) ? sanitize_text_field( $first['clicked_at'] ) : CRPCRM_Helpers::current_datetime();
+		}
+
+		$result = $this->customer_repository->save_landing_attribution( $customer_id, $normalized );
+		if ( $result ) {
+			$this->customer_repository->update( $customer_id, $update );
+			CRPCRM_Logger::info(
+				'landing_attribution_applied_to_customer',
+				'attribution',
+				array(
+					'customer_id' => $customer_id,
+					'user_id'     => $user_id,
+					'landing_slug'=> sanitize_key( $last['landing_slug'] ?? ( $first['landing_slug'] ?? '' ) ),
+				)
+			);
+		}
+
+		return $result;
+	}
+
 	public function record_event( $attribution, $customer_id = null, $user_id = null, $is_logged_in = false ) {
 		if ( ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) || 'yes' !== CRPCRM_Settings::get( 'attribution_events_enabled', 'yes' ) ) {
 			return false;
