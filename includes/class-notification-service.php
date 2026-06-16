@@ -25,6 +25,10 @@ class CRPCRM_Notification_Service {
 		return CRPCRM_Feature_Manager::is_enabled( 'notifications' );
 	}
 
+	public static function current_user_can_view_notifications() {
+		return current_user_can( 'crpcrm_view_notifications' ) || current_user_can( 'crpcrm_use_staff_portal' ) || current_user_can( 'manage_options' );
+	}
+
 	public function unique_user_ids( $user_ids ) {
 		$clean = array();
 		foreach ( array_map( 'absint', (array) $user_ids ) as $user_id ) {
@@ -163,6 +167,16 @@ class CRPCRM_Notification_Service {
 	}
 
 	public function ajax_get_new_notifications() {
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => 'unauthorized' ), 401 );
+		}
+
+		check_ajax_referer( 'crpcrm_get_new_notifications', 'nonce' );
+
+		if ( ! self::current_user_can_view_notifications() ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+
 		if ( ! self::is_enabled() ) {
 			wp_send_json_success(
 				array(
@@ -172,18 +186,8 @@ class CRPCRM_Notification_Service {
 			);
 		}
 
-		if ( ! is_user_logged_in() ) {
-			wp_send_json_error( array( 'message' => 'unauthorized' ), 401 );
-		}
-
-		check_ajax_referer( 'crpcrm_get_new_notifications', 'nonce' );
-
-		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) && ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
-		}
-
 		$user_id = get_current_user_id();
-		$notifications = $this->get_unseen_for_user( $user_id, 5 );
+		$notifications = $this->get_recent_unseen_for_user( $user_id, 5 );
 		$ids = array();
 		$payload = array();
 
@@ -211,6 +215,31 @@ class CRPCRM_Notification_Service {
 				'notifications_page_url' => $this->get_notifications_page_url(),
 			)
 		);
+	}
+
+	public function get_recent_unseen_for_user( $user_id, $limit = 5 ) {
+		global $wpdb;
+
+		$user_id = absint( $user_id );
+		if ( $user_id <= 0 ) {
+			return array();
+		}
+
+		$limit  = max( 1, absint( $limit ) );
+		$hours  = $this->get_notification_toast_max_age_hours();
+		$cutoff = $this->get_notification_toast_cutoff_datetime( $hours );
+		if ( '' === $cutoff ) {
+			return $this->get_unseen_for_user( $user_id, $limit );
+		}
+
+		$sql = $wpdb->prepare(
+			"SELECT * FROM {$this->table} WHERE user_id = %d AND is_seen = 0 AND created_at >= %s ORDER BY created_at DESC, id DESC LIMIT %d",
+			$user_id,
+			$cutoff,
+			$limit
+		);
+
+		return $wpdb->get_results( $sql, ARRAY_A );
 	}
 
 	public function notify_new_request( $request_id, $request_title, $request_code = '', $actor_user_id = 0, $target_url = '' ) {
@@ -343,29 +372,6 @@ class CRPCRM_Notification_Service {
 			);
 		}
 
-		if ( 'manager' === $actor_type ) {
-			$manager_recipients = array();
-			if ( $owner_id && $owner_id !== $actor_user_id ) {
-				$manager_recipients[] = $owner_id;
-			}
-			$manager_recipients = array_merge( $manager_recipients, $this->get_request_manager_recipients() );
-			$manager_recipients = array_diff( $this->unique_user_ids( $manager_recipients ), array_filter( array( $actor_user_id, $customer_id ) ) );
-			if ( ! empty( $manager_recipients ) ) {
-				$results = array_merge(
-					$results,
-					$this->create_for_users(
-						$manager_recipients,
-						'reply_added',
-						$title,
-						$message_text,
-						$this->normalize_internal_url( $target_url, $this->get_admin_request_url( $request_id ) ),
-						'request',
-						$request_id
-					)
-				);
-			}
-		}
-
 		return $results;
 	}
 
@@ -461,6 +467,22 @@ class CRPCRM_Notification_Service {
 				'is_seen'  => 0,
 			)
 		);
+	}
+
+	private function get_notification_toast_max_age_hours() {
+		$hours = apply_filters( 'crpcrm_notification_toast_max_age_hours', 48 );
+		$hours = absint( $hours );
+
+		return max( 1, $hours );
+	}
+
+	private function get_notification_toast_cutoff_datetime( $hours ) {
+		$hours = absint( $hours );
+		if ( $hours <= 0 ) {
+			return '';
+		}
+
+		return wp_date( 'Y-m-d H:i:s', current_time( 'timestamp' ) - ( $hours * HOUR_IN_SECONDS ) );
 	}
 
 	public function mark_seen( $ids, $user_id ) {
@@ -771,7 +793,7 @@ class CRPCRM_Notification_Service {
 		$notification_id = isset( $_POST['notification_id'] ) ? absint( $_POST['notification_id'] ) : 0;
 		$notifications_page_url = $this->get_notifications_page_url();
 
-		if ( ! current_user_can( 'crpcrm_use_staff_portal' ) && ! current_user_can( 'manage_options' ) ) {
+		if ( ! self::current_user_can_view_notifications() ) {
 			wp_safe_redirect( $notifications_page_url );
 			exit;
 		}

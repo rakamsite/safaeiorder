@@ -207,7 +207,7 @@ class CRPCRM_Form_Builder_Repository {
 		foreach ( $form['fields'] as $field ) {
 			if ( 'display_html' === $field['type'] ) {
 				if ( empty( $field['key'] ) || empty( trim( wp_strip_all_tags( $field['content'] ) ) ) ) {
-					$errors[] = 'ÙÛŒÙ„Ø¯ Ù†Ù…Ø§ÛŒØ´ÛŒ Ø¨Ø§ÛŒØ¯ Ú©Ù„ÛŒØ¯ Ùˆ Ù…Ø­ØªÙˆØ§ Ø¯Ø§Ø´ØªÙ‡ Ø¨Ø§Ø´Ø¯.';
+					$errors[] = 'فیلد نمایشی باید کلید و محتوا داشته باشد.';
 					continue;
 				}
 			} elseif ( empty( $field['key'] ) || empty( $field['label'] ) ) {

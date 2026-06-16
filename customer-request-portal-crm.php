@@ -3,7 +3,7 @@
  * Plugin Name: دیجیتال مارکتینگ راکام
  * Plugin URI: https://rakam.me/
  * Description: افزونه جامع دیجیتال مارکتینگ برای پیگیری سرنخ ها و فروش ها و گزارشات جامع
- * Version: 1
+ * Version: 1.1.3
  * Author: sajad torabi
  * Author URI: https://rakam.me/
  * Text Domain: customer-request-portal-crm
@@ -18,8 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CRPCRM_VERSION', '1' );
-define( 'CRPCRM_DB_VERSION', '1.1.1' );
+define( 'CRPCRM_VERSION', '1.1.3' );
+define( 'CRPCRM_DB_VERSION', '1.1.3' );
 define( 'CRPCRM_PLUGIN_FILE', __FILE__ );
 define( 'CRPCRM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CRPCRM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -51,6 +51,10 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-health-check-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-maintenance-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-tools.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-notification-service.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/landing/class-landing-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/landing/class-landing-manager.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/landing/class-landing-click-repository.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/landing/class-landing-tracking-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-customer-repository.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-customer-deletion-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/repositories/class-otp-repository.php';
@@ -67,6 +71,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-attribution-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-admin-menu.php';
 require_once CRPCRM_PLUGIN_DIR . 'admin/class-admin-pages.php';
 require_once CRPCRM_PLUGIN_DIR . 'admin/class-form-builder-admin.php';
+require_once CRPCRM_PLUGIN_DIR . 'admin/class-landing-manager-admin.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-request-forms.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-portal-shortcode.php';
 require_once CRPCRM_PLUGIN_DIR . 'public/class-public.php';

@@ -22,5 +22,8 @@ class CRPCRM_Activator {
 			CRPCRM_Admin_Tools::schedule_cron();
 			CRPCRM_Lead_Follow_Up_Service::schedule_cron();
 		}
+		if ( class_exists( 'CRPCRM_Dynamic_Form_Renderer' ) ) {
+			CRPCRM_Dynamic_Form_Renderer::schedule_pending_upload_cleanup();
+		}
 	}
 }

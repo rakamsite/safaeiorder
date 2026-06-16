@@ -65,6 +65,50 @@ function crpcrm_admin_request_display_summary( $request ) {
 }
 }
 
+if ( ! function_exists( 'crpcrm_request_landing_touch_summary' ) ) {
+function crpcrm_request_landing_touch_summary( $touch ) {
+	if ( empty( $touch ) || ! is_array( $touch ) ) {
+		return '';
+	}
+
+	$parts = array_filter(
+		array(
+			! empty( $touch['source_label'] ) ? $touch['source_label'] : ( ! empty( $touch['source_code'] ) ? CRPCRM_Helpers::get_source_label( $touch['source_code'] ) : '' ),
+			! empty( $touch['medium_label'] ) ? $touch['medium_label'] : ( ! empty( $touch['medium_code'] ) ? CRPCRM_Helpers::get_medium_label( $touch['medium_code'] ) : '' ),
+			! empty( $touch['campaign_label'] ) ? $touch['campaign_label'] : ( ! empty( $touch['campaign_code'] ) ? $touch['campaign_code'] : '' ),
+			! empty( $touch['content_label'] ) ? $touch['content_label'] : ( ! empty( $touch['content_code'] ) ? $touch['content_code'] : '' ),
+			! empty( $touch['term_label'] ) ? $touch['term_label'] : ( ! empty( $touch['term_code'] ) ? $touch['term_code'] : '' ),
+		)
+	);
+
+	return implode( ' / ', array_map( 'sanitize_text_field', $parts ) );
+}
+}
+
+if ( ! function_exists( 'crpcrm_request_landing_touch_title' ) ) {
+function crpcrm_request_landing_touch_title( $touch ) {
+	if ( empty( $touch ) || ! is_array( $touch ) ) {
+		return '';
+	}
+
+	if ( ! empty( $touch['landing_title'] ) ) {
+		return sanitize_text_field( $touch['landing_title'] );
+	}
+
+	return ! empty( $touch['landing_slug'] ) ? sanitize_text_field( $touch['landing_slug'] ) : '';
+}
+}
+
+if ( ! function_exists( 'crpcrm_request_landing_touch_datetime' ) ) {
+function crpcrm_request_landing_touch_datetime( $touch ) {
+	if ( empty( $touch ) || ! is_array( $touch ) || empty( $touch['clicked_at'] ) ) {
+		return 'ثبت نشده';
+	}
+
+	return CRPCRM_Helpers::format_jalali_datetime( $touch['clicked_at'] );
+}
+}
+
 if ( ! function_exists( 'crpcrm_admin_owner_form' ) ) {
 function crpcrm_admin_owner_form( $request_id, $owner_id, $assignable_users ) {
 	?>
@@ -263,13 +307,17 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 
 		<table class="widefat fixed striped crpcrm-requests-table">
 			<thead><tr>
-				<th><?php echo esc_html( 'کد پیگیری' ); ?></th><th><?php echo esc_html( 'مشتری' ); ?></th><th><?php echo esc_html( 'موبایل' ); ?></th><th><?php echo esc_html( 'نوع درخواست' ); ?></th><th><?php echo esc_html( 'خلاصه درخواست' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'منبع' ); ?></th><th><?php echo esc_html( 'کمپین' ); ?></th><th><?php echo esc_html( 'مسئول' ); ?></th><th><?php echo esc_html( 'پیگیری بعدی' ); ?></th><th><?php echo esc_html( 'تاریخ ثبت' ); ?></th><th><?php echo esc_html( 'آخرین بروزرسانی' ); ?></th><th><?php echo esc_html( 'عملیات' ); ?></th>
+				<th><?php echo esc_html( 'کد پیگیری' ); ?></th><th><?php echo esc_html( 'مشتری' ); ?></th><th><?php echo esc_html( 'موبایل' ); ?></th><th><?php echo esc_html( 'نوع درخواست' ); ?></th><th><?php echo esc_html( 'خلاصه درخواست' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'منبع' ); ?></th><th><?php echo esc_html( 'منبع ورودی' ); ?></th><th><?php echo esc_html( 'کمپین' ); ?></th><th><?php echo esc_html( 'مسئول' ); ?></th><th><?php echo esc_html( 'پیگیری بعدی' ); ?></th><th><?php echo esc_html( 'تاریخ ثبت' ); ?></th><th><?php echo esc_html( 'آخرین بروزرسانی' ); ?></th><th><?php echo esc_html( 'عملیات' ); ?></th>
 			</tr></thead>
 			<tbody>
 			<?php if ( empty( $requests ) ) : ?>
-				<tr><td colspan="13"><?php echo esc_html( 'درخواستی یافت نشد.' ); ?></td></tr>
+				<tr><td colspan="14"><?php echo esc_html( 'درخواستی یافت نشد.' ); ?></td></tr>
 			<?php else : ?>
 				<?php foreach ( $requests as $item ) : ?>
+					<?php
+					$landing_attribution = CRPCRM_Request_Repository::get_landing_attribution( $item );
+					$landing_touch       = ! empty( $landing_attribution['last_touch'] ) ? $landing_attribution['last_touch'] : ( ! empty( $landing_attribution['first_touch'] ) ? $landing_attribution['first_touch'] : array() );
+					?>
 					<tr>
 						<td><strong><?php echo esc_html( $item['request_code'] ); ?></strong></td>
 						<td><?php echo esc_html( $item['customer_name'] ? $item['customer_name'] : '—' ); ?></td>
@@ -278,6 +326,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 						<td><?php echo esc_html( wp_trim_words( crpcrm_admin_request_display_summary( $item ), 14, '…' ) ); ?></td>
 						<td><span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( sanitize_html_class( $item['status'] ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $item['status'] ) ); ?></span></td>
 						<td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $item['request_source'] ) ); ?></span></td>
+						<td><?php echo esc_html( ! empty( $landing_touch ) ? crpcrm_request_landing_touch_summary( $landing_touch ) : '—' ); ?></td>
 						<td><?php echo esc_html( $item['request_campaign'] ? $item['request_campaign'] : '—' ); ?></td>
 						<td><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $item['owner_id'] ) ); ?></td>
 						<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && strtotime( $item['next_follow_up_at'] ) < current_time( 'timestamp' ) && 'follow_up' === $item['status'] ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $item['next_follow_up_at'] ) : 'ثبت نشده' ); ?></td>
@@ -317,6 +366,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		$request_data = CRPCRM_Request_Repository::get_merged_request_data( $request );
 		$detail_form  = CRPCRM_Request_Forms::get_form_for_request( $request['request_type'], $request_data );
 		$detail_items = CRPCRM_Dynamic_Form_Renderer::get_display_items( $detail_form, $request_data );
+		$landing_attribution = CRPCRM_Request_Repository::get_landing_attribution( $request );
 		?>
 		<p><a class="button" href="<?php echo esc_url( crpcrm_admin_requests_url() ); ?>"><?php echo esc_html( 'بازگشت به لیست درخواست‌ها' ); ?></a></p>
 		<div class="crpcrm-detail-grid">
@@ -341,6 +391,42 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<dt><?php echo esc_html( 'شهر' ); ?></dt><dd><?php echo esc_html( $request['customer_city'] ? $request['customer_city'] : '—' ); ?></dd>
 				<dt><?php echo esc_html( 'پروفایل مشتری' ); ?></dt><dd><a href="<?php echo esc_url( crpcrm_admin_customer_profile_url( $request['customer_id'], array( 'return_request_id' => absint( $request['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده پروفایل مشتری' ); ?></a></dd>
 			</dl></div>
+		</div>
+
+		<div class="crpcrm-card">
+			<h2><?php echo esc_html( 'منبع ورودی' ); ?></h2>
+			<?php if ( ! empty( $landing_attribution ) ) : ?>
+				<dl class="crpcrm-landing-attribution">
+					<dt><?php echo esc_html( 'اولین ورود' ); ?></dt>
+					<dd>
+						<strong><?php echo esc_html( crpcrm_request_landing_touch_title( $landing_attribution['first_touch'] ?? array() ) ); ?></strong>
+						<div><?php echo esc_html( crpcrm_request_landing_touch_summary( $landing_attribution['first_touch'] ?? array() ) ); ?></div>
+						<small><?php echo esc_html( crpcrm_request_landing_touch_datetime( $landing_attribution['first_touch'] ?? array() ) ); ?></small>
+					</dd>
+					<dt><?php echo esc_html( 'آخرین ورود' ); ?></dt>
+					<dd>
+						<strong><?php echo esc_html( crpcrm_request_landing_touch_title( $landing_attribution['last_touch'] ?? array() ) ); ?></strong>
+						<div><?php echo esc_html( crpcrm_request_landing_touch_summary( $landing_attribution['last_touch'] ?? array() ) ); ?></div>
+						<small><?php echo esc_html( crpcrm_request_landing_touch_datetime( $landing_attribution['last_touch'] ?? array() ) ); ?></small>
+					</dd>
+					<dt><?php echo esc_html( 'لینک / لندینگ' ); ?></dt>
+					<dd>
+						<?php
+						$landing_label = crpcrm_request_landing_touch_title( $landing_attribution['last_touch'] ?? array() );
+						if ( '' === $landing_label ) {
+							$landing_label = crpcrm_request_landing_touch_title( $landing_attribution['first_touch'] ?? array() );
+						}
+						echo esc_html( '' !== $landing_label ? $landing_label : 'ثبت نشده' );
+						?>
+					</dd>
+					<dt><?php echo esc_html( 'صفحه تبدیل' ); ?></dt>
+					<dd><?php echo esc_html( ! empty( $landing_attribution['conversion_page'] ) ? $landing_attribution['conversion_page'] : 'ثبت نشده' ); ?></dd>
+					<dt><?php echo esc_html( 'visitor_id' ); ?></dt>
+					<dd><?php echo esc_html( ! empty( $landing_attribution['visitor_id'] ) ? $landing_attribution['visitor_id'] : 'ثبت نشده' ); ?></dd>
+				</dl>
+			<?php else : ?>
+				<p><?php echo esc_html( 'ثبت نشده' ); ?></p>
+			<?php endif; ?>
 		</div>
 
 		<div class="crpcrm-card"><h2><?php echo esc_html( 'اطلاعات فرم' ); ?></h2><dl class="crpcrm-form-data">

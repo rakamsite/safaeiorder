@@ -1,0 +1,87 @@
+.crpcrm-landing-summary .crpcrm-landing-status-cards {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 12px;
+	margin: 16px 0 0;
+}
+
+.crpcrm-landing-summary .crpcrm-landing-status-cards li {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.crpcrm-landing-summary .crpcrm-landing-status-cards strong {
+	font-size: 20px;
+	line-height: 1.2;
+}
+
+.crpcrm-landing-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.crpcrm-landing-link-wrap,
+.crpcrm-landing-preview-url,
+.crpcrm-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.crpcrm-landing-search-results {
+	margin-top: 10px;
+}
+
+.crpcrm-landing-search-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.crpcrm-landing-search-item {
+	justify-content: flex-start;
+	text-align: right;
+	width: 100%;
+}
+
+.crpcrm-landing-search-loading,
+.crpcrm-landing-search-empty,
+.crpcrm-landing-selected-destination,
+.crpcrm-landing-preview {
+	margin-top: 10px;
+	padding: 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+	background: #fff;
+}
+
+.crpcrm-landing-selected-destination {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.crpcrm-landing-preview code {
+	word-break: break-all;
+}
+
+@media (max-width: 900px) {
+	.crpcrm-landing-summary .crpcrm-landing-status-cards {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 600px) {
+	.crpcrm-landing-summary .crpcrm-landing-status-cards {
+		grid-template-columns: 1fr;
+	}
+}

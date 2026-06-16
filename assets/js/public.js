@@ -672,6 +672,7 @@
 		var formData = new FormData();
 		formData.append('action', 'crpcrm_upload_request_file');
 		formData.append('nonce', config.fileUploadNonce);
+		formData.append('field_key', (wrapper && wrapper.dataset && wrapper.dataset.fieldName) ? wrapper.dataset.fieldName : '');
 		formData.append('file', file);
 
 		preview.innerHTML = '<span class="crpcrm-file-upload-name">' + (config.fileUploadLoading || 'Uploading...') + '</span>';

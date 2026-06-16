@@ -137,6 +137,17 @@ request_data
 
 هر فاز refactor باید public request، admin request، settings، reports، feature toggle و shortcodeهای فعلی را سالم نگه دارد. انتقال معماری باید مرحله‌ای باشد و هر فاز به‌تنهایی قابل اجرا بماند.
 
+## قواعد نگهداری برای توسعه‌های بعدی
+
+- هر قابلیت جدیدی که فرآیند یا UI مستقل دارد باید پشت Feature Toggle مناسب قرار بگیرد.
+- `Business Profile` نباید دوباره به schema، UI یا flow اجرایی برگردد.
+- `vehicle_catalog` نباید برگردد؛ هر انتخاب مربوط به خودرو، محصول یا گزینه‌ها باید از Form Builder یا تنظیمات سازگار بیاید.
+- هر نوع فیلد جدید در Form Builder باید چهار بخش را هم‌زمان داشته باشد: validation، sanitize، render و رفتار summary.
+- هر تغییر schema باید `CRPCRM_DB_VERSION` را افزایش دهد و با `dbDelta` هماهنگ باشد.
+- هر upload جدید باید از helper مرکزی upload و مسیر اختصاصی افزونه استفاده کند.
+- viewهای بزرگ نباید دوباره به فایل‌های بسیار حجیم و سخت‌نگهداری تبدیل شوند؛ در صورت نیاز باید به partialهای کوچک‌تر و امن‌تر تقسیم شوند.
+- خاموش بودن یک feature نباید داده‌های ذخیره‌شده یا فرم‌های فعال را حذف کند.
+
 ## Business Profile Removal Plan
 
 - **Phase 2:** انتقال فرم‌ها و request typeها از Business Profile به Default Forms.
@@ -176,3 +187,11 @@ request_data
 - فایل‌های PHP تغییرکرده باید با `php -l` بررسی شوند.
 - تست‌ها باید متناسب با دامنه تغییر اجرا شوند.
 - فایل‌های تغییرکرده، تست‌های اجراشده و محدودیت‌های تست باید گزارش شوند.
+### Landing Manager
+
+- `landing_manager` is an independent feature for creating internal campaign links.
+- The first version must generate the final URL with `?u=slug`.
+- `/u/slug` routing is not part of this version and should be implemented later if needed.
+- Tracking, cookies, click logging, and conversion reporting must remain out of phase 1.
+- In phase 2, the same `u` parameter may be tracked on the destination page without redirecting, and only internal pages that match the configured landing should be recorded.
+- `landing_manager` must remain independent from `portal`, `staff`, `notifications`, and `form_builder`.

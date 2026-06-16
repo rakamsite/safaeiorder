@@ -11,13 +11,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Attribution_Service {
 	const COOKIE_NAME = 'crpcrm_current_attr';
+	const LANDING_VISITOR_COOKIE = 'crpcrm_visitor_id';
+	const LANDING_FIRST_TOUCH_COOKIE = 'crpcrm_first_touch';
+	const LANDING_LAST_TOUCH_COOKIE = 'crpcrm_last_touch';
 
 	private $attribution_repository;
 	private $customer_repository;
+	private $landing_manager;
 
 	public function __construct( CRPCRM_Customer_Attribution_Repository $attribution_repository = null, CRPCRM_Customer_Repository $customer_repository = null ) {
 		$this->attribution_repository = $attribution_repository ? $attribution_repository : new CRPCRM_Customer_Attribution_Repository();
 		$this->customer_repository     = $customer_repository ? $customer_repository : new CRPCRM_Customer_Repository();
+		$this->landing_manager         = class_exists( 'CRPCRM_Landing_Manager' ) ? new CRPCRM_Landing_Manager() : null;
 	}
 
 	public function register_hooks() {
@@ -358,6 +363,43 @@ class CRPCRM_Attribution_Service {
 		);
 	}
 
+	public function get_landing_attribution_for_new_request( $context = array() ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
+			return array();
+		}
+
+		$context      = is_array( $context ) ? $context : array();
+		$visitor_id   = $this->get_landing_cookie_value( self::LANDING_VISITOR_COOKIE );
+		$first_touch  = $this->get_landing_touch_cookie( self::LANDING_FIRST_TOUCH_COOKIE );
+		$last_touch   = $this->get_landing_touch_cookie( self::LANDING_LAST_TOUCH_COOKIE );
+		$request_url  = $this->get_request_context_url( $context );
+		$referrer     = $this->get_request_context_referrer( $context );
+
+		if ( empty( $first_touch ) && empty( $last_touch ) && '' !== $request_url ) {
+			$fallback = $this->resolve_landing_touch_from_url( $request_url );
+			if ( ! empty( $fallback ) ) {
+				$first_touch = $fallback;
+				$last_touch  = $fallback;
+			}
+		}
+
+		$first_touch = $this->enrich_landing_touch( $first_touch );
+		$last_touch  = $this->enrich_landing_touch( $last_touch );
+
+		if ( empty( $first_touch ) && empty( $last_touch ) ) {
+			return array();
+		}
+
+		return array(
+			'visitor_id'      => $visitor_id,
+			'conversion_page' => '' !== $request_url ? $request_url : $this->get_current_url(),
+			'converted_at'    => CRPCRM_Helpers::current_datetime(),
+			'referrer'        => $referrer,
+			'first_touch'     => $first_touch,
+			'last_touch'      => $last_touch,
+		);
+	}
+
 	private function should_skip_tracking() {
 		if ( is_admin() ) {
 			return true;
@@ -497,5 +539,213 @@ class CRPCRM_Attribution_Service {
 
 	private function log_invalid_cookie() {
 		CRPCRM_Logger::warning( 'attribution_invalid_cookie', 'attribution' );
+	}
+
+	private function get_landing_cookie_value( $name ) {
+		if ( empty( $_COOKIE[ $name ] ) ) {
+			return '';
+		}
+
+		$value = sanitize_text_field( wp_unslash( $_COOKIE[ $name ] ) );
+		return preg_match( '/^[a-z0-9\-_]{8,100}$/i', $value ) ? $value : '';
+	}
+
+	private function get_landing_touch_cookie( $name ) {
+		if ( empty( $_COOKIE[ $name ] ) ) {
+			return array();
+		}
+
+		$raw = sanitize_text_field( wp_unslash( $_COOKIE[ $name ] ) );
+		$json = base64_decode( $raw, true );
+		if ( false === $json ) {
+			return array();
+		}
+
+		$decoded = json_decode( $json, true );
+		if ( ! is_array( $decoded ) || empty( $decoded['data'] ) || empty( $decoded['sig'] ) || ! is_array( $decoded['data'] ) ) {
+			return array();
+		}
+
+		$expected = hash_hmac( 'sha256', wp_json_encode( $this->sanitize_landing_touch( $decoded['data'] ) ), wp_salt( 'auth' ) );
+		if ( ! hash_equals( $expected, (string) $decoded['sig'] ) ) {
+			return array();
+		}
+
+		return $this->sanitize_landing_touch( $decoded['data'] );
+	}
+
+	private function sanitize_landing_touch( $data ) {
+		$data = is_array( $data ) ? $data : array();
+		return array(
+			'landing_id'    => isset( $data['landing_id'] ) ? absint( $data['landing_id'] ) : 0,
+			'landing_slug'  => isset( $data['landing_slug'] ) ? sanitize_key( $data['landing_slug'] ) : '',
+			'source_code'   => isset( $data['source_code'] ) ? sanitize_text_field( $data['source_code'] ) : '',
+			'medium_code'   => isset( $data['medium_code'] ) ? sanitize_text_field( $data['medium_code'] ) : '',
+			'campaign_code' => isset( $data['campaign_code'] ) ? sanitize_text_field( $data['campaign_code'] ) : '',
+			'content_code'  => isset( $data['content_code'] ) ? sanitize_text_field( $data['content_code'] ) : '',
+			'term_code'     => isset( $data['term_code'] ) ? sanitize_text_field( $data['term_code'] ) : '',
+			'source_label'  => isset( $data['source_label'] ) ? sanitize_text_field( $data['source_label'] ) : '',
+			'medium_label'  => isset( $data['medium_label'] ) ? sanitize_text_field( $data['medium_label'] ) : '',
+			'campaign_label'=> isset( $data['campaign_label'] ) ? sanitize_text_field( $data['campaign_label'] ) : '',
+			'content_label' => isset( $data['content_label'] ) ? sanitize_text_field( $data['content_label'] ) : '',
+			'term_label'    => isset( $data['term_label'] ) ? sanitize_text_field( $data['term_label'] ) : '',
+			'clicked_at'    => isset( $data['clicked_at'] ) ? sanitize_text_field( $data['clicked_at'] ) : '',
+			'click_id'      => isset( $data['click_id'] ) ? absint( $data['click_id'] ) : 0,
+			'current_url'   => isset( $data['current_url'] ) ? esc_url_raw( $data['current_url'] ) : '',
+			'visitor_id'    => isset( $data['visitor_id'] ) ? sanitize_text_field( $data['visitor_id'] ) : '',
+		);
+	}
+
+	private function enrich_landing_touch( $touch ) {
+		$touch = $this->sanitize_landing_touch( $touch );
+		if ( empty( $touch['landing_id'] ) && empty( $touch['landing_slug'] ) ) {
+			return array();
+		}
+
+		$landing = null;
+		if ( $this->landing_manager ) {
+			if ( ! empty( $touch['landing_id'] ) ) {
+				$landing = $this->landing_manager->get( absint( $touch['landing_id'] ) );
+			}
+			if ( ! $landing && ! empty( $touch['landing_slug'] ) ) {
+				$landing = $this->landing_manager->get_by_slug( $touch['landing_slug'] );
+			}
+		}
+
+		if ( ! is_array( $landing ) || empty( $landing['id'] ) || 'active' !== ( $landing['status'] ?? '' ) ) {
+			return array();
+		}
+
+		$touch['landing_id']     = absint( $landing['id'] );
+		$touch['landing_slug']   = isset( $landing['slug'] ) ? sanitize_key( $landing['slug'] ) : $touch['landing_slug'];
+		$touch['landing_title']  = isset( $landing['title'] ) ? sanitize_text_field( $landing['title'] ) : '';
+		$touch['destination_url'] = isset( $landing['destination_url'] ) ? esc_url_raw( $landing['destination_url'] ) : '';
+		$touch['source_code']    = isset( $landing['source_code'] ) ? sanitize_text_field( $landing['source_code'] ) : $touch['source_code'];
+		$touch['source_label']   = isset( $landing['source_label'] ) ? sanitize_text_field( $landing['source_label'] ) : $touch['source_label'];
+		$touch['medium_code']    = isset( $landing['medium_code'] ) ? sanitize_text_field( $landing['medium_code'] ) : $touch['medium_code'];
+		$touch['medium_label']   = isset( $landing['medium_label'] ) ? sanitize_text_field( $landing['medium_label'] ) : $touch['medium_label'];
+		$touch['campaign_code']  = isset( $landing['campaign_code'] ) ? sanitize_text_field( $landing['campaign_code'] ) : $touch['campaign_code'];
+		$touch['campaign_label'] = isset( $landing['campaign_label'] ) ? sanitize_text_field( $landing['campaign_label'] ) : $touch['campaign_label'];
+		$touch['content_code']   = isset( $landing['content_code'] ) ? sanitize_text_field( $landing['content_code'] ) : $touch['content_code'];
+		$touch['content_label']  = isset( $landing['content_label'] ) ? sanitize_text_field( $landing['content_label'] ) : $touch['content_label'];
+		$touch['term_code']      = isset( $landing['term_code'] ) ? sanitize_text_field( $landing['term_code'] ) : $touch['term_code'];
+		$touch['term_label']     = isset( $landing['term_label'] ) ? sanitize_text_field( $landing['term_label'] ) : $touch['term_label'];
+
+		return $touch;
+	}
+
+	private function resolve_landing_touch_from_url( $url ) {
+		$url = esc_url_raw( (string) $url );
+		if ( '' === $url || ! $this->landing_manager ) {
+			return array();
+		}
+
+		$slug = '';
+		$query = wp_parse_url( $url, PHP_URL_QUERY );
+		if ( ! empty( $query ) ) {
+			parse_str( $query, $params );
+			$slug = ! empty( $params['u'] ) ? sanitize_key( $params['u'] ) : ( ! empty( $params['U'] ) ? sanitize_key( $params['U'] ) : '' );
+		}
+
+		if ( '' === $slug ) {
+			return array();
+		}
+
+		$landing = $this->landing_manager->get_by_slug( $slug );
+		if ( ! is_array( $landing ) || empty( $landing['id'] ) || 'active' !== ( $landing['status'] ?? '' ) ) {
+			return array();
+		}
+
+		$landing_url = isset( $landing['destination_url'] ) ? esc_url_raw( $landing['destination_url'] ) : '';
+		if ( '' !== $landing_url ) {
+			$landing_path = $this->normalize_url_for_landing_match( $landing_url );
+			$request_path = $this->normalize_url_for_landing_match( $url );
+			if ( '' !== $landing_path && '' !== $request_path && $landing_path !== $request_path ) {
+				return array();
+			}
+		}
+
+		return array(
+			'landing_id'    => absint( $landing['id'] ),
+			'landing_slug'  => isset( $landing['slug'] ) ? sanitize_key( $landing['slug'] ) : '',
+			'source_code'   => isset( $landing['source_code'] ) ? sanitize_text_field( $landing['source_code'] ) : '',
+			'source_label'  => isset( $landing['source_label'] ) ? sanitize_text_field( $landing['source_label'] ) : '',
+			'medium_code'   => isset( $landing['medium_code'] ) ? sanitize_text_field( $landing['medium_code'] ) : '',
+			'medium_label'  => isset( $landing['medium_label'] ) ? sanitize_text_field( $landing['medium_label'] ) : '',
+			'campaign_code' => isset( $landing['campaign_code'] ) ? sanitize_text_field( $landing['campaign_code'] ) : '',
+			'campaign_label'=> isset( $landing['campaign_label'] ) ? sanitize_text_field( $landing['campaign_label'] ) : '',
+			'content_code'  => isset( $landing['content_code'] ) ? sanitize_text_field( $landing['content_code'] ) : '',
+			'content_label' => isset( $landing['content_label'] ) ? sanitize_text_field( $landing['content_label'] ) : '',
+			'term_code'     => isset( $landing['term_code'] ) ? sanitize_text_field( $landing['term_code'] ) : '',
+			'term_label'    => isset( $landing['term_label'] ) ? sanitize_text_field( $landing['term_label'] ) : '',
+			'clicked_at'    => CRPCRM_Helpers::current_datetime(),
+			'click_id'      => 0,
+			'current_url'   => esc_url_raw( $url ),
+			'visitor_id'    => $this->get_landing_cookie_value( self::LANDING_VISITOR_COOKIE ),
+		);
+	}
+
+	private function get_request_context_url( array $context ) {
+		foreach ( array( 'request_url', 'current_url', 'url' ) as $key ) {
+			if ( ! empty( $context[ $key ] ) ) {
+				$url = esc_url_raw( (string) $context[ $key ] );
+				if ( '' !== $url ) {
+					return $url;
+				}
+			}
+		}
+
+		if ( ! empty( $_SERVER['HTTP_REFERER'] ) ) {
+			$referrer = esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) );
+			if ( '' !== $referrer ) {
+				return $referrer;
+			}
+		}
+
+		return '';
+	}
+
+	private function get_request_context_referrer( array $context ) {
+		if ( ! empty( $context['referrer'] ) ) {
+			$referrer = esc_url_raw( (string) $context['referrer'] );
+			return wp_http_validate_url( $referrer ) ? $referrer : '';
+		}
+
+		if ( ! empty( $_SERVER['HTTP_REFERER'] ) ) {
+			$referrer = esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) );
+			return wp_http_validate_url( $referrer ) ? $referrer : '';
+		}
+
+		return '';
+	}
+
+	private function normalize_url_for_landing_match( $url ) {
+		$url = esc_url_raw( (string) $url );
+		if ( '' === $url ) {
+			return '';
+		}
+
+		$parsed = wp_parse_url( $url );
+		if ( empty( $parsed['host'] ) ) {
+			return '';
+		}
+
+		$path = isset( $parsed['path'] ) ? untrailingslashit( '/' . ltrim( $parsed['path'], '/' ) ) : '';
+		$query = array();
+		if ( ! empty( $parsed['query'] ) ) {
+			parse_str( $parsed['query'], $query );
+			foreach ( array( 'u', 'U', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'gclid', 'yclid' ) as $tracking_key ) {
+				unset( $query[ $tracking_key ] );
+			}
+			ksort( $query );
+		}
+
+		$host = preg_replace( '/^www\./', '', strtolower( $parsed['host'] ) );
+		$normalized = $host . $path;
+		if ( ! empty( $query ) ) {
+			$normalized .= '?' . http_build_query( $query, '', '&', PHP_QUERY_RFC3986 );
+		}
+
+		return $normalized;
 	}
 }
