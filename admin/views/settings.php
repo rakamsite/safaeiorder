@@ -36,7 +36,7 @@ $feature_messages = CRPCRM_Feature_Manager::get_toggle_notice();
 	<?php if ( $portal_warning ) : ?>
 		<div class="notice notice-warning"><p><?php echo esc_html( $portal_warning ); ?></p></div>
 	<?php endif; ?>
-	<?php if ( 'yes' === $settings['otp_debug_mode'] && ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) ) : ?>
+	<?php if ( 'yes' === $settings['otp_debug_mode'] && function_exists( 'wp_get_environment_type' ) && 'production' === wp_get_environment_type() ) : ?>
 		<div class="notice notice-warning"><p><?php echo esc_html( 'فعال‌سازی حالت تست OTP در سایت عملیاتی توصیه نمی‌شود.' ); ?></p></div>
 	<?php endif; ?>
 
@@ -175,6 +175,65 @@ $feature_messages = CRPCRM_Feature_Manager::get_toggle_notice();
 			<?php submit_button( 'ذخیره تنظیمات', 'primary', 'submit', false ); ?>
 		</div>
 	</form>
+	<?php if ( 'otp' === $active_tab && CRPCRM_Feature_Manager::is_enabled( 'sms' ) ) : ?>
+	<script>
+	(function () {
+		var providerSelect = document.getElementById('otp_provider');
+		if (!providerSelect || !document.querySelector) {
+			return;
+		}
+
+		var sections = {
+			melipayamak: [
+				document.getElementById('melipayamak_username'),
+				document.getElementById('melipayamak_api_key'),
+				document.getElementById('melipayamak_pattern_code'),
+				document.getElementById('melipayamak_sender')
+			],
+			sms_ir: [
+				document.getElementById('sms_ir_api_key'),
+				document.getElementById('sms_ir_line_number'),
+				document.getElementById('sms_ir_template_id_otp'),
+				document.getElementById('sms_ir_template_id_request_created')
+			]
+		};
+
+		var getRows = function (inputs) {
+			var rows = [];
+			Array.prototype.forEach.call(inputs, function (input, index) {
+				if (!input || !input.closest) {
+					return;
+				}
+				var row = input.closest('tr');
+				if (row) {
+					rows.push(row);
+					if (index === 0 && row.previousElementSibling && row.previousElementSibling.querySelector('h3')) {
+						rows.push(row.previousElementSibling);
+					}
+				}
+			});
+			return rows;
+		};
+
+		var rowsByProvider = {
+			melipayamak: getRows(sections.melipayamak),
+			sms_ir: getRows(sections.sms_ir)
+		};
+
+		var updateRows = function () {
+			var activeProvider = providerSelect.value;
+			Object.keys(rowsByProvider).forEach(function (providerKey) {
+				Array.prototype.forEach.call(rowsByProvider[providerKey], function (row) {
+					row.style.display = providerKey === activeProvider ? '' : 'none';
+				});
+			});
+		};
+
+		providerSelect.addEventListener('change', updateRows);
+		updateRows();
+	}());
+	</script>
+	<?php endif; ?>
 	<?php elseif ( 'roles' === $active_tab ) : ?>
 		<div class="crpcrm-card">
 			<h2><?php echo esc_html( 'وضعیت نقش‌ها و دسترسی‌ها' ); ?></h2>

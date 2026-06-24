@@ -13,6 +13,8 @@ class CRPCRM_Deactivator {
 	public static function deactivate() {
 		if ( class_exists( 'CRPCRM_Admin_Tools' ) ) {
 			CRPCRM_Admin_Tools::clear_cron();
+		}
+		if ( class_exists( 'CRPCRM_Lead_Follow_Up_Service' ) ) {
 			CRPCRM_Lead_Follow_Up_Service::clear_cron();
 		}
 		if ( class_exists( 'CRPCRM_Dynamic_Form_Renderer' ) ) {

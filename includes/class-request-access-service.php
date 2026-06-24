@@ -29,12 +29,12 @@ class CRPCRM_Request_Access_Service {
 			return true;
 		}
 		$owner_id = isset( $request['owner_id'] ) ? absint( $request['owner_id'] ) : 0;
-		return 0 === $owner_id || $owner_id === $user_id;
+		return $owner_id === $user_id;
 	}
 
 	public static function can_claim_request( $request, $user_id = 0 ) {
 		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
-		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) || ! $request || ! user_can( $user_id, 'crpcrm_claim_requests' ) || ! self::can_view_request( $request, $user_id ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) || ! $request || ! user_can( $user_id, 'crpcrm_claim_requests' ) || ! self::can_access_admin_requests( $user_id ) ) {
 			return false;
 		}
 		$owner_id = isset( $request['owner_id'] ) ? absint( $request['owner_id'] ) : 0;

@@ -816,19 +816,6 @@ class CRPCRM_Dynamic_Form_Renderer {
 		return '<div class="crpcrm-file-item crpcrm-file-item-generic"><span class="crpcrm-file-generic-icon">فایل</span><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل', 'customer-request-portal-crm' ) . '">' . esc_html( $label ) . '</a></div>';
 	}
 
-	private static function get_safe_download_url( $url ) {
-		$url = is_string( $url ) ? trim( $url ) : '';
-		if ( '' === $url ) {
-			return '';
-		}
-
-		if ( ! self::is_safe_internal_file_url( $url ) ) {
-			return '';
-		}
-
-		return esc_url_raw( $url );
-	}
-
 	private static function is_safe_internal_file_url( $url ) {
 		$url = is_string( $url ) ? trim( $url ) : '';
 		if ( '' === $url ) {
@@ -1123,6 +1110,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 				continue;
 			}
 
+			/*
 			if ( empty( $file['upload_token'] ) ) {
 				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست. لطفاً فایل را دوباره بارگذاری کنید.' );
 			}
@@ -1133,29 +1121,10 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 			$file['field_key'] = sanitize_key( $field_key );
 			$normalized[] = self::normalize_single_uploaded_file_meta( $file );
+			*/
 		}
 
 		return $normalized;
-	}
-
-	private static function is_valid_uploaded_file_meta( $file ) {
-		if ( empty( $file['name'] ) || empty( $file['url'] ) || empty( $file['relative_path'] ) ) {
-			return false;
-		}
-
-		$extension = strtolower( pathinfo( (string) $file['name'], PATHINFO_EXTENSION ) );
-		$allowed   = array_keys( self::get_allowed_upload_mimes() );
-		$is_valid  = false;
-
-		foreach ( $allowed as $group ) {
-			$extensions = array_map( 'trim', explode( '|', $group ) );
-			if ( in_array( $extension, $extensions, true ) ) {
-				$is_valid = true;
-				break;
-			}
-		}
-
-		return $is_valid && absint( $file['size'] ?? 0 ) <= self::get_max_file_size();
 	}
 
 	private static function register_pending_upload( $file ) {
