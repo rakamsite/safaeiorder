@@ -78,7 +78,7 @@ class CRPCRM_OTP_Service {
 			return new WP_Error( 'otp_create_failed', 'ارسال کد تأیید با مشکل مواجه شد. لطفاً بعداً دوباره تلاش کنید.' );
 		}
 
-		if ( 'yes' === CRPCRM_Settings::get( 'otp_debug_mode', 'no' ) ) {
+		if ( $this->can_log_debug_otp() ) {
 			CRPCRM_Logger::debug( 'otp_debug_code', 'otp_debug_code', array( 'otp_id' => $otp_id, 'phone_hash' => $this->hash_value( $phone_normalized ), 'code' => $code ) );
 		}
 
@@ -93,7 +93,7 @@ class CRPCRM_OTP_Service {
 			);
 			CRPCRM_Logger::warning( 'otp_send_failed', 'otp', array( 'otp_id' => $otp_id, 'code' => $send_result->get_error_code() ) );
 
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			if ( $this->can_use_debug_delivery_fallback() ) {
 				CRPCRM_Logger::debug( 'development_otp_code', 'otp', array( 'otp_id' => $otp_id, 'phone_hash' => $this->hash_value( $phone_normalized ), 'code' => $code ) );
 				$this->repository->update( $otp_id, array( 'status' => 'sent' ) );
 				CRPCRM_Logger::info( 'otp_sent', 'otp', array( 'otp_id' => $otp_id, 'phone_hash' => $this->hash_value( $phone_normalized ), 'transport' => 'development_log' ) );
@@ -334,8 +334,9 @@ class CRPCRM_OTP_Service {
 	private function check_rate_limit( $phone_normalized ) {
 		$now            = CRPCRM_Helpers::current_timestamp();
 		$resend_seconds = $this->get_resend_seconds();
-		$window_minutes  = $this->get_rate_limit_window_minutes();
-		$since           = CRPCRM_Helpers::subtract_seconds_from_now( $window_minutes * MINUTE_IN_SECONDS );
+		$window_minutes = $this->get_rate_limit_window_minutes();
+		$window_seconds = $window_minutes * MINUTE_IN_SECONDS;
+		$since          = CRPCRM_Helpers::subtract_seconds_from_now( $window_seconds );
 		$latest         = $this->repository->find_latest_active_by_phone( $phone_normalized, self::RATE_LIMIT_STATUSES );
 
 		if ( $latest && ! empty( $latest['created_at'] ) ) {
@@ -346,16 +347,65 @@ class CRPCRM_OTP_Service {
 			}
 		}
 
-		if ( $this->repository->count_recent_by_phone( $phone_normalized, $since, self::RATE_LIMIT_STATUSES ) >= $this->get_phone_rate_limit() ) {
+		$phone_requests = $this->repository->count_recent_by_phone( $phone_normalized, $since, self::RATE_LIMIT_STATUSES );
+		if ( $phone_requests >= $this->get_phone_rate_limit() ) {
+			$oldest_phone = $this->repository->find_oldest_recent_by_phone( $phone_normalized, $since, self::RATE_LIMIT_STATUSES );
+			$remaining    = $this->get_rate_limit_window_remaining_seconds( $oldest_phone['created_at'] ?? '', $window_seconds, $now );
+			return new WP_Error( 'otp_phone_rate_limited', sprintf( 'برای این شماره تعداد درخواست‌ها به سقف رسیده است. %s دیگر دوباره تلاش کنید.', $this->format_wait_time( $remaining ) ) );
+		}
+
+		if ( $phone_requests >= $this->get_phone_rate_limit() ) {
 			return new WP_Error( 'otp_phone_rate_limited', 'برای این شماره فعلاً درخواست‌های زیادی ثبت شده است. کمی بعد دوباره تلاش کنید.' );
 		}
 
 		$ip_hash = $this->current_ip_hash();
-		if ( '' !== $ip_hash && $this->repository->count_recent_by_ip_hash( $ip_hash, $since, self::RATE_LIMIT_STATUSES ) >= $this->get_ip_rate_limit() ) {
+		$ip_requests = '' !== $ip_hash ? $this->repository->count_recent_by_ip_hash( $ip_hash, $since, self::RATE_LIMIT_STATUSES ) : 0;
+		if ( '' !== $ip_hash && $ip_requests >= $this->get_ip_rate_limit() ) {
+			$oldest_ip = $this->repository->find_oldest_recent_by_ip_hash( $ip_hash, $since, self::RATE_LIMIT_STATUSES );
+			$remaining = $this->get_rate_limit_window_remaining_seconds( $oldest_ip['created_at'] ?? '', $window_seconds, $now );
+			return new WP_Error( 'otp_ip_rate_limited', sprintf( 'از این اتصال در بازه کوتاه درخواست‌های زیادی ثبت شده است. %s دیگر دوباره تلاش کنید.', $this->format_wait_time( $remaining ) ) );
+		}
+		if ( '' !== $ip_hash && $ip_requests >= $this->get_ip_rate_limit() ) {
 			return new WP_Error( 'otp_ip_rate_limited', 'از این اتصال درخواست‌های زیادی ثبت شده است. کمی بعد دوباره تلاش کنید.' );
 		}
 
 		return true;
+	}
+
+	private function can_log_debug_otp() {
+		return 'yes' === CRPCRM_Settings::get( 'otp_debug_mode', 'no' ) && $this->is_debug_delivery_environment();
+	}
+
+	private function can_use_debug_delivery_fallback() {
+		return $this->is_debug_delivery_environment();
+	}
+
+	private function is_debug_delivery_environment() {
+		$environment = function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production';
+		if ( in_array( $environment, array( 'local', 'development' ), true ) ) {
+			return true;
+		}
+
+		return 'production' !== $environment && 'yes' === CRPCRM_Settings::get( 'otp_debug_mode', 'no' );
+	}
+
+	private function get_rate_limit_window_remaining_seconds( $created_at, $window_seconds, $now ) {
+		if ( empty( $created_at ) ) {
+			return max( MINUTE_IN_SECONDS, absint( $window_seconds ) );
+		}
+
+		$elapsed = max( 0, $now - CRPCRM_Helpers::datetime_to_timestamp( $created_at ) );
+		return max( MINUTE_IN_SECONDS, absint( $window_seconds ) - $elapsed );
+	}
+
+	private function format_wait_time( $seconds ) {
+		$seconds = max( 1, absint( $seconds ) );
+		if ( $seconds < MINUTE_IN_SECONDS ) {
+			return sprintf( '%d ثانیه', $seconds );
+		}
+
+		$minutes = (int) ceil( $seconds / MINUTE_IN_SECONDS );
+		return sprintf( '%d دقیقه', $minutes );
 	}
 
 	private function current_ip_hash() {

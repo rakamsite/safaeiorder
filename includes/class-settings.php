@@ -197,7 +197,7 @@ class CRPCRM_Settings {
 			if ( CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) {
 				$settings['otp_expiration_minutes'] = $this->bounded_absint( $input, 'otp_expiration_minutes', 1, 60, $defaults['otp_expiration_minutes'] );
 				$settings['otp_max_attempts']       = $this->bounded_absint( $input, 'otp_max_attempts', 1, 20, $defaults['otp_max_attempts'] );
-				$settings['otp_debug_mode']         = $this->checkbox( $input, 'otp_debug_mode' );
+				$settings['otp_debug_mode']         = current_user_can( 'manage_options' ) ? $this->checkbox( $input, 'otp_debug_mode' ) : ( isset( $current['otp_debug_mode'] ) ? $current['otp_debug_mode'] : $defaults['otp_debug_mode'] );
 			}
 			if ( CRPCRM_Feature_Manager::is_enabled( 'sms' ) ) {
 				$provider_id                                  = isset( $input['otp_provider'] ) ? sanitize_key( $input['otp_provider'] ) : $defaults['otp_provider'];

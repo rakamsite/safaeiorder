@@ -20,6 +20,8 @@ class CRPCRM_Activator {
 		}
 		if ( class_exists( 'CRPCRM_Admin_Tools' ) ) {
 			CRPCRM_Admin_Tools::schedule_cron();
+		}
+		if ( class_exists( 'CRPCRM_Lead_Follow_Up_Service' ) ) {
 			CRPCRM_Lead_Follow_Up_Service::schedule_cron();
 		}
 		if ( class_exists( 'CRPCRM_Dynamic_Form_Renderer' ) ) {

@@ -579,9 +579,14 @@ class CRPCRM_Request_Repository {
 		$user_id = isset( $args['user_id'] ) ? absint( $args['user_id'] ) : get_current_user_id();
 		$where   = array( '1=1' );
 		$values  = array();
+		$owner_filter = isset( $args['owner_filter'] ) ? sanitize_text_field( $args['owner_filter'] ) : '';
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
-			$where[]  = '(r.owner_id = %d OR r.owner_id IS NULL)';
-			$values[] = $user_id;
+			if ( 'unassigned' === $owner_filter && user_can( $user_id, 'crpcrm_claim_requests' ) && CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+				$where[] = 'r.owner_id IS NULL';
+			} else {
+				$where[]  = 'r.owner_id = %d';
+				$values[] = $user_id;
+			}
 		}
 
 		if ( ! empty( $args['request_type'] ) ) {
@@ -624,11 +629,10 @@ class CRPCRM_Request_Repository {
 				}
 			}
 		}
-		if ( isset( $args['owner_filter'] ) && '' !== $args['owner_filter'] && 'all' !== $args['owner_filter'] ) {
-			$owner_filter = sanitize_text_field( $args['owner_filter'] );
-			if ( 'unassigned' === $owner_filter ) {
+		if ( '' !== $owner_filter && 'all' !== $owner_filter ) {
+			if ( 'unassigned' === $owner_filter && CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 				$where[] = 'r.owner_id IS NULL';
-			} elseif ( 'me' === $owner_filter ) {
+			} elseif ( 'me' === $owner_filter && CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 				$where[]  = 'r.owner_id = %d';
 				$values[] = $user_id;
 			} elseif ( CRPCRM_Request_Access_Service::can_view_all( $user_id ) && absint( $owner_filter ) ) {

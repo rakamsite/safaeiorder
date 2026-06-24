@@ -321,7 +321,7 @@ class CRPCRM_Customer_Repository {
 		$where = array( 'r.customer_id = %d' );
 		$values = array( absint( $customer_id ) );
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
-			$where[] = '(r.owner_id = %d OR r.owner_id IS NULL)';
+			$where[] = 'r.owner_id = %d';
 			$values[] = $user_id;
 		}
 		$values[] = $limit;
@@ -383,7 +383,7 @@ class CRPCRM_Customer_Repository {
 			return true;
 		}
 		$requests = CRPCRM_DB::table( 'requests' );
-		$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$requests} WHERE customer_id = %d AND (owner_id = %d OR owner_id IS NULL)", $customer_id, $user_id ) );
+		$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$requests} WHERE customer_id = %d AND owner_id = %d", $customer_id, $user_id ) );
 		return $count > 0;
 	}
 
@@ -393,7 +393,7 @@ class CRPCRM_Customer_Repository {
 		$where = array( '1=1' );
 		$values = array();
 		if ( ! CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
-			$where[] = '(r.owner_id = %d OR r.owner_id IS NULL)';
+			$where[] = 'r.owner_id = %d';
 			$values[] = $user_id;
 		}
 		if ( ! empty( $args['first_source'] ) ) {

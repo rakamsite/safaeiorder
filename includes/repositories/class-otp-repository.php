@@ -99,6 +99,44 @@ class CRPCRM_OTP_Repository {
 		);
 	}
 
+	public function find_oldest_recent_by_phone( $phone_normalized, $since, $statuses = null ) {
+		global $wpdb;
+		$statuses = $this->sanitize_status_list( $statuses );
+		if ( empty( $statuses ) ) {
+			return null;
+		}
+
+		$status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT id, created_at FROM {$this->table} WHERE phone_normalized = %s AND status IN ({$status_placeholders}) AND created_at >= %s ORDER BY created_at ASC, id ASC LIMIT 1",
+				array_merge( array( sanitize_text_field( $phone_normalized ) ), $statuses, array( sanitize_text_field( $since ) ) )
+			),
+			ARRAY_A
+		);
+	}
+
+	public function find_oldest_recent_by_ip_hash( $ip_hash, $since, $statuses = null ) {
+		global $wpdb;
+		if ( empty( $ip_hash ) ) {
+			return null;
+		}
+
+		$statuses = $this->sanitize_status_list( $statuses );
+		if ( empty( $statuses ) ) {
+			return null;
+		}
+
+		$status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT id, created_at FROM {$this->table} WHERE ip_hash = %s AND status IN ({$status_placeholders}) AND created_at >= %s ORDER BY created_at ASC, id ASC LIMIT 1",
+				array_merge( array( sanitize_text_field( $ip_hash ) ), $statuses, array( sanitize_text_field( $since ) ) )
+			),
+			ARRAY_A
+		);
+	}
+
 	public function update( $id, $data ) {
 		global $wpdb;
 		$data = $this->sanitize_data( $data );
