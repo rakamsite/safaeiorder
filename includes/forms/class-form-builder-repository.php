@@ -88,6 +88,13 @@ class CRPCRM_Form_Builder_Repository {
 		if ( $original_form_id && $original_form_id !== $form['form_id'] ) {
 			return new WP_Error( 'immutable_form_id', 'شناسه فرم ذخیره‌شده قابل تغییر نیست.' );
 		}
+		if ( empty( $form['enabled'] ) ) {
+			$enabled_forms = $this->get_enabled_forms();
+			$is_last_enabled = isset( $enabled_forms[ $form['form_id'] ] ) && count( $enabled_forms ) <= 1;
+			if ( $is_last_enabled ) {
+				return new WP_Error( 'last_enabled_form', 'حداقل یک فرم فعال باید باقی بماند.' );
+			}
+		}
 		$forms[ $form['form_id'] ] = $form;
 		return update_option( self::OPTION_NAME, $forms );
 	}

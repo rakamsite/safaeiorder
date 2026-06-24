@@ -357,6 +357,39 @@ class CRPCRM_Helpers {
 		return str_replace( $latin, $persian, (string) $value );
 	}
 
+	public static function get_jalali_parts( $value ) {
+		if ( empty( $value ) ) {
+			return array();
+		}
+
+		$date = self::parse_local_datetime( self::convert_persian_digits( (string) $value ), wp_timezone() );
+		if ( ! $date ) {
+			return array();
+		}
+
+		return self::gregorian_to_jalali( (int) $date->format( 'Y' ), (int) $date->format( 'n' ), (int) $date->format( 'j' ) );
+	}
+
+	public static function get_jalali_month_name( $month ) {
+		$months = array(
+			1  => 'فروردین',
+			2  => 'اردیبهشت',
+			3  => 'خرداد',
+			4  => 'تیر',
+			5  => 'مرداد',
+			6  => 'شهریور',
+			7  => 'مهر',
+			8  => 'آبان',
+			9  => 'آذر',
+			10 => 'دی',
+			11 => 'بهمن',
+			12 => 'اسفند',
+		);
+
+		$month = absint( $month );
+		return $months[ $month ] ?? '';
+	}
+
 
 	private static function jalali_month_days( $year, $month ) {
 		if ( $month <= 6 ) {
@@ -376,7 +409,7 @@ class CRPCRM_Helpers {
 		return ( ( $end->getTimestamp() - $start->getTimestamp() ) / DAY_IN_SECONDS ) === 366 ? 30 : 29;
 	}
 
-	private static function gregorian_to_jalali( $gy, $gm, $gd ) {
+	public static function gregorian_to_jalali( $gy, $gm, $gd ) {
 		$g_d_m = array( 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 );
 		$gy2   = ( $gm > 2 ) ? ( $gy + 1 ) : $gy;
 		$days  = 355666 + ( 365 * $gy ) + (int) floor( ( $gy2 + 3 ) / 4 ) - (int) floor( ( $gy2 + 99 ) / 100 ) + (int) floor( ( $gy2 + 399 ) / 400 ) + $gd + $g_d_m[ $gm - 1 ];
@@ -393,7 +426,7 @@ class CRPCRM_Helpers {
 		return array( $jy, $jm, $jd );
 	}
 
-	private static function jalali_to_gregorian( $jy, $jm, $jd ) {
+	public static function jalali_to_gregorian( $jy, $jm, $jd ) {
 		$jy   += 1595;
 		$days  = -355668 + ( 365 * $jy ) + ( (int) floor( $jy / 33 ) * 8 ) + (int) floor( ( ( $jy % 33 ) + 3 ) / 4 ) + $jd + ( ( $jm < 7 ) ? ( ( $jm - 1 ) * 31 ) : ( ( ( $jm - 7 ) * 30 ) + 186 ) );
 		$gy    = 400 * (int) floor( $days / 146097 );

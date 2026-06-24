@@ -6,7 +6,7 @@ Form Builder ماژول فعلی مدیریت فرم‌های درخواست ا�
 
 - فاز ۷A انجام شده است: Default Forms فقط seed اولیه هستند، Form Registry از storage می‌خواند و seed پس از حذف عمدی همه فرم‌ها تکرار نمی‌شود.
 - فاز ۷B انجام شده است: render، validation، sanitize و ثبت درخواست public/admin از schema مشترک استفاده می‌کنند.
-- درخواست‌ها `form_id`، `form_version`، `request_type = form_id`، `request_data` و snapshot سبک labelها را ذخیره می‌کنند.
+- درخواست‌ها `form_id`، `form_version`، `request_type`، `request_data` و snapshot سبک labelها را ذخیره می‌کنند.
 - فعال/غیرفعال کردن فرم‌ها فقط از Form Builder انجام می‌شود.
 - labelهای نمایشی فرم غیرفعال از همه فرم‌های موجود و label فرم حذف‌شده از snapshot درخواست خوانده می‌شود.
 
@@ -20,7 +20,7 @@ Form Builder ماژول فعلی مدیریت فرم‌های درخواست ا�
 - این ماژول با feature به نام `form_builder` کنترل می‌شود.
 - feature `form_builder` فقط دسترسی به مدیریت فرم‌ها را کنترل می‌کند؛ خاموش بودن آن نباید نمایش فرم‌های فعال یا ثبت درخواست را متوقف کند.
 - فرم‌های فعلی ابتدا به Default Forms منتقل و سپس به‌عنوان seed اولیه Form Builder استفاده می‌شوند.
-- هر فرم باید `form_id`، `form_version`، فیلدها و گزینه‌های فیلدهای select را تعریف کند؛ `request_type` برابر `form_id` است.
+- هر فرم باید `form_id`، `form_version`، فیلدها و گزینه‌های فیلدهای select را تعریف کند؛ اگر `request_type` خالی باشد، همان `form_id` استفاده می‌شود.
 - گزینه‌های خودرو در فرم‌های پیش‌فرض فعلی نمونه‌ای از options داخلی یک فیلد `select` هستند و تنظیم مستقل محسوب نمی‌شوند.
 - هر سایت در Form Builder آینده می‌تواند فیلدهای `select` و گزینه‌های خودش را بدون افزودن مفهوم اختصاصی به core بسازد.
 - Form Builder نباید به Business Profile، Safaei، Ajax، خودرو یا سایت خاص وابسته باشد.
@@ -67,7 +67,7 @@ Form Builder ماژول فعلی مدیریت فرم‌های درخواست ا�
 ## قواعد رفتاری مشترک
 
 - `form_builder` فقط مدیریت فرم‌ها را کنترل می‌کند و خاموش بودن آن نباید استفاده از فرم‌های فعال را متوقف کند.
-- هر فرم باید `form_id`، `form_version` و `request_type = form_id` داشته باشد.
+- هر فرم باید `form_id`، `form_version` و `request_type` معتبر داشته باشد؛ اگر خالی باشد به `form_id` fallback می‌کند و تکراری بودن آن برای گروه‌بندی چند فرم مجاز است.
 - snapshot labelها باید از schema یا داده ذخیره‌شده خوانده شوند و نباید به HTML خام متکی باشند.
 - هر field type جدید در آینده باید برای render، validate، sanitize، summary و documentation هم‌زمان تعریف شود.
 - نسخه اول فرم‌ساز فرم‌ها را در option عمومی `crpcrm_custom_forms` ذخیره می‌کند و CRUD پایه `text`، `textarea` و `select` را فراهم می‌کند.

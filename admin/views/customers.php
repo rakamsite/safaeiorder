@@ -136,7 +136,52 @@ $notice = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crp
 			<div><strong><?php echo esc_html( crpcrm_display_value( $stats['last_activity_at'] ?? '' ) ); ?></strong><span><?php echo esc_html( 'آخرین تاریخ فعالیت' ); ?></span></div>
 		</div>
 
-		<div class="crpcrm-card"><h2><?php echo esc_html( 'درخواست‌های مشتری' ); ?></h2><table class="widefat fixed striped"><thead><tr><th><?php echo esc_html( 'کد پیگیری' ); ?></th><th><?php echo esc_html( 'نوع درخواست' ); ?></th><th><?php echo esc_html( 'خلاصه درخواست' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'منبع همان درخواست' ); ?></th><th><?php echo esc_html( 'کمپین همان درخواست' ); ?></th><th><?php echo esc_html( 'مسئول' ); ?></th><th><?php echo esc_html( 'تاریخ ثبت' ); ?></th><th><?php echo esc_html( 'آخرین فعالیت' ); ?></th><th><?php echo esc_html( 'عملیات' ); ?></th></tr></thead><tbody><?php if ( empty( $requests ) ) : ?><tr><td colspan="10"><?php echo esc_html( 'درخواستی برای نمایش وجود ندارد.' ); ?></td></tr><?php else : ?><?php foreach ( $requests as $request ) : ?><tr><td><strong><?php echo esc_html( $request['request_code'] ); ?></strong></td><td><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?></td><td><?php $request_data = CRPCRM_Request_Repository::get_merged_request_data( $request ); echo esc_html( wp_trim_words( CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] ), 16, '…' ) ); ?></td><td><span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( sanitize_html_class( $request['status'] ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></td><td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $request['request_source'] ) ); ?></span></td><td><?php echo esc_html( $request['request_campaign'] ? $request['request_campaign'] : '—' ); ?></td><td><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $request['owner_id'] ) ); ?></td><td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td><td><?php echo esc_html( $request['last_activity_at'] ? CRPCRM_Helpers::format_jalali_datetime( $request['last_activity_at'] ) : 'ثبت نشده' ); ?></td><td><a class="button button-small" href="<?php echo esc_url( crpcrm_admin_request_detail_url( $request['id'] ) ); ?>"><?php echo esc_html( 'مشاهده درخواست' ); ?></a></td></tr><?php endforeach; ?><?php endif; ?></tbody></table></div>
+		<div class="crpcrm-card">
+			<h2><?php echo esc_html( 'درخواست‌های مشتری' ); ?></h2>
+			<table class="widefat fixed striped">
+				<thead>
+					<tr>
+						<th><?php echo esc_html( 'کد پیگیری' ); ?></th>
+						<th><?php echo esc_html( 'نوع درخواست' ); ?></th>
+						<th><?php echo esc_html( 'خلاصه درخواست' ); ?></th>
+						<th><?php echo esc_html( 'وضعیت' ); ?></th>
+						<th><?php echo esc_html( 'منبع همان درخواست' ); ?></th>
+						<th><?php echo esc_html( 'کمپین همان درخواست' ); ?></th>
+						<th><?php echo esc_html( 'مسئول' ); ?></th>
+						<th><?php echo esc_html( 'تاریخ ثبت' ); ?></th>
+						<th><?php echo esc_html( 'آخرین فعالیت' ); ?></th>
+						<th><?php echo esc_html( 'عملیات' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php if ( empty( $requests ) ) : ?>
+						<tr>
+							<td colspan="10"><?php echo esc_html( 'درخواستی برای نمایش وجود ندارد.' ); ?></td>
+						</tr>
+					<?php else : ?>
+						<?php foreach ( $requests as $request ) : ?>
+							<tr>
+								<td><strong><?php echo esc_html( $request['request_code'] ); ?></strong></td>
+								<td><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?></td>
+								<td>
+									<?php
+									$request_data = CRPCRM_Request_Repository::get_merged_request_data( $request );
+									echo esc_html( wp_trim_words( CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] ), 16, '…' ) );
+									?>
+								</td>
+								<td><span class="crpcrm-badge crpcrm-status-badge crpcrm-status-<?php echo esc_attr( sanitize_html_class( $request['status'] ) ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></td>
+								<td><span class="crpcrm-badge crpcrm-source-badge"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $request['request_source'] ) ); ?></span></td>
+								<td><?php echo esc_html( $request['request_campaign'] ? $request['request_campaign'] : '—' ); ?></td>
+								<td><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $request['owner_id'] ) ); ?></td>
+								<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td>
+								<td><?php echo esc_html( $request['last_activity_at'] ? CRPCRM_Helpers::format_jalali_datetime( $request['last_activity_at'] ) : 'ثبت نشده' ); ?></td>
+								<td><a class="button button-small" href="<?php echo esc_url( crpcrm_admin_request_detail_url( $request['id'] ) ); ?>"><?php echo esc_html( 'مشاهده درخواست' ); ?></a></td>
+							</tr>
+						<?php endforeach; ?>
+					<?php endif; ?>
+				</tbody>
+			</table>
+		</div>
 
 		<?php if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
 			<div class="crpcrm-card"><h2><?php echo esc_html( 'کارشناسان مرتبط با مشتری' ); ?></h2><?php if ( empty( $agents ) ) : ?><p><?php echo esc_html( 'هنوز کارشناسی با این مشتری کار نکرده است.' ); ?></p><?php else : ?><table class="widefat fixed striped"><thead><tr><th><?php echo esc_html( 'نام کارشناس' ); ?></th><th><?php echo esc_html( 'تعداد درخواست‌هایی که owner بوده' ); ?></th><th><?php echo esc_html( 'تعداد فعالیت‌های ثبت‌شده' ); ?></th><th><?php echo esc_html( 'آخرین فعالیت' ); ?></th></tr></thead><tbody><?php foreach ( $agents as $agent ) : ?><tr><td><?php echo esc_html( crpcrm_customer_agent_name( $agent['user_id'] ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $agent['owner_requests'] ) ) ); ?></td><td><?php echo esc_html( number_format_i18n( absint( $agent['activity_count'] ) ) ); ?></td><td><?php echo esc_html( $agent['last_activity_at'] ? CRPCRM_Helpers::format_jalali_datetime( $agent['last_activity_at'] ) : 'ثبت نشده' ); ?></td></tr><?php endforeach; ?></tbody></table><?php endif; ?></div>

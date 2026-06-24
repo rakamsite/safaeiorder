@@ -73,7 +73,33 @@ $announcement_data = $detail_item && 'announcements' === $tab ? CRPCRM_Helpers::
 
 <?php if ( in_array( $tab, array( 'requests', 'issues' ), true ) && ! $can_manage ) : ?><div class="crpcrm-card"><h2><?php echo 'requests' === $tab ? 'ثبت درخواست از مدیریت' : 'ثبت مشکل یا مانع'; ?></h2><form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_' . ( 'requests' === $tab ? 'save_staff_request' : 'save_issue' ) ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="<?php echo 'requests' === $tab ? 'save_staff_request' : 'save_issue'; ?>"><?php if ( 'requests' === $tab ) : ?><p><select name="category"><?php foreach ( $categories as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select> <select name="priority"><?php foreach ( $priorities as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><div class="crpcrm-staff-upload-field"><label><?php echo esc_html( 'پیوست فایل' ); ?></label><?php echo CRPCRM_Dynamic_Form_Renderer::render_file_upload_field( 'request_attachment' ); ?></div><?php else : ?><p><input name="related_department" required placeholder="واحد مرتبط"> <select name="severity"><?php foreach ( $severities as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><?php endif; ?><p><input name="title" required class="regular-text" placeholder="عنوان"></p><p><textarea name="description" required rows="5" class="large-text" placeholder="شرح کامل"></textarea></p><?php if ( 'issues' === $tab ) : ?><p><textarea name="suggested_solution" rows="3" class="large-text" placeholder="راهکار پیشنهادی"></textarea></p><label><input type="checkbox" name="needs_manager_decision"> نیازمند تصمیم مدیر</label><?php endif; ?><?php submit_button( 'ثبت' ); ?></form></div><?php endif; ?>
 
-<?php if ( 'tasks' === $tab && $can_manage && ! $detail_item ) : ?><div class="crpcrm-card"><h2>ایجاد وظیفه</h2><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_save_task' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_task"><p><input name="title" required class="regular-text" placeholder="عنوان وظیفه"></p><p><textarea name="description" required rows="4" class="large-text" placeholder="شرح وظیفه"></textarea></p><p><select name="assigned_to"><?php foreach ( $staff_users as $user ) : ?><option value="<?php echo esc_attr( $user->ID ); ?>"><?php echo esc_html( $user->display_name ); ?></option><?php endforeach; ?></select> <?php echo CRPCRM_Helpers::jalali_date_input( 'due_date', '' ); ?> <select name="priority"><?php foreach ( $priorities as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><input type="hidden" name="status" value="new"></p><?php submit_button( 'ایجاد وظیفه' ); ?></form></div><?php endif; ?>
+<?php if ( 'tasks' === $tab && $can_manage && ! $detail_item ) : ?>
+	<div class="crpcrm-card">
+		<h2>ایجاد وظیفه</h2>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'crpcrm_staff_save_task' ); ?>
+			<input type="hidden" name="action" value="crpcrm_staff_action">
+			<input type="hidden" name="staff_action_type" value="save_task">
+			<p><input name="title" required class="regular-text" placeholder="عنوان وظیفه"></p>
+			<p><textarea name="description" required rows="4" class="large-text" placeholder="شرح وظیفه"></textarea></p>
+			<p>
+				<select name="assigned_to">
+					<?php foreach ( $staff_users as $user ) : ?>
+						<option value="<?php echo esc_attr( $user->ID ); ?>"><?php echo esc_html( $user->display_name ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<?php echo CRPCRM_Helpers::jalali_date_input( 'due_date', '' ); ?>
+				<select name="priority">
+					<?php foreach ( $priorities as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<input type="hidden" name="status" value="new">
+			</p>
+			<?php submit_button( 'ایجاد وظیفه' ); ?>
+		</form>
+	</div>
+<?php endif; ?>
 
 <?php if ( 'announcements' === $tab && $can_manage && ! $detail_item ) : ?><div class="crpcrm-card"><h2>ثبت اطلاعیه</h2><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_save_announcement' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_announcement"><p><input name="title" required class="regular-text" placeholder="عنوان"></p><p><textarea name="body" required rows="5" class="large-text" placeholder="متن اطلاعیه"></textarea></p><p><select name="audience_type"><?php foreach ( $audiences as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><p><?php foreach ( $role_labels as $key => $label ) : ?><label><input type="checkbox" name="audience_roles[]" value="<?php echo esc_attr( $key ); ?>"> <?php echo esc_html( $label ); ?></label> <?php endforeach; ?></p><p><?php foreach ( $staff_users as $user ) : ?><label><input type="checkbox" name="audience_users[]" value="<?php echo esc_attr( $user->ID ); ?>"> <?php echo esc_html( $user->display_name ); ?></label> <?php endforeach; ?></p><?php submit_button( 'ثبت اطلاعیه' ); ?></form></div><?php endif; ?>
 

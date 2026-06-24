@@ -8,7 +8,8 @@
 - [ ] حذف عمدی همه فرم‌ها باعث seed مجدد نمی‌شود.
 - [ ] فرم‌های public و ثبت دستی admin فقط فرم‌های فعال Form Builder را نمایش می‌دهند.
 - [ ] خاموش بودن feature `form_builder` فقط منوی مدیریت فرم‌ها را مخفی می‌کند و ثبت درخواست با فرم‌های فعال ادامه دارد.
-- [ ] هر درخواست `form_id`، `form_version`، `request_type = form_id` و `request_data` دارد.
+- [ ] هر درخواست `form_id`، `form_version`، `request_type` و `request_data` دارد.
+- [ ] اگر `request_type` فرم خالی باشد، هنگام ثبت درخواست به `form_id` fallback می‌شود.
 - [ ] `request_data` شامل snapshot سبک عنوان فرم و label فیلدهای زمان ثبت است.
 - [ ] label فرم غیرفعال از Form Registry و label فرم حذف‌شده از snapshot درخواست نمایش داده می‌شود.
 - [ ] فرم فعال بدون فیلد فعال و select فعال بدون options ذخیره نمی‌شود.
@@ -71,9 +72,9 @@
 
 - [ ] مشتری با پروفایل کامل هر سه فرم را می‌بیند.
 - [ ] requiredها در هر فرم اعتبارسنجی می‌شوند.
-- [ ] فرم ثبت‌نام خودرو `request_type=safaei_car_registration` و `form_id=safaei_car_registration` می‌سازد.
-- [ ] فرم قطعات `request_type=safaei_parts_request` و `form_id=safaei_parts_request` می‌سازد.
-- [ ] فرم تعمیرات `request_type=safaei_repair_booking` و `form_id=safaei_repair_booking` می‌سازد.
+- [ ] فرم ثبت‌نام خودرو `form_id=safaei_car_registration` می‌سازد و در صورت خالی بودن `request_type` همان مقدار استفاده می‌شود.
+- [ ] فرم قطعات `form_id=safaei_parts_request` می‌سازد و در صورت خالی بودن `request_type` همان مقدار استفاده می‌شود.
+- [ ] فرم تعمیرات `form_id=safaei_repair_booking` می‌سازد و در صورت خالی بودن `request_type` همان مقدار استفاده می‌شود.
 - [ ] هر ارسال فرم یک request مستقل می‌سازد.
 - [ ] POST/Redirect/GET مانع ثبت تکراری با refresh می‌شود.
 - [ ] `request_code` ساخته می‌شود.

@@ -82,7 +82,7 @@
 }
 
 .crpcrm-reports-admin .crpcrm-dashboard-grid--charts {
-	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .crpcrm-reports-admin .crpcrm-dashboard-grid--tables {
