@@ -1052,6 +1052,82 @@
 .crpcrm-table-scroll { overflow-x: auto; }
 .crpcrm-staff-list td { vertical-align: middle; }
 .crpcrm-staff-detail { margin-top: 20px; }
+.crpcrm-staff-form {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(220px, 1fr));
+	gap: 14px 16px;
+	align-items: start;
+	margin-top: 12px;
+}
+
+.crpcrm-staff-form label,
+.crpcrm-staff-form input,
+.crpcrm-staff-form select,
+.crpcrm-staff-form textarea {
+	width: 100%;
+}
+
+.crpcrm-staff-form label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.crpcrm-staff-form .submit,
+.crpcrm-staff-form .crpcrm-full-field,
+.crpcrm-staff-form .crpcrm-staff-upload-field,
+.crpcrm-staff-form .crpcrm-staff-option-grid,
+.crpcrm-staff-form .crpcrm-staff-inline-check {
+	grid-column: 1 / -1;
+}
+
+.crpcrm-staff-form .crpcrm-staff-inline-fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(160px, 1fr));
+	gap: 12px;
+	margin: 0;
+}
+
+.crpcrm-staff-form .crpcrm-staff-inline-check {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	margin: 0;
+}
+
+.crpcrm-staff-form .crpcrm-staff-inline-check input[type="checkbox"] {
+	margin: 0;
+	width: auto;
+}
+
+.crpcrm-staff-form .crpcrm-staff-option-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 8px 14px;
+}
+
+.crpcrm-staff-form .crpcrm-staff-option-grid label {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	margin: 0;
+}
+
+.crpcrm-staff-form .crpcrm-staff-option-grid input[type="checkbox"] {
+	margin: 0;
+	width: auto;
+}
+
+.crpcrm-staff-form .crpcrm-staff-upload-field {
+	margin: 0;
+}
+
+@media (max-width: 782px) {
+	.crpcrm-staff-form,
+	.crpcrm-staff-form .crpcrm-staff-inline-fields {
+		grid-template-columns: 1fr;
+	}
+}
 .crpcrm-detail-heading { align-items: center; display: flex; justify-content: space-between; gap: 16px; }
 .crpcrm-detail-list { display: grid; grid-template-columns: minmax(130px, 190px) 1fr; margin: 20px 0; }
 .crpcrm-detail-list dt, .crpcrm-detail-list dd { border-bottom: 1px solid #e5e7eb; margin: 0; padding: 12px; }

@@ -11,7 +11,7 @@ $severities = array( 'low' => 'کم', 'medium' => 'متوسط', 'high' => 'زی�
 $categories = array( 'manager_decision' => 'نیاز به تصمیم مدیر', 'purchase_or_supply' => 'نیاز به خرید یا تأمین', 'customer_problem' => 'مشکل با مشتری', 'internal_process_problem' => 'مشکل فرایندی داخلی', 'improvement_suggestion' => 'پیشنهاد بهبود', 'error_or_bug_report' => 'گزارش خطا یا مشکل', 'other' => 'سایر' );
 $audiences = array( 'all' => 'همه کارکنان', 'selected_roles' => 'نقش‌های منتخب', 'selected_users' => 'کاربران منتخب' );
 $role_labels = array( 'sales_agent' => 'کارشناس فروش', 'sales_manager' => 'مدیر فروش', 'internal_employee' => 'کارمند داخلی', 'crm_admin' => 'مدیر CRM', 'administrator' => 'مدیر کل' );
-$notice_labels = array( 'saved' => 'اطلاعات با موفقیت ذخیره شد.', 'access_denied' => 'شما اجازه انجام این عملیات را ندارید.', 'validation_error' => 'لطفاً فیلدهای الزامی گزارش فروش را تکمیل کنید.', 'attachment_upload_failed' => 'بارگذاری فایل انجام نشد.' );
+$notice_labels = array( 'saved' => 'اطلاعات با موفقیت ذخیره شد.', 'access_denied' => 'شما اجازه انجام این عملیات را ندارید.', 'validation_error' => 'لطفاً فیلدهای الزامی را به‌طور کامل تکمیل کنید.', 'attachment_upload_failed' => 'بارگذاری فایل انجام نشد.', 'attachment_limit_exceeded' => 'تعداد یا حجم فایل‌های این بخش از حد مجاز بیشتر است.', 'invalid_staff_field' => 'یکی از مقادیر ارسالی معتبر نیست.', 'db_error' => 'ذخیره اطلاعات انجام نشد. لطفاً دوباره تلاش کنید.' );
 $sales_stat_labels = $sales_stats_service->get_labels();
 $sales_form_keys = array( 'claimed_today', 'current_owned_requests', 'actions_today', 'call_answered_today', 'call_no_answer_today', 'whatsapp_sent_today', 'internal_notes_today', 'followups_scheduled_today', 'followups_due_today', 'overdue_followups', 'won_today', 'lost_today', 'invalid_today', 'open_requests', 'closed_today' );
 $sales_snapshot_keys = array( 'claimed_today', 'actions_today', 'call_answered_today', 'call_no_answer_today', 'whatsapp_sent_today', 'followups_due_today', 'overdue_followups', 'won_today', 'lost_today', 'invalid_today', 'open_requests', 'generated_at' );
@@ -41,7 +41,7 @@ $announcement_data = $detail_item && 'announcements' === $tab ? CRPCRM_Helpers::
 <?php if ( 'daily_reports' === $tab ) : $snapshot = $sales_stats_service->decode_snapshot( $detail_item['sales_crm_snapshot'] ?? '' ); ?>
 <dl class="crpcrm-detail-list"><dt>کارمند</dt><dd><?php echo esc_html( $user_label( $detail_item['user_id'] ) ); ?></dd><dt>تاریخ گزارش</dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_date( $detail_item['report_date'] ) ); ?></dd><dt>کارهای انجام‌شده</dt><dd><?php echo nl2br( esc_html( $detail_item['completed_work'] ) ); ?></dd><dt>کارهای نیمه‌تمام</dt><dd><?php echo nl2br( esc_html( $detail_item['unfinished_work'] ) ); ?></dd><dt>مشکلات</dt><dd><?php echo nl2br( esc_html( $detail_item['problems'] ) ); ?></dd><dt>برنامه فردا</dt><dd><?php echo nl2br( esc_html( $detail_item['tomorrow_plan'] ) ); ?></dd><?php if ( ! empty( $detail_item['sales_comment'] ) ) : ?><dt>توضیح تکمیلی فروش</dt><dd><?php echo nl2br( esc_html( $detail_item['sales_comment'] ) ); ?></dd><?php endif; ?><?php if ( ! empty( $detail_item['manager_response'] ) ) : ?><dt>پاسخ مدیر</dt><dd><?php echo nl2br( esc_html( $detail_item['manager_response'] ) ); ?></dd><?php endif; ?></dl>
 <?php if ( $snapshot ) : ?><h3>آمار CRM در زمان ارسال گزارش</h3><div class="crpcrm-detail-stats"><?php foreach ( $sales_snapshot_keys as $key ) : ?><div><span><?php echo esc_html( $sales_stat_labels[ $key ] ?? $key ); ?></span><strong><?php echo esc_html( 'generated_at' === $key ? CRPCRM_Helpers::format_jalali_datetime( $snapshot[ $key ] ) : absint( $snapshot[ $key ] ?? 0 ) ); ?></strong></div><?php endforeach; ?></div><?php endif; ?>
-<?php if ( $can_manage ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_manage_daily_report' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="manage_daily_report"><input type="hidden" name="report_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><select name="manager_action"><option value="seen">دیده شد</option><option value="responded">پاسخ داده شد</option><option value="closed">بسته شد</option></select><textarea name="manager_response" rows="3" class="large-text" placeholder="پاسخ مدیریتی"><?php echo esc_textarea( $detail_item['manager_response'] ); ?></textarea><?php submit_button( 'ثبت پاسخ و وضعیت' ); ?></form><?php endif; ?>
+<?php if ( $can_manage ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form"><?php wp_nonce_field( 'crpcrm_staff_manage_daily_report' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="manage_daily_report"><input type="hidden" name="report_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><p><label for="crpcrm-daily-report-action">اقدام مدیر</label><select id="crpcrm-daily-report-action" name="manager_action"><option value="seen">دیده شد</option><option value="responded">پاسخ داده شد</option><option value="closed">بسته شد</option></select></p><p class="crpcrm-full-field"><label for="crpcrm-daily-report-response">پاسخ مدیریتی</label><textarea id="crpcrm-daily-report-response" name="manager_response" rows="3" class="large-text" placeholder="پاسخ مدیریتی"><?php echo esc_textarea( $detail_item['manager_response'] ); ?></textarea></p><?php submit_button( 'ثبت پاسخ و وضعیت' ); ?></form><?php endif; ?>
 <?php elseif ( 'requests' === $tab ) : ?>
 <?php $request_attachment_html = CRPCRM_Dynamic_Form_Renderer::render_uploaded_file_value( $detail_item['request_attachment'] ?? '', array( 'source_type' => 'staff_request', 'source_id' => absint( $detail_item['id'] ?? 0 ), 'source_field' => 'request_attachment' ), 'admin' ); $manager_response_attachment_html = CRPCRM_Dynamic_Form_Renderer::render_uploaded_file_value( $detail_item['manager_response_attachment'] ?? '', array( 'source_type' => 'staff_request', 'source_id' => absint( $detail_item['id'] ?? 0 ), 'source_field' => 'manager_response_attachment' ), 'admin' ); ?>
 <dl class="crpcrm-detail-list">
@@ -53,55 +53,174 @@ $announcement_data = $detail_item && 'announcements' === $tab ? CRPCRM_Helpers::
 <dt>وضعیت</dt><dd><?php echo $badge( $detail_item['status'], $request_statuses ); ?></dd>
 <?php if ( ! empty( $detail_item['manager_response'] ) || $manager_response_attachment_html ) : ?><dt>پاسخ مدیر</dt><dd><?php if ( ! empty( $detail_item['manager_response'] ) ) : ?><div class="crpcrm-staff-response-text"><?php echo nl2br( esc_html( $detail_item['manager_response'] ) ); ?></div><?php endif; ?><?php if ( $manager_response_attachment_html ) : ?><div class="crpcrm-staff-response-attachment"><?php echo $manager_response_attachment_html; ?></div><?php endif; ?></dd><?php endif; ?>
 </dl>
-<?php if ( $can_manage ) : ?><form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_manage_staff_request' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="manage_staff_request"><input type="hidden" name="request_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><select name="status"><?php foreach ( $request_statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><textarea name="manager_response" rows="4" class="large-text" placeholder="پاسخ مدیر"><?php echo esc_textarea( $detail_item['manager_response'] ); ?></textarea><div class="crpcrm-staff-upload-field"><label><?php echo esc_html( 'پیوست فایل' ); ?></label><?php echo CRPCRM_Dynamic_Form_Renderer::render_file_upload_field( 'manager_response_attachment' ); ?></div><?php submit_button( 'ثبت پاسخ و وضعیت' ); ?></form><?php endif; ?>
+<?php if ( $can_manage ) : ?>
+<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form">
+<?php wp_nonce_field( 'crpcrm_staff_manage_staff_request' ); ?>
+<input type="hidden" name="action" value="crpcrm_staff_action">
+<input type="hidden" name="staff_action_type" value="manage_staff_request">
+<input type="hidden" name="request_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>">
+<p>
+	<label for="crpcrm-staff-request-status">وضعیت</label>
+	<select id="crpcrm-staff-request-status" name="status" required>
+		<?php foreach ( $request_statuses as $key => $label ) : ?>
+			<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['status'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+		<?php endforeach; ?>
+	</select>
+</p>
+<p class="crpcrm-full-field">
+	<label for="crpcrm-staff-request-response">پاسخ مدیر</label>
+	<textarea id="crpcrm-staff-request-response" name="manager_response" rows="4" class="large-text" placeholder="پاسخ مدیر"><?php echo esc_textarea( $detail_item['manager_response'] ); ?></textarea>
+</p>
+<div class="crpcrm-staff-upload-field">
+	<label><?php echo esc_html( 'پیوست فایل' ); ?></label>
+	<?php echo CRPCRM_Dynamic_Form_Renderer::render_file_upload_field( 'manager_response_attachment' ); ?>
+</div>
+<?php submit_button( 'ثبت پاسخ و وضعیت' ); ?>
+</form>
+<?php endif; ?>
 <?php elseif ( 'issues' === $tab ) : ?>
 <dl class="crpcrm-detail-list"><dt>کارمند</dt><dd><?php echo esc_html( $user_label( $detail_item['user_id'] ) ); ?></dd><dt>عنوان</dt><dd><?php echo esc_html( $detail_item['title'] ); ?></dd><dt>واحد مرتبط</dt><dd><?php echo esc_html( $detail_item['related_department'] ); ?></dd><dt>شرح کامل مشکل</dt><dd><?php echo nl2br( esc_html( $detail_item['description'] ) ); ?></dd><dt>راهکار پیشنهادی</dt><dd><?php echo nl2br( esc_html( $detail_item['suggested_solution'] ) ); ?></dd><dt>وضعیت</dt><dd><?php echo $badge( $detail_item['status'], $issue_statuses ); ?></dd><?php if ( $detail_item['manager_response'] ) : ?><dt>پاسخ مدیر</dt><dd><?php echo nl2br( esc_html( $detail_item['manager_response'] ) ); ?></dd><?php endif; ?></dl>
-<?php if ( $can_manage ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_manage_issue' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="manage_issue"><input type="hidden" name="issue_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><select name="status"><?php foreach ( $issue_statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><textarea name="manager_response" rows="4" class="large-text" placeholder="پاسخ مدیر"><?php echo esc_textarea( $detail_item['manager_response'] ); ?></textarea><?php submit_button( 'ثبت پاسخ و وضعیت' ); ?></form><?php endif; ?>
+<?php if ( $can_manage ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form"><?php wp_nonce_field( 'crpcrm_staff_manage_issue' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="manage_issue"><input type="hidden" name="issue_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><p><label for="crpcrm-issue-status">وضعیت</label><select id="crpcrm-issue-status" name="status"><?php foreach ( $issue_statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><p class="crpcrm-full-field"><label for="crpcrm-issue-response">پاسخ مدیر</label><textarea id="crpcrm-issue-response" name="manager_response" rows="4" class="large-text" placeholder="پاسخ مدیر"><?php echo esc_textarea( $detail_item['manager_response'] ); ?></textarea></p><?php submit_button( 'ثبت پاسخ و وضعیت' ); ?></form><?php endif; ?>
 <?php elseif ( 'tasks' === $tab ) : ?>
 <dl class="crpcrm-detail-list"><dt>عنوان</dt><dd><?php echo esc_html( $detail_item['title'] ); ?></dd><dt>شرح کامل وظیفه</dt><dd><?php echo nl2br( esc_html( $detail_item['description'] ) ); ?></dd><dt>مسئول</dt><dd><?php echo esc_html( $user_label( $detail_item['assigned_to'] ) ); ?></dd><dt>مهلت</dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_date( $detail_item['due_date'] ) ); ?></dd><dt>وضعیت</dt><dd><?php echo $badge( $detail_item['status'], $task_statuses ); ?></dd><?php if ( $detail_item['employee_update'] ) : ?><dt>گزارش کارمند</dt><dd><?php echo nl2br( esc_html( $detail_item['employee_update'] ) ); ?></dd><?php endif; ?><?php if ( $detail_item['manager_note'] ) : ?><dt>یادداشت مدیر</dt><dd><?php echo nl2br( esc_html( $detail_item['manager_note'] ) ); ?></dd><?php endif; ?></dl>
-<?php if ( $can_manage ) : ?><h3>ویرایش وظیفه</h3><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_save_task' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_task"><input type="hidden" name="task_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><p><input name="title" required class="regular-text" value="<?php echo esc_attr( $detail_item['title'] ); ?>"></p><p><textarea name="description" required rows="5" class="large-text"><?php echo esc_textarea( $detail_item['description'] ); ?></textarea></p><p><select name="assigned_to"><?php foreach ( $staff_users as $user ) : ?><option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( $detail_item['assigned_to'], $user->ID ); ?>><?php echo esc_html( $user->display_name ); ?></option><?php endforeach; ?></select> <?php echo CRPCRM_Helpers::jalali_date_input( 'due_date', $detail_item['due_date'] ); ?> <select name="priority"><?php foreach ( $priorities as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['priority'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><select name="status"><?php foreach ( $task_statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><textarea name="manager_note" rows="3" class="large-text" placeholder="یادداشت مدیر"><?php echo esc_textarea( $detail_item['manager_note'] ); ?></textarea><?php submit_button( 'ذخیره وظیفه' ); ?></form>
-<?php else : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_update_task_status' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="update_task_status"><input type="hidden" name="task_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><select name="status"><?php foreach ( $employee_task_statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><textarea name="note" rows="3" class="large-text" placeholder="گزارش انجام وظیفه"><?php echo esc_textarea( $detail_item['employee_update'] ); ?></textarea><?php submit_button( 'ثبت وضعیت وظیفه' ); ?></form><?php endif; ?>
+<?php if ( $can_manage ) : ?><h3>ویرایش وظیفه</h3><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form"><?php wp_nonce_field( 'crpcrm_staff_save_task' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_task"><input type="hidden" name="task_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><p><label for="crpcrm-task-title">عنوان</label><input id="crpcrm-task-title" name="title" required class="regular-text" value="<?php echo esc_attr( $detail_item['title'] ); ?>"></p><p class="crpcrm-full-field"><label for="crpcrm-task-description">شرح کامل وظیفه</label><textarea id="crpcrm-task-description" name="description" required rows="5" class="large-text"><?php echo esc_textarea( $detail_item['description'] ); ?></textarea></p><div class="crpcrm-staff-inline-fields"><p><label for="crpcrm-task-assigned-to">مسئول</label><select id="crpcrm-task-assigned-to" name="assigned_to"><?php foreach ( $staff_users as $user ) : ?><option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( $detail_item['assigned_to'], $user->ID ); ?>><?php echo esc_html( $user->display_name ); ?></option><?php endforeach; ?></select></p><p><label>مهلت</label><?php echo CRPCRM_Helpers::jalali_date_input( 'due_date', $detail_item['due_date'] ); ?></p><p><label for="crpcrm-task-priority">اولویت</label><select id="crpcrm-task-priority" name="priority"><?php foreach ( $priorities as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['priority'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><p><label for="crpcrm-task-status">وضعیت</label><select id="crpcrm-task-status" name="status"><?php foreach ( $task_statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p></div><p class="crpcrm-full-field"><label for="crpcrm-task-manager-note">یادداشت مدیر</label><textarea id="crpcrm-task-manager-note" name="manager_note" rows="3" class="large-text" placeholder="یادداشت مدیر"><?php echo esc_textarea( $detail_item['manager_note'] ); ?></textarea></p><?php submit_button( 'ذخیره وظیفه' ); ?></form>
+<?php else : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form"><?php wp_nonce_field( 'crpcrm_staff_update_task_status' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="update_task_status"><input type="hidden" name="task_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><p><label for="crpcrm-task-employee-status">وضعیت</label><select id="crpcrm-task-employee-status" name="status"><?php foreach ( $employee_task_statuses as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['status'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><p class="crpcrm-full-field"><label for="crpcrm-task-employee-note">گزارش انجام وظیفه</label><textarea id="crpcrm-task-employee-note" name="note" rows="3" class="large-text" placeholder="گزارش انجام وظیفه"><?php echo esc_textarea( $detail_item['employee_update'] ); ?></textarea></p><?php submit_button( 'ثبت وضعیت وظیفه' ); ?></form><?php endif; ?>
 <?php elseif ( 'announcements' === $tab ) : ?>
 <dl class="crpcrm-detail-list"><dt>عنوان</dt><dd><?php echo esc_html( $detail_item['title'] ); ?></dd><dt>متن اطلاعیه</dt><dd><?php echo nl2br( esc_html( $detail_item['body'] ) ); ?></dd><dt>تاریخ ایجاد</dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $detail_item['created_at'] ) ); ?></dd></dl>
 <?php if ( $can_manage ) : $stats = $repository->get_announcement_read_stats( $detail_item['id'] ); ?><p><strong>دیده‌اند:</strong> <?php echo esc_html( implode( '، ', array_map( $user_label, $stats['seen_ids'] ) ) ?: 'هیچ‌کس' ); ?></p><p><strong>ندیده‌اند:</strong> <?php echo esc_html( implode( '، ', array_map( $user_label, $stats['unseen_ids'] ) ) ?: 'هیچ‌کس' ); ?></p><h3>ویرایش اطلاعیه</h3><?php endif; ?>
 <?php if ( ! $can_manage && ! $repository->user_has_read_announcement( $detail_item['id'], get_current_user_id() ) ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_mark_announcement_read' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="mark_announcement_read"><input type="hidden" name="announcement_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><?php submit_button( 'علامت‌گذاری به‌عنوان مشاهده‌شده' ); ?></form><?php endif; ?>
-<?php if ( $can_manage ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_save_announcement' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_announcement"><input type="hidden" name="announcement_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><p><input name="title" required class="regular-text" value="<?php echo esc_attr( $detail_item['title'] ); ?>"></p><p><textarea name="body" required rows="6" class="large-text"><?php echo esc_textarea( $detail_item['body'] ); ?></textarea></p><p><select name="audience_type"><?php foreach ( $audiences as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['audience_type'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><p><?php foreach ( $role_labels as $key => $label ) : ?><label><input type="checkbox" name="audience_roles[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( is_array( $announcement_data ) && in_array( $key, $announcement_data, true ) ); ?>> <?php echo esc_html( $label ); ?></label> <?php endforeach; ?></p><p><?php foreach ( $staff_users as $user ) : ?><label><input type="checkbox" name="audience_users[]" value="<?php echo esc_attr( $user->ID ); ?>" <?php checked( is_array( $announcement_data ) && in_array( absint( $user->ID ), array_map( 'absint', $announcement_data ), true ) ); ?>> <?php echo esc_html( $user->display_name ); ?></label> <?php endforeach; ?></p><?php submit_button( 'ذخیره تغییرات' ); ?></form><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('اطلاعیه حذف شود؟');"><?php wp_nonce_field( 'crpcrm_staff_delete_announcement' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="delete_announcement"><input type="hidden" name="announcement_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><?php submit_button( 'حذف اطلاعیه', 'delete' ); ?></form><?php endif; ?>
+<?php if ( $can_manage ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form"><?php wp_nonce_field( 'crpcrm_staff_save_announcement' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_announcement"><input type="hidden" name="announcement_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><p><label for="crpcrm-announcement-edit-title">عنوان</label><input id="crpcrm-announcement-edit-title" name="title" required class="regular-text" value="<?php echo esc_attr( $detail_item['title'] ); ?>"></p><p class="crpcrm-full-field"><label for="crpcrm-announcement-edit-body">متن اطلاعیه</label><textarea id="crpcrm-announcement-edit-body" name="body" required rows="6" class="large-text"><?php echo esc_textarea( $detail_item['body'] ); ?></textarea></p><p><label for="crpcrm-announcement-edit-audience-type">مخاطب</label><select id="crpcrm-announcement-edit-audience-type" name="audience_type"><?php foreach ( $audiences as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $detail_item['audience_type'], $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><div class="crpcrm-staff-option-grid"><?php foreach ( $role_labels as $key => $label ) : ?><label><input type="checkbox" name="audience_roles[]" value="<?php echo esc_attr( $key ); ?>" <?php checked( is_array( $announcement_data ) && in_array( $key, $announcement_data, true ) ); ?>> <?php echo esc_html( $label ); ?></label><?php endforeach; ?></div><div class="crpcrm-staff-option-grid"><?php foreach ( $staff_users as $user ) : ?><label><input type="checkbox" name="audience_users[]" value="<?php echo esc_attr( $user->ID ); ?>" <?php checked( is_array( $announcement_data ) && in_array( absint( $user->ID ), array_map( 'absint', $announcement_data ), true ) ); ?>> <?php echo esc_html( $user->display_name ); ?></label><?php endforeach; ?></div><?php submit_button( 'ذخیره تغییرات' ); ?></form><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('اطلاعیه حذف شود؟');"><?php wp_nonce_field( 'crpcrm_staff_delete_announcement' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="delete_announcement"><input type="hidden" name="announcement_id" value="<?php echo esc_attr( $detail_item['id'] ); ?>"><?php submit_button( 'حذف اطلاعیه', 'delete' ); ?></form><?php endif; ?>
 <?php endif; ?></div>
 <?php endif; ?>
 
-<?php if ( 'daily_reports' === $tab && ! $can_manage ) : ?><div class="crpcrm-card"><h2><?php echo $today_report ? 'ویرایش گزارش امروز' : 'ثبت گزارش روزانه'; ?></h2><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_save_daily_report' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_daily_report"><?php if ( $is_sales_user ) : ?><h3>آمار امروز شما در CRM</h3><div class="crpcrm-detail-stats"><?php foreach ( $sales_form_keys as $key ) : ?><div><span><?php echo esc_html( $sales_stat_labels[ $key ] ?? $key ); ?></span><strong><?php echo esc_html( absint( $current_sales_stats[ $key ] ?? 0 ) ); ?></strong></div><?php endforeach; ?></div><?php endif; ?><p><textarea name="completed_work" required rows="4" class="large-text" placeholder="کارهای انجام‌شده امروز"><?php echo esc_textarea( $today_report['completed_work'] ?? '' ); ?></textarea></p><p><textarea name="unfinished_work" required rows="4" class="large-text" placeholder="کارهای نیمه‌تمام"><?php echo esc_textarea( $today_report['unfinished_work'] ?? '' ); ?></textarea></p><p><textarea name="problems" required rows="4" class="large-text" placeholder="مشکلات امروز"><?php echo esc_textarea( $today_report['problems'] ?? '' ); ?></textarea></p><p><textarea name="tomorrow_plan" required rows="4" class="large-text" placeholder="برنامه فردا"><?php echo esc_textarea( $today_report['tomorrow_plan'] ?? '' ); ?></textarea></p><label><input type="checkbox" name="needs_manager_attention" <?php checked( ! empty( $today_report['needs_manager_attention'] ) ); ?>> نیاز به توجه مدیر</label><?php if ( $is_sales_user ) : ?><p><textarea name="sales_comment" required rows="4" class="large-text" placeholder="توضیح تکمیلی فروش"><?php echo esc_textarea( $today_report['sales_comment'] ?? '' ); ?></textarea></p><?php endif; ?><?php submit_button( 'ثبت گزارش روزانه' ); ?></form></div><?php endif; ?>
+<?php if ( 'daily_reports' === $tab && ! $can_manage ) : ?>
+<div class="crpcrm-card">
+<h2><?php echo $today_report ? 'ویرایش گزارش امروز' : 'ثبت گزارش روزانه'; ?></h2>
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form">
+<?php wp_nonce_field( 'crpcrm_staff_save_daily_report' ); ?>
+<input type="hidden" name="action" value="crpcrm_staff_action">
+<input type="hidden" name="staff_action_type" value="save_daily_report">
+<?php if ( $is_sales_user ) : ?>
+<div class="crpcrm-full-field">
+	<h3>آمار امروز شما در CRM</h3>
+	<div class="crpcrm-detail-stats"><?php foreach ( $sales_form_keys as $key ) : ?><div><span><?php echo esc_html( $sales_stat_labels[ $key ] ?? $key ); ?></span><strong><?php echo esc_html( absint( $current_sales_stats[ $key ] ?? 0 ) ); ?></strong></div><?php endforeach; ?></div>
+</div>
+<?php endif; ?>
+<p class="crpcrm-full-field"><label for="crpcrm-staff-completed-work">کارهای انجام‌شده امروز</label><textarea id="crpcrm-staff-completed-work" name="completed_work" required rows="4" class="large-text" placeholder="کارهای انجام‌شده امروز"><?php echo esc_textarea( $today_report['completed_work'] ?? '' ); ?></textarea></p>
+<p class="crpcrm-full-field"><label for="crpcrm-staff-unfinished-work">کارهای نیمه‌تمام</label><textarea id="crpcrm-staff-unfinished-work" name="unfinished_work" required rows="4" class="large-text" placeholder="کارهای نیمه‌تمام"><?php echo esc_textarea( $today_report['unfinished_work'] ?? '' ); ?></textarea></p>
+<p class="crpcrm-full-field"><label for="crpcrm-staff-problems">مشکلات امروز</label><textarea id="crpcrm-staff-problems" name="problems" required rows="4" class="large-text" placeholder="مشکلات امروز"><?php echo esc_textarea( $today_report['problems'] ?? '' ); ?></textarea></p>
+<p class="crpcrm-full-field"><label for="crpcrm-staff-tomorrow-plan">برنامه فردا</label><textarea id="crpcrm-staff-tomorrow-plan" name="tomorrow_plan" required rows="4" class="large-text" placeholder="برنامه فردا"><?php echo esc_textarea( $today_report['tomorrow_plan'] ?? '' ); ?></textarea></p>
+<label class="crpcrm-staff-inline-check"><input type="checkbox" name="needs_manager_attention" <?php checked( ! empty( $today_report['needs_manager_attention'] ) ); ?>> نیاز به توجه مدیر</label>
+<?php if ( $is_sales_user ) : ?><p class="crpcrm-full-field"><label for="crpcrm-staff-sales-comment">توضیح تکمیلی فروش</label><textarea id="crpcrm-staff-sales-comment" name="sales_comment" required rows="4" class="large-text" placeholder="توضیح تکمیلی فروش"><?php echo esc_textarea( $today_report['sales_comment'] ?? '' ); ?></textarea></p><?php endif; ?>
+<?php submit_button( 'ثبت گزارش روزانه' ); ?>
+</form>
+</div>
+<?php endif; ?>
 
-<?php if ( in_array( $tab, array( 'requests', 'issues' ), true ) && ! $can_manage ) : ?><div class="crpcrm-card"><h2><?php echo 'requests' === $tab ? 'ثبت درخواست از مدیریت' : 'ثبت مشکل یا مانع'; ?></h2><form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_' . ( 'requests' === $tab ? 'save_staff_request' : 'save_issue' ) ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="<?php echo 'requests' === $tab ? 'save_staff_request' : 'save_issue'; ?>"><?php if ( 'requests' === $tab ) : ?><p><select name="category"><?php foreach ( $categories as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select> <select name="priority"><?php foreach ( $priorities as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><div class="crpcrm-staff-upload-field"><label><?php echo esc_html( 'پیوست فایل' ); ?></label><?php echo CRPCRM_Dynamic_Form_Renderer::render_file_upload_field( 'request_attachment' ); ?></div><?php else : ?><p><input name="related_department" required placeholder="واحد مرتبط"> <select name="severity"><?php foreach ( $severities as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><?php endif; ?><p><input name="title" required class="regular-text" placeholder="عنوان"></p><p><textarea name="description" required rows="5" class="large-text" placeholder="شرح کامل"></textarea></p><?php if ( 'issues' === $tab ) : ?><p><textarea name="suggested_solution" rows="3" class="large-text" placeholder="راهکار پیشنهادی"></textarea></p><label><input type="checkbox" name="needs_manager_decision"> نیازمند تصمیم مدیر</label><?php endif; ?><?php submit_button( 'ثبت' ); ?></form></div><?php endif; ?>
+<?php if ( in_array( $tab, array( 'requests', 'issues' ), true ) && ! $can_manage ) : ?>
+<div class="crpcrm-card">
+<h2><?php echo 'requests' === $tab ? 'ثبت درخواست از مدیریت' : 'ثبت مشکل یا مانع'; ?></h2>
+<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form">
+<?php wp_nonce_field( 'crpcrm_staff_' . ( 'requests' === $tab ? 'save_staff_request' : 'save_issue' ) ); ?>
+<input type="hidden" name="action" value="crpcrm_staff_action">
+<input type="hidden" name="staff_action_type" value="<?php echo 'requests' === $tab ? 'save_staff_request' : 'save_issue'; ?>">
+<?php if ( 'requests' === $tab ) : ?>
+<div class="crpcrm-staff-inline-fields">
+	<p>
+		<label for="crpcrm-staff-request-category">دسته‌بندی</label>
+		<select id="crpcrm-staff-request-category" name="category" required>
+			<?php foreach ( $categories as $key => $label ) : ?>
+				<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+			<?php endforeach; ?>
+		</select>
+	</p>
+	<p>
+		<label for="crpcrm-staff-request-priority">اهمیت</label>
+		<select id="crpcrm-staff-request-priority" name="priority" required>
+			<?php foreach ( $priorities as $key => $label ) : ?>
+				<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+			<?php endforeach; ?>
+		</select>
+	</p>
+</div>
+<div class="crpcrm-staff-upload-field">
+	<label><?php echo esc_html( 'پیوست فایل' ); ?></label>
+	<?php echo CRPCRM_Dynamic_Form_Renderer::render_file_upload_field( 'request_attachment' ); ?>
+</div>
+<?php else : ?>
+<div class="crpcrm-staff-inline-fields">
+	<p>
+		<label for="crpcrm-staff-issue-department">واحد مرتبط</label>
+		<input id="crpcrm-staff-issue-department" name="related_department" required placeholder="واحد مرتبط">
+	</p>
+	<p>
+		<label for="crpcrm-staff-issue-severity">شدت</label>
+		<select id="crpcrm-staff-issue-severity" name="severity" required>
+			<?php foreach ( $severities as $key => $label ) : ?>
+				<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+			<?php endforeach; ?>
+		</select>
+	</p>
+</div>
+<?php endif; ?>
+<p>
+	<label for="crpcrm-staff-form-title">عنوان</label>
+	<input id="crpcrm-staff-form-title" name="title" required class="regular-text" placeholder="عنوان">
+</p>
+<p class="crpcrm-full-field">
+	<label for="crpcrm-staff-form-description">شرح کامل</label>
+	<textarea id="crpcrm-staff-form-description" name="description" required rows="5" class="large-text" placeholder="شرح کامل"></textarea>
+</p>
+<?php if ( 'issues' === $tab ) : ?>
+<p class="crpcrm-full-field">
+	<label for="crpcrm-staff-issue-solution">راهکار پیشنهادی</label>
+	<textarea id="crpcrm-staff-issue-solution" name="suggested_solution" rows="3" class="large-text" placeholder="راهکار پیشنهادی"></textarea>
+</p>
+<label class="crpcrm-staff-inline-check"><input type="checkbox" name="needs_manager_decision"> نیازمند تصمیم مدیر</label>
+<?php endif; ?>
+<?php submit_button( 'ثبت' ); ?>
+</form>
+</div>
+<?php endif; ?>
 
 <?php if ( 'tasks' === $tab && $can_manage && ! $detail_item ) : ?>
 	<div class="crpcrm-card">
 		<h2>ایجاد وظیفه</h2>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form">
 			<?php wp_nonce_field( 'crpcrm_staff_save_task' ); ?>
 			<input type="hidden" name="action" value="crpcrm_staff_action">
 			<input type="hidden" name="staff_action_type" value="save_task">
-			<p><input name="title" required class="regular-text" placeholder="عنوان وظیفه"></p>
-			<p><textarea name="description" required rows="4" class="large-text" placeholder="شرح وظیفه"></textarea></p>
-			<p>
-				<select name="assigned_to">
+			<p><label for="crpcrm-task-new-title">عنوان وظیفه</label><input id="crpcrm-task-new-title" name="title" required class="regular-text" placeholder="عنوان وظیفه"></p>
+			<p class="crpcrm-full-field"><label for="crpcrm-task-new-description">شرح وظیفه</label><textarea id="crpcrm-task-new-description" name="description" required rows="4" class="large-text" placeholder="شرح وظیفه"></textarea></p>
+			<div class="crpcrm-staff-inline-fields">
+				<p>
+					<label for="crpcrm-task-new-assigned-to">مسئول</label>
+					<select id="crpcrm-task-new-assigned-to" name="assigned_to">
 					<?php foreach ( $staff_users as $user ) : ?>
 						<option value="<?php echo esc_attr( $user->ID ); ?>"><?php echo esc_html( $user->display_name ); ?></option>
 					<?php endforeach; ?>
-				</select>
-				<?php echo CRPCRM_Helpers::jalali_date_input( 'due_date', '' ); ?>
-				<select name="priority">
+					</select>
+				</p>
+				<p>
+					<label>مهلت</label>
+					<?php echo CRPCRM_Helpers::jalali_date_input( 'due_date', '' ); ?>
+				</p>
+				<p>
+					<label for="crpcrm-task-new-priority">اولویت</label>
+					<select id="crpcrm-task-new-priority" name="priority">
 					<?php foreach ( $priorities as $key => $label ) : ?>
 						<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
-				</select>
+					</select>
+				</p>
 				<input type="hidden" name="status" value="new">
-			</p>
+			</div>
 			<?php submit_button( 'ایجاد وظیفه' ); ?>
 		</form>
 	</div>
 <?php endif; ?>
 
-<?php if ( 'announcements' === $tab && $can_manage && ! $detail_item ) : ?><div class="crpcrm-card"><h2>ثبت اطلاعیه</h2><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php wp_nonce_field( 'crpcrm_staff_save_announcement' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_announcement"><p><input name="title" required class="regular-text" placeholder="عنوان"></p><p><textarea name="body" required rows="5" class="large-text" placeholder="متن اطلاعیه"></textarea></p><p><select name="audience_type"><?php foreach ( $audiences as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><p><?php foreach ( $role_labels as $key => $label ) : ?><label><input type="checkbox" name="audience_roles[]" value="<?php echo esc_attr( $key ); ?>"> <?php echo esc_html( $label ); ?></label> <?php endforeach; ?></p><p><?php foreach ( $staff_users as $user ) : ?><label><input type="checkbox" name="audience_users[]" value="<?php echo esc_attr( $user->ID ); ?>"> <?php echo esc_html( $user->display_name ); ?></label> <?php endforeach; ?></p><?php submit_button( 'ثبت اطلاعیه' ); ?></form></div><?php endif; ?>
+<?php if ( 'announcements' === $tab && $can_manage && ! $detail_item ) : ?><div class="crpcrm-card"><h2>ثبت اطلاعیه</h2><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form"><?php wp_nonce_field( 'crpcrm_staff_save_announcement' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_announcement"><p><label for="crpcrm-announcement-title">عنوان</label><input id="crpcrm-announcement-title" name="title" required class="regular-text" placeholder="عنوان"></p><p class="crpcrm-full-field"><label for="crpcrm-announcement-body">متن اطلاعیه</label><textarea id="crpcrm-announcement-body" name="body" required rows="5" class="large-text" placeholder="متن اطلاعیه"></textarea></p><p><label for="crpcrm-announcement-audience-type">مخاطب</label><select id="crpcrm-announcement-audience-type" name="audience_type"><?php foreach ( $audiences as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><div class="crpcrm-staff-option-grid"><?php foreach ( $role_labels as $key => $label ) : ?><label><input type="checkbox" name="audience_roles[]" value="<?php echo esc_attr( $key ); ?>"> <?php echo esc_html( $label ); ?></label><?php endforeach; ?></div><div class="crpcrm-staff-option-grid"><?php foreach ( $staff_users as $user ) : ?><label><input type="checkbox" name="audience_users[]" value="<?php echo esc_attr( $user->ID ); ?>"> <?php echo esc_html( $user->display_name ); ?></label><?php endforeach; ?></div><?php submit_button( 'ثبت اطلاعیه' ); ?></form></div><?php endif; ?>
 
 <?php if ( 'dashboard' !== $tab ) : ?>
 <?php $filter_file = __DIR__ . '/staff-parts/filters-' . ( 'daily_reports' === $tab ? 'daily' : $tab ) . '.php'; if ( file_exists( $filter_file ) ) { include $filter_file; } ?>
