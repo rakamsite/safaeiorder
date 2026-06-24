@@ -1383,6 +1383,10 @@ class CRPCRM_Dynamic_Form_Renderer {
 		return self::normalize_uploaded_file_payload( $value );
 	}
 
+	public static function validate_uploaded_file_payload( $files ) {
+		return self::validate_uploaded_file_collection( $files );
+	}
+
 	public static function normalize_uploaded_file_meta( $file ) {
 		return self::normalize_single_uploaded_file_meta( $file );
 	}

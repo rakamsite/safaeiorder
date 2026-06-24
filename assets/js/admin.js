@@ -1271,7 +1271,7 @@
 		initRegistrationFieldSorting();
 		initFormBuilder();
 		cleanupRequestList();
-		document.querySelectorAll('.crpcrm-manual-request-form, .crpcrm-sales-action-form').forEach(bindSubmitGuard);
+		document.querySelectorAll('.crpcrm-manual-request-form, .crpcrm-sales-action-form, .crpcrm-staff-form').forEach(bindSubmitGuard);
 		document.querySelectorAll('.crpcrm-manual-request-form').forEach(function (form) {
 			updateManualCustomerFields(form);
 			initProductSearch(form, config);
@@ -1288,6 +1288,9 @@
 					updateSalesActionFields(form);
 				});
 			}
+		});
+		document.querySelectorAll('.crpcrm-staff-admin').forEach(function (section) {
+			initFileUploads(section, config);
 		});
 	});
 }());

@@ -38,17 +38,14 @@ class CRPCRM_Staff_Repository {
 	}
 
 	public function create_daily_report( $data ) {
-		global $wpdb;
 		$now  = CRPCRM_Helpers::current_datetime();
 		$data = wp_parse_args( $data, array( 'status' => 'submitted', 'report_date' => $this->today(), 'created_at' => $now, 'updated_at' => $now ) );
-		$wpdb->insert( $this->tables['daily_reports'], $data );
-		return $wpdb->insert_id;
+		return $this->insert_row( 'daily_reports', $data );
 	}
 
 	public function update_daily_report( $id, $data ) {
-		global $wpdb;
 		$data['updated_at'] = CRPCRM_Helpers::current_datetime();
-		return false !== $wpdb->update( $this->tables['daily_reports'], $data, array( 'id' => absint( $id ) ) );
+		return $this->update_row( 'daily_reports', $id, $data );
 	}
 
 	public function list_daily_reports( $args = array() ) {
@@ -85,19 +82,16 @@ class CRPCRM_Staff_Repository {
 	}
 
 	public function create_staff_request( $data ) {
-		global $wpdb;
 		$now = CRPCRM_Helpers::current_datetime();
 		$data = wp_parse_args( $data, array( 'status' => 'new', 'created_at' => $now, 'updated_at' => $now ) );
 		$data = $this->normalize_staff_request_attachment_fields( $data );
-		$wpdb->insert( $this->tables['staff_requests'], $data );
-		return $wpdb->insert_id;
+		return $this->insert_row( 'staff_requests', $data );
 	}
 
 	public function update_staff_request( $id, $data ) {
-		global $wpdb;
 		$data['updated_at'] = CRPCRM_Helpers::current_datetime();
 		$data               = $this->normalize_staff_request_attachment_fields( $data );
-		return false !== $wpdb->update( $this->tables['staff_requests'], $data, array( 'id' => absint( $id ) ) );
+		return $this->update_row( 'staff_requests', $id, $data );
 	}
 
 	public function list_staff_requests( $args = array() ) {
@@ -124,17 +118,14 @@ class CRPCRM_Staff_Repository {
 	}
 
 	public function create_issue( $data ) {
-		global $wpdb;
 		$now = CRPCRM_Helpers::current_datetime();
 		$data = wp_parse_args( $data, array( 'status' => 'new', 'created_at' => $now, 'updated_at' => $now ) );
-		$wpdb->insert( $this->tables['staff_issues'], $data );
-		return $wpdb->insert_id;
+		return $this->insert_row( 'staff_issues', $data );
 	}
 
 	public function update_issue( $id, $data ) {
-		global $wpdb;
 		$data['updated_at'] = CRPCRM_Helpers::current_datetime();
-		return false !== $wpdb->update( $this->tables['staff_issues'], $data, array( 'id' => absint( $id ) ) );
+		return $this->update_row( 'staff_issues', $id, $data );
 	}
 
 	public function list_issues( $args = array() ) {
@@ -154,17 +145,14 @@ class CRPCRM_Staff_Repository {
 	}
 
 	public function create_task( $data ) {
-		global $wpdb;
 		$now = CRPCRM_Helpers::current_datetime();
 		$data = wp_parse_args( $data, array( 'status' => 'new', 'created_at' => $now, 'updated_at' => $now ) );
-		$wpdb->insert( $this->tables['staff_tasks'], $data );
-		return $wpdb->insert_id;
+		return $this->insert_row( 'staff_tasks', $data );
 	}
 
 	public function update_task( $id, $data ) {
-		global $wpdb;
 		$data['updated_at'] = CRPCRM_Helpers::current_datetime();
-		return false !== $wpdb->update( $this->tables['staff_tasks'], $data, array( 'id' => absint( $id ) ) );
+		return $this->update_row( 'staff_tasks', $id, $data );
 	}
 
 	public function list_tasks( $args = array() ) {
@@ -203,11 +191,9 @@ class CRPCRM_Staff_Repository {
 	}
 
 	public function create_announcement( $data ) {
-		global $wpdb;
 		$now = CRPCRM_Helpers::current_datetime();
 		$data = wp_parse_args( $data, array( 'created_at' => $now, 'updated_at' => $now ) );
-		$wpdb->insert( $this->tables['announcements'], $data );
-		return $wpdb->insert_id;
+		return $this->insert_row( 'announcements', $data );
 	}
 
 	public function list_announcements( $args = array() ) {
@@ -223,16 +209,27 @@ class CRPCRM_Staff_Repository {
 	}
 
 	public function update_announcement( $id, $data ) {
-		global $wpdb;
 		$data['updated_at'] = CRPCRM_Helpers::current_datetime();
-		return false !== $wpdb->update( $this->tables['announcements'], $data, array( 'id' => absint( $id ) ) );
+		return $this->update_row( 'announcements', $id, $data );
 	}
 
 	public function delete_announcement( $id ) {
 		global $wpdb;
 		$announcement_id = absint( $id );
 		$wpdb->delete( $this->tables['announcement_reads'], array( 'announcement_id' => $announcement_id ), array( '%d' ) );
-		return false !== $wpdb->delete( $this->tables['announcements'], array( 'id' => $announcement_id ), array( '%d' ) );
+		$result = $wpdb->delete( $this->tables['announcements'], array( 'id' => $announcement_id ), array( '%d' ) );
+		if ( false === $result ) {
+			$this->log_database_error(
+				'staff_repository_delete_failed',
+				array(
+					'table'  => 'announcements',
+					'id'     => $announcement_id,
+					'action' => 'delete',
+				)
+			);
+			return new WP_Error( 'staff_delete_failed', __( 'ذخیره اطلاعات کارکنان انجام نشد.', 'customer-request-portal-crm' ) );
+		}
+		return true;
 	}
 
 	private function normalize_staff_request_attachment_fields( $data ) {
@@ -257,6 +254,45 @@ class CRPCRM_Staff_Repository {
 		}
 
 		return $data;
+	}
+
+	private function insert_row( $table_key, $data ) {
+		global $wpdb;
+		$result = $wpdb->insert( $this->tables[ $table_key ], $data );
+		if ( false === $result ) {
+			$this->log_database_error(
+				'staff_repository_insert_failed',
+				array(
+					'table'  => $table_key,
+					'action' => 'insert',
+				)
+			);
+			return new WP_Error( 'staff_insert_failed', __( 'ذخیره اطلاعات کارکنان انجام نشد.', 'customer-request-portal-crm' ) );
+		}
+		return (int) $wpdb->insert_id;
+	}
+
+	private function update_row( $table_key, $id, $data ) {
+		global $wpdb;
+		$result = $wpdb->update( $this->tables[ $table_key ], $data, array( 'id' => absint( $id ) ) );
+		if ( false === $result ) {
+			$this->log_database_error(
+				'staff_repository_update_failed',
+				array(
+					'table'  => $table_key,
+					'id'     => absint( $id ),
+					'action' => 'update',
+				)
+			);
+			return new WP_Error( 'staff_update_failed', __( 'ذخیره اطلاعات کارکنان انجام نشد.', 'customer-request-portal-crm' ) );
+		}
+		return true;
+	}
+
+	private function log_database_error( $message, $meta = array() ) {
+		global $wpdb;
+		$meta['wpdb_error'] = (string) $wpdb->last_error;
+		CRPCRM_Logger::error( $message, 'staff_repository', $meta );
 	}
 
 	public function mark_announcement_read( $announcement_id, $user_id ) {

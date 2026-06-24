@@ -549,11 +549,17 @@ class CRPCRM_Admin_Pages {
 
 			$existing = $this->staff_repository->get_today_report( $user_id );
 			if ( $existing ) {
-				$this->staff_repository->update_daily_report( $existing['id'], $data );
+				$update_result = $this->staff_repository->update_daily_report( $existing['id'], $data );
+				if ( is_wp_error( $update_result ) ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
 				$report_id = absint( $existing['id'] );
 				CRPCRM_Logger::info( 'staff_daily_report_updated', 'staff_daily_report_updated', array( 'user_id' => $user_id, 'report_id' => $report_id ) );
 			} else {
 				$report_id = $this->staff_repository->create_daily_report( $data );
+				if ( is_wp_error( $report_id ) || $report_id <= 0 ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
 				CRPCRM_Logger::info( 'staff_daily_report_created', 'staff_daily_report_created', array( 'user_id' => $user_id, 'report_id' => $report_id ) );
 				$this->notification_service->notify_daily_report_created( $report_id, $user_id, $this->staff_repository->today() );
 			}
@@ -563,38 +569,79 @@ class CRPCRM_Admin_Pages {
 		} elseif ( 'manage_daily_report' === $action && $can_manage ) {
 			$tab = 'daily_reports';
 			$report_id = absint( $_POST['report_id'] ?? 0 );
+			if ( ! $this->staff_repository->get_daily_report( $report_id ) ) {
+				$this->staff_redirect( $tab, 'access_denied' );
+			}
 			$manager_action = sanitize_key( wp_unslash( $_POST['manager_action'] ?? '' ) );
-			if ( 'seen' === $manager_action ) { $this->staff_repository->mark_report_seen( $report_id, $user_id ); }
-			elseif ( 'closed' === $manager_action ) { $this->staff_repository->close_report( $report_id, $user_id ); }
-			elseif ( 'responded' === $manager_action ) { $this->staff_repository->respond_to_report( $report_id, $user_id, wp_unslash( $_POST['manager_response'] ?? '' ) ); }
+			if ( ! $this->is_valid_staff_choice( $manager_action, $this->get_staff_daily_report_actions() ) ) {
+				$this->staff_redirect( $tab, 'invalid_staff_field' );
+			}
+			if ( 'seen' === $manager_action ) { $result = $this->staff_repository->mark_report_seen( $report_id, $user_id ); }
+			elseif ( 'closed' === $manager_action ) { $result = $this->staff_repository->close_report( $report_id, $user_id ); }
+			elseif ( 'responded' === $manager_action ) { $result = $this->staff_repository->respond_to_report( $report_id, $user_id, wp_unslash( $_POST['manager_response'] ?? '' ) ); }
+			else { $result = true; }
+			if ( empty( $result ) || is_wp_error( $result ) ) {
+				$this->staff_redirect( $tab, 'db_error' );
+			}
 			$this->notify_about_daily_report_update( $report_id, $manager_action );
 			CRPCRM_Logger::info( 'staff_daily_report_responded', 'staff_daily_report_responded', array( 'user_id' => $user_id, 'report_id' => $report_id, 'manager_action' => $manager_action ) );
 		} elseif ( 'save_staff_request' === $action && ! $can_manage ) {
 			$tab = 'requests';
 			$id = absint( $_POST['request_id'] ?? 0 );
 			$row = $id ? $this->staff_repository->get_staff_request( $id ) : null;
+			if ( $id && ! $row ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			if ( $row && ( absint( $row['user_id'] ) !== $user_id || 'new' !== $row['status'] ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			$data = array( 'user_id' => $user_id, 'category' => sanitize_key( wp_unslash( $_POST['category'] ?? '' ) ), 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'description' => sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) ), 'priority' => sanitize_key( wp_unslash( $_POST['priority'] ?? 'normal' ) ) );
+			if ( ! $this->is_valid_required_staff_text( $data['title'] ) || ! $this->is_valid_required_staff_text( $data['description'] ) ) {
+				$this->staff_redirect( $tab, 'validation_error' );
+			}
+			if ( ! $this->is_valid_staff_choice( $data['category'], $this->get_staff_request_categories() ) || ! $this->is_valid_staff_choice( $data['priority'], $this->get_staff_priorities() ) ) {
+				$this->staff_redirect( $tab, 'invalid_staff_field' );
+			}
 			$request_attachments = $this->handle_staff_attachment_upload( 'request_attachment', 'staff_request' );
 			if ( is_wp_error( $request_attachments ) ) {
 				$this->staff_redirect( $tab, 'attachment_upload_failed' );
 			}
-			if ( $id ) {
-				if ( ! empty( $request_attachments ) ) {
-					$existing_request_attachments = CRPCRM_Dynamic_Form_Renderer::get_uploaded_file_payload( $row['request_attachment'] ?? '' );
-					$data['request_attachment'] = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array_merge( $existing_request_attachments, $request_attachments ), 'staff_request', $id, 'request_attachment', $user_id );
+			$existing_request_attachments = $row ? CRPCRM_Dynamic_Form_Renderer::get_uploaded_file_payload( $row['request_attachment'] ?? '' ) : array();
+			$merged_request_attachments   = array_merge( $existing_request_attachments, $request_attachments );
+			if ( ! empty( $request_attachments ) ) {
+				$attachment_validation = $this->validate_staff_uploaded_files( $merged_request_attachments );
+				if ( is_wp_error( $attachment_validation ) ) {
+					$this->staff_redirect( $tab, 'attachment_limit_exceeded' );
 				}
-				$this->staff_repository->update_staff_request( $id, $data );
+			}
+			if ( $id ) {
+				$update_result = $this->staff_repository->update_staff_request( $id, $data );
+				if ( is_wp_error( $update_result ) ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
+				if ( ! empty( $request_attachments ) ) {
+					$attachment_result = $this->staff_repository->update_staff_request(
+						$id,
+						array(
+							'request_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( $merged_request_attachments, 'staff_request', $id, 'request_attachment', $user_id ),
+						)
+					);
+					if ( is_wp_error( $attachment_result ) ) {
+						$this->staff_redirect( $tab, 'db_error' );
+					}
+				}
 				CRPCRM_Logger::info( 'staff_request_updated', 'staff_request_updated', array( 'user_id' => $user_id, 'request_id' => $id ) );
 			} else {
 				$id = $this->staff_repository->create_staff_request( $data );
+				if ( is_wp_error( $id ) || $id <= 0 ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
 				if ( ! empty( $request_attachments ) ) {
-					$this->staff_repository->update_staff_request(
+					$attachment_result = $this->staff_repository->update_staff_request(
 						$id,
 						array(
 							'request_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( $request_attachments, 'staff_request', $id, 'request_attachment', $user_id ),
 						)
 					);
+					if ( is_wp_error( $attachment_result ) ) {
+						$this->staff_redirect( $tab, 'db_error' );
+					}
 				}
 				CRPCRM_Logger::info( 'staff_request_created', 'staff_request_created', array( 'user_id' => $user_id, 'request_id' => $id ) );
 				$this->notification_service->notify_staff_request_created( $id, $user_id, $data['title'] );
@@ -602,54 +649,134 @@ class CRPCRM_Admin_Pages {
 		} elseif ( 'manage_staff_request' === $action && $can_manage ) {
 			$tab = 'requests'; $id = absint( $_POST['request_id'] ?? 0 );
 			$manager_response = sanitize_textarea_field( wp_unslash( $_POST['manager_response'] ?? '' ) );
+			$status = sanitize_key( wp_unslash( $_POST['status'] ?? 'seen' ) );
+			if ( ! $this->is_valid_staff_choice( $status, $this->get_staff_request_statuses() ) ) {
+				$this->staff_redirect( $tab, 'invalid_staff_field' );
+			}
+			$current_request = $this->staff_repository->get_staff_request( $id );
+			if ( ! $current_request ) {
+				$this->staff_redirect( $tab, 'access_denied' );
+			}
 			$manager_response_attachments = $this->handle_staff_attachment_upload( 'manager_response_attachment', 'staff_request_reply' );
 			if ( is_wp_error( $manager_response_attachments ) ) {
 				$this->staff_redirect( $tab, 'attachment_upload_failed' );
 			}
+			$existing_manager_attachments = $current_request ? CRPCRM_Dynamic_Form_Renderer::get_uploaded_file_payload( $current_request['manager_response_attachment'] ?? '' ) : array();
+			$merged_manager_attachments   = array_merge( $existing_manager_attachments, $manager_response_attachments );
+			if ( ! empty( $manager_response_attachments ) ) {
+				$attachment_validation = $this->validate_staff_uploaded_files( $merged_manager_attachments );
+				if ( is_wp_error( $attachment_validation ) ) {
+					$this->staff_redirect( $tab, 'attachment_limit_exceeded' );
+				}
+			}
 			$update_data = array(
-				'status'           => sanitize_key( wp_unslash( $_POST['status'] ?? 'seen' ) ),
+				'status'           => $status,
 				'manager_response' => $manager_response,
 			);
-			if ( ! empty( $manager_response_attachments ) ) {
-				$existing_manager_attachments = array();
-				$current_request = $this->staff_repository->get_staff_request( $id );
-				if ( $current_request ) {
-					$existing_manager_attachments = CRPCRM_Dynamic_Form_Renderer::get_uploaded_file_payload( $current_request['manager_response_attachment'] ?? '' );
-				}
-				$update_data['manager_response_attachment'] = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array_merge( $existing_manager_attachments, $manager_response_attachments ), 'staff_request', $id, 'manager_response_attachment', $user_id );
+			$update_result = $this->staff_repository->update_staff_request( $id, $update_data );
+			if ( is_wp_error( $update_result ) ) {
+				$this->staff_redirect( $tab, 'db_error' );
 			}
-			$this->staff_repository->update_staff_request( $id, $update_data );
+			if ( ! empty( $manager_response_attachments ) ) {
+				$attachment_result = $this->staff_repository->update_staff_request(
+					$id,
+					array(
+						'manager_response_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( $merged_manager_attachments, 'staff_request', $id, 'manager_response_attachment', $user_id ),
+					)
+				);
+				if ( is_wp_error( $attachment_result ) ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
+			}
 			$this->notify_about_staff_request_update( $id, $manager_response, $manager_response_attachments );
 			CRPCRM_Logger::info( 'staff_request_status_changed', 'staff_request_status_changed', array( 'user_id' => $user_id, 'request_id' => $id ) );
 		} elseif ( 'save_issue' === $action && ! $can_manage ) {
 			$tab = 'issues'; $id = absint( $_POST['issue_id'] ?? 0 ); $row = $id ? $this->staff_repository->get_issue( $id ) : null;
+			if ( $id && ! $row ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			if ( $row && ( absint( $row['user_id'] ) !== $user_id || 'new' !== $row['status'] ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			$data = array( 'user_id' => $user_id, 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'related_department' => sanitize_text_field( wp_unslash( $_POST['related_department'] ?? '' ) ), 'severity' => sanitize_key( wp_unslash( $_POST['severity'] ?? 'medium' ) ), 'description' => sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) ), 'suggested_solution' => sanitize_textarea_field( wp_unslash( $_POST['suggested_solution'] ?? '' ) ), 'needs_manager_decision' => isset( $_POST['needs_manager_decision'] ) ? 1 : 0 );
-			if ( $id ) { $this->staff_repository->update_issue( $id, $data ); CRPCRM_Logger::info( 'staff_issue_updated', 'staff_issue_updated', array( 'user_id' => $user_id, 'issue_id' => $id ) ); }
-			else { $id = $this->staff_repository->create_issue( $data ); CRPCRM_Logger::info( 'staff_issue_created', 'staff_issue_created', array( 'user_id' => $user_id, 'issue_id' => $id ) ); $this->notification_service->notify_issue_created( $id, $user_id, $data['title'] ); }
+			if ( ! $this->is_valid_required_staff_text( $data['title'] ) || ! $this->is_valid_required_staff_text( $data['related_department'] ) || ! $this->is_valid_required_staff_text( $data['description'] ) ) {
+				$this->staff_redirect( $tab, 'validation_error' );
+			}
+			if ( ! $this->is_valid_staff_choice( $data['severity'], $this->get_staff_issue_severities() ) ) {
+				$this->staff_redirect( $tab, 'invalid_staff_field' );
+			}
+			if ( $id ) {
+				$update_result = $this->staff_repository->update_issue( $id, $data );
+				if ( is_wp_error( $update_result ) ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
+				CRPCRM_Logger::info( 'staff_issue_updated', 'staff_issue_updated', array( 'user_id' => $user_id, 'issue_id' => $id ) );
+			} else {
+				$id = $this->staff_repository->create_issue( $data );
+				if ( is_wp_error( $id ) || $id <= 0 ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
+				CRPCRM_Logger::info( 'staff_issue_created', 'staff_issue_created', array( 'user_id' => $user_id, 'issue_id' => $id ) );
+				$this->notification_service->notify_issue_created( $id, $user_id, $data['title'] );
+			}
 		} elseif ( 'manage_issue' === $action && $can_manage ) {
 			$tab = 'issues'; $id = absint( $_POST['issue_id'] ?? 0 );
-			$this->staff_repository->update_issue_status( $id, sanitize_key( wp_unslash( $_POST['status'] ?? 'seen' ) ), wp_unslash( $_POST['manager_response'] ?? '' ) );
+			if ( ! $this->staff_repository->get_issue( $id ) ) {
+				$this->staff_redirect( $tab, 'access_denied' );
+			}
+			$status = sanitize_key( wp_unslash( $_POST['status'] ?? 'seen' ) );
+			if ( ! $this->is_valid_staff_choice( $status, $this->get_staff_issue_statuses() ) ) {
+				$this->staff_redirect( $tab, 'invalid_staff_field' );
+			}
+			$update_result = $this->staff_repository->update_issue_status( $id, $status, wp_unslash( $_POST['manager_response'] ?? '' ) );
+			if ( is_wp_error( $update_result ) ) {
+				$this->staff_redirect( $tab, 'db_error' );
+			}
 			$this->notify_about_issue_update( $id );
 			CRPCRM_Logger::info( 'staff_issue_status_changed', 'staff_issue_status_changed', array( 'user_id' => $user_id, 'issue_id' => $id ) );
 		} elseif ( 'save_task' === $action && $can_manage ) {
 			$tab = 'tasks'; $id = absint( $_POST['task_id'] ?? 0 );
+			if ( $id && ! $this->staff_repository->get_task( $id ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			$assigned_to = absint( $_POST['assigned_to'] ?? 0 );
 			if ( ! $this->is_staff_user_id( $assigned_to ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			$data = array( 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'description' => sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) ), 'assigned_to' => $assigned_to, 'due_date' => CRPCRM_Helpers::normalize_date_input( wp_unslash( $_POST['due_date'] ?? '' ) ), 'priority' => sanitize_key( wp_unslash( $_POST['priority'] ?? 'normal' ) ), 'status' => sanitize_key( wp_unslash( $_POST['status'] ?? 'new' ) ), 'manager_note' => sanitize_textarea_field( wp_unslash( $_POST['manager_note'] ?? '' ) ), 'created_by' => $user_id );
-			if ( $id ) { unset( $data['created_by'] ); $this->staff_repository->update_task( $id, $data ); CRPCRM_Logger::info( 'staff_task_updated', 'staff_task_updated', array( 'user_id' => $user_id, 'task_id' => $id ) ); }
-			else { $id = $this->staff_repository->create_task( $data ); CRPCRM_Logger::info( 'staff_task_created', 'staff_task_created', array( 'user_id' => $user_id, 'task_id' => $id ) ); }
+			if ( ! $this->is_valid_required_staff_text( $data['title'] ) || ! $this->is_valid_required_staff_text( $data['description'] ) ) {
+				$this->staff_redirect( $tab, 'validation_error' );
+			}
+			if ( ! $this->is_valid_staff_choice( $data['priority'], $this->get_staff_priorities() ) || ! $this->is_valid_staff_choice( $data['status'], $this->get_staff_task_statuses() ) ) {
+				$this->staff_redirect( $tab, 'invalid_staff_field' );
+			}
+			if ( $id ) {
+				unset( $data['created_by'] );
+				$update_result = $this->staff_repository->update_task( $id, $data );
+				if ( is_wp_error( $update_result ) ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
+				CRPCRM_Logger::info( 'staff_task_updated', 'staff_task_updated', array( 'user_id' => $user_id, 'task_id' => $id ) );
+			} else {
+				$id = $this->staff_repository->create_task( $data );
+				if ( is_wp_error( $id ) || $id <= 0 ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
+				CRPCRM_Logger::info( 'staff_task_created', 'staff_task_created', array( 'user_id' => $user_id, 'task_id' => $id ) );
+			}
 			$this->notify_about_task_assignment( $id, 0 === absint( $_POST['task_id'] ?? 0 ) );
 		} elseif ( 'update_task_status' === $action ) {
 			$tab = 'tasks'; $id = absint( $_POST['task_id'] ?? 0 ); $task = $this->staff_repository->get_task( $id );
 			if ( ! $task || ( ! $can_manage && absint( $task['assigned_to'] ) !== $user_id ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			$status = sanitize_key( wp_unslash( $_POST['status'] ?? 'new' ) );
 			if ( ! $can_manage && 'cancelled' === $status ) { $this->staff_redirect( $tab, 'access_denied' ); }
-			$this->staff_repository->update_task_status( $id, $status, $user_id, wp_unslash( $_POST['note'] ?? '' ) );
+			$allowed_task_statuses = $can_manage ? $this->get_staff_task_statuses() : $this->get_staff_employee_task_statuses();
+			if ( ! $this->is_valid_staff_choice( $status, $allowed_task_statuses ) ) {
+				$this->staff_redirect( $tab, 'invalid_staff_field' );
+			}
+			$update_result = $this->staff_repository->update_task_status( $id, $status, $user_id, wp_unslash( $_POST['note'] ?? '' ) );
+			if ( is_wp_error( $update_result ) ) {
+				$this->staff_redirect( $tab, 'db_error' );
+			}
 			CRPCRM_Logger::info( 'staff_task_status_changed', 'staff_task_status_changed', array( 'user_id' => $user_id, 'task_id' => $id, 'status' => $status ) );
 		} elseif ( 'save_announcement' === $action && $can_manage ) {
 			$tab = 'announcements';
 			$audience_type = sanitize_key( wp_unslash( $_POST['audience_type'] ?? 'all' ) );
+			if ( ! $this->is_valid_staff_choice( $audience_type, $this->get_staff_audience_types() ) ) {
+				$this->staff_redirect( $tab, 'invalid_staff_field' );
+			}
 			$audience_data = array();
 			if ( 'selected_roles' === $audience_type ) {
 				$audience_data = array_intersect( array_map( 'sanitize_key', (array) ( $_POST['audience_roles'] ?? array() ) ), array( 'sales_agent', 'sales_manager', 'internal_employee', 'crm_admin', 'administrator' ) );
@@ -660,20 +787,35 @@ class CRPCRM_Admin_Pages {
 				$audience_data = array_values( array_unique( $audience_data ) );
 			}
 			$data = array( 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'body' => sanitize_textarea_field( wp_unslash( $_POST['body'] ?? '' ) ), 'audience_type' => $audience_type, 'audience_data' => wp_json_encode( $audience_data ) );
+			if ( ! $this->is_valid_required_staff_text( $data['title'] ) || ! $this->is_valid_required_staff_text( $data['body'] ) ) {
+				$this->staff_redirect( $tab, 'validation_error' );
+			}
 			$id = absint( $_POST['announcement_id'] ?? 0 );
+			if ( $id && ! $this->staff_repository->get_announcement( $id ) ) {
+				$this->staff_redirect( $tab, 'access_denied' );
+			}
 			if ( $id ) {
-				$this->staff_repository->update_announcement( $id, $data );
+				$update_result = $this->staff_repository->update_announcement( $id, $data );
+				if ( is_wp_error( $update_result ) ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
 				CRPCRM_Logger::info( 'staff_announcement_updated', 'staff_announcement_updated', array( 'user_id' => $user_id, 'announcement_id' => $id ) );
 			} else {
 				$data['created_by'] = $user_id;
 				$id = $this->staff_repository->create_announcement( $data );
+				if ( is_wp_error( $id ) || $id <= 0 ) {
+					$this->staff_redirect( $tab, 'db_error' );
+				}
 				CRPCRM_Logger::info( 'staff_announcement_created', 'staff_announcement_created', array( 'user_id' => $user_id, 'announcement_id' => $id ) );
 				$this->notify_about_announcement( $id, $user_id );
 			}
 		} elseif ( 'delete_announcement' === $action && $can_manage ) {
 			$tab = 'announcements';
 			$id = absint( $_POST['announcement_id'] ?? 0 );
-			$this->staff_repository->delete_announcement( $id );
+			$delete_result = $this->staff_repository->delete_announcement( $id );
+			if ( is_wp_error( $delete_result ) ) {
+				$this->staff_redirect( $tab, 'db_error' );
+			}
 			CRPCRM_Logger::info( 'staff_announcement_deleted', 'staff_announcement_deleted', array( 'user_id' => $user_id, 'announcement_id' => $id ) );
 		} elseif ( 'mark_announcement_read' === $action ) {
 			$tab = 'announcements'; $id = absint( $_POST['announcement_id'] ?? 0 ); $announcement = $this->staff_repository->get_announcement( $id );
@@ -703,6 +845,58 @@ class CRPCRM_Admin_Pages {
 			if ( absint( $user->ID ) === absint( $user_id ) ) { return true; }
 		}
 		return false;
+	}
+
+	private function is_valid_staff_choice( $value, $allowed_values, $allow_empty = false ) {
+		$value = sanitize_key( (string) $value );
+		if ( '' === $value ) {
+			return $allow_empty;
+		}
+		return in_array( $value, array_map( 'sanitize_key', $allowed_values ), true );
+	}
+
+	private function is_valid_required_staff_text( $value ) {
+		return '' !== trim( (string) $value );
+	}
+
+	private function validate_staff_uploaded_files( $files ) {
+		return CRPCRM_Dynamic_Form_Renderer::validate_uploaded_file_payload( $files );
+	}
+
+	private function get_staff_daily_report_actions() {
+		return array( 'seen', 'responded', 'closed' );
+	}
+
+	private function get_staff_request_categories() {
+		return array( 'manager_decision', 'purchase_or_supply', 'customer_problem', 'internal_process_problem', 'improvement_suggestion', 'error_or_bug_report', 'other' );
+	}
+
+	private function get_staff_priorities() {
+		return array( 'low', 'normal', 'high' );
+	}
+
+	private function get_staff_request_statuses() {
+		return array( 'new', 'seen', 'in_review', 'done', 'rejected' );
+	}
+
+	private function get_staff_issue_severities() {
+		return array( 'low', 'medium', 'high' );
+	}
+
+	private function get_staff_issue_statuses() {
+		return array( 'new', 'seen', 'in_review', 'resolved', 'rejected' );
+	}
+
+	private function get_staff_task_statuses() {
+		return array( 'new', 'in_progress', 'done', 'blocked', 'cancelled' );
+	}
+
+	private function get_staff_employee_task_statuses() {
+		return array( 'new', 'in_progress', 'done', 'blocked' );
+	}
+
+	private function get_staff_audience_types() {
+		return array( 'all', 'selected_roles', 'selected_users' );
 	}
 
 	private function staff_redirect( $tab, $notice ) {
