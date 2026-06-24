@@ -12,6 +12,10 @@ $categories = array( 'manager_decision' => 'نیاز به تصمیم مدیر', 
 $audiences = array( 'all' => 'همه کارکنان', 'selected_roles' => 'نقش‌های منتخب', 'selected_users' => 'کاربران منتخب' );
 $role_labels = array( 'sales_agent' => 'کارشناس فروش', 'sales_manager' => 'مدیر فروش', 'internal_employee' => 'کارمند داخلی', 'crm_admin' => 'مدیر CRM', 'administrator' => 'مدیر کل' );
 $notice_labels = array( 'saved' => 'اطلاعات با موفقیت ذخیره شد.', 'access_denied' => 'شما اجازه انجام این عملیات را ندارید.', 'validation_error' => 'لطفاً فیلدهای الزامی را به‌طور کامل تکمیل کنید.', 'attachment_upload_failed' => 'بارگذاری فایل انجام نشد.', 'attachment_limit_exceeded' => 'تعداد یا حجم فایل‌های این بخش از حد مجاز بیشتر است.', 'invalid_staff_field' => 'یکی از مقادیر ارسالی معتبر نیست.', 'db_error' => 'ذخیره اطلاعات انجام نشد. لطفاً دوباره تلاش کنید.' );
+if ( isset( $notice_labels['attachment_upload_failed'] ) ) {
+	$notice_labels['attachment_finalize_failed'] = 'ÙØ§ÛŒÙ„ Ù…ÙˆÙ‚Øª Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª ÛŒØ§ Ù…Ù†Ù‚Ø¶ÛŒ Ø´Ø¯Ù‡ Ø§Ø³Øª. Ù„Ø·ÙØ§Ù‹ Ø¯ÙˆØ¨Ø§Ø±Ù‡ ÙØ§ÛŒÙ„ Ø±Ø§ Ø¨Ø§Ø±Ú¯Ø°Ø§Ø±ÛŒ Ú©Ù†ÛŒØ¯.';
+	$notice_labels['attachment_save_partial']   = 'Ù…ØªÙ† Ø°Ø®ÛŒØ±Ù‡ Ø´Ø¯ Ø§Ù…Ø§ Ø°Ø®ÛŒØ±Ù‡ ÙØ§ÛŒÙ„ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯. Ù„Ø·ÙØ§Ù‹ Ø¯ÙˆØ¨Ø§Ø±Ù‡ Ø¨Ø±Ø±Ø³ÛŒ Ú©Ù†ÛŒØ¯.';
+}
 $sales_stat_labels = $sales_stats_service->get_labels();
 $sales_form_keys = array( 'claimed_today', 'current_owned_requests', 'actions_today', 'call_answered_today', 'call_no_answer_today', 'whatsapp_sent_today', 'internal_notes_today', 'followups_scheduled_today', 'followups_due_today', 'overdue_followups', 'won_today', 'lost_today', 'invalid_today', 'open_requests', 'closed_today' );
 $sales_snapshot_keys = array( 'claimed_today', 'actions_today', 'call_answered_today', 'call_no_answer_today', 'whatsapp_sent_today', 'followups_due_today', 'overdue_followups', 'won_today', 'lost_today', 'invalid_today', 'open_requests', 'generated_at' );

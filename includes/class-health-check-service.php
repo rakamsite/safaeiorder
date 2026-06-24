@@ -20,7 +20,11 @@ class CRPCRM_Health_Check_Service {
 			$this->check_counts(),
 			$this->check_portal_page(),
 			$this->check_sms_settings(),
-			$this->check_roles()
+			$this->check_roles(),
+			$this->check_upload_storage(),
+			$this->check_background_jobs(),
+			$this->check_pending_uploads(),
+			$this->check_file_link_signing()
 		);
 	}
 
@@ -139,5 +143,112 @@ class CRPCRM_Health_Check_Service {
 			);
 		}
 		return $checks;
+	}
+
+	public function check_upload_storage() {
+		$root      = CRPCRM_Dynamic_Form_Renderer::get_protected_upload_root_dir();
+		$exists    = is_dir( $root );
+		$can_build = $exists || wp_mkdir_p( $root );
+		$writable  = $can_build && is_writable( $root );
+		$index     = file_exists( trailingslashit( $root ) . 'index.php' );
+		$htaccess  = file_exists( trailingslashit( $root ) . '.htaccess' );
+		$software  = isset( $_SERVER['SERVER_SOFTWARE'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) ) : '';
+
+		$checks = array(
+			array(
+				'key'     => 'upload_root',
+				'label'   => 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…Ø­Ø§ÙØ¸Øªâ€ŒØ´Ø¯Ù‡',
+				'status'  => $can_build ? 'ok' : 'error',
+				'message' => $can_build ? 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ø¯Ø± Ø¯Ø³ØªØ±Ø³ Ø§Ø³Øª.' : 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…Ø­Ø§ÙØ¸Øªâ€ŒØ´Ø¯Ù‡ Ø³Ø§Ø®ØªÙ‡ Ù†Ø´Ø¯ ÛŒØ§ Ø¯Ø± Ø¯Ø³ØªØ±Ø³ Ù†ÛŒØ³Øª.',
+			),
+			array(
+				'key'     => 'upload_root_writable',
+				'label'   => 'Ù‚Ø§Ø¨Ù„ÛŒØª Ù†ÙˆØ´ØªÙ† Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§',
+				'status'  => $writable ? 'ok' : 'error',
+				'message' => $writable ? 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ù‚Ø§Ø¨Ù„ Ù†ÙˆØ´ØªÙ† Ø§Ø³Øª.' : 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ù‚Ø§Ø¨Ù„ Ù†ÙˆØ´ØªÙ† Ù†ÛŒØ³Øª.',
+			),
+			array(
+				'key'     => 'upload_root_protection',
+				'label'   => 'ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…Ø­Ø§ÙØªÛŒ Ù…Ø³ÛŒØ± Ø¢Ù¾Ù„ÙˆØ¯',
+				'status'  => ( $index && $htaccess ) ? 'ok' : 'warning',
+				'message' => ( $index && $htaccess ) ? 'index.php Ùˆ .htaccess Ù…ÙˆØ¬ÙˆØ¯ Ø§Ø³Øª.' : 'ÛŒÚ©ÛŒ Ø§Ø² ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…Ø­Ø§ÙØªÛŒ Ø¯Ø± Ù…Ø³ÛŒØ± Ø¢Ù¾Ù„ÙˆØ¯ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯.',
+			),
+		);
+
+		if ( false !== strpos( $software, 'nginx' ) ) {
+			$checks[] = array(
+				'key'     => 'upload_root_nginx_notice',
+				'label'   => 'Ù‡Ø´Ø¯Ø§Ø± Ø³Ø±ÙˆØ± Nginx',
+				'status'  => 'warning',
+				'message' => '.htaccess Ø¯Ø± Nginx Ú©Ø§ÙÛŒ Ù†ÛŒØ³Øª. Ø¨Ø³ØªÙ† Ø¯Ø³ØªØ±Ø³ÛŒ Ù…Ø³ØªÙ‚ÛŒÙ… Ø¨Ù‡ Ù…Ø³ÛŒØ± Ø¢Ù¾Ù„ÙˆØ¯ Ø§Ø² Ø³Ù…Øª Ø³Ø±ÙˆØ± Ø±Ø§ Ù‡Ù… Ø¨Ø±Ø±Ø³ÛŒ Ú©Ù†ÛŒØ¯.',
+			);
+		}
+
+		return $checks;
+	}
+
+	public function check_background_jobs() {
+		$jobs = array(
+			array( 'key' => 'pending_upload_cleanup_cron', 'label' => 'Ú©Ø±ÙˆÙ† Ù¾Ø§Ú©Ø³Ø§Ø²ÛŒ ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…ÙˆÙ‚Øª', 'hook' => 'crpcrm_pending_upload_cleanup' ),
+			array( 'key' => 'lead_follow_up_cron', 'label' => 'Ú©Ø±ÙˆÙ† Ù¾ÛŒÚ¯ÛŒØ±ÛŒ Ù„ÛŒØ¯', 'hook' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CRON ),
+			array( 'key' => 'daily_log_cleanup_cron', 'label' => 'Ú©Ø±ÙˆÙ† Ù¾Ø§Ú©Ø³Ø§Ø²ÛŒ Ù„Ø§Ú¯â€ŒÙ‡Ø§', 'hook' => 'crpcrm_daily_log_cleanup' ),
+		);
+		$checks = array();
+
+		foreach ( $jobs as $job ) {
+			$scheduled = wp_next_scheduled( $job['hook'] );
+			$checks[]  = array(
+				'key'     => $job['key'],
+				'label'   => $job['label'],
+				'status'  => $scheduled ? 'ok' : 'warning',
+				'message' => $scheduled ? 'Ø²Ù…Ø§Ù†â€ŒØ¨Ù†Ø¯ÛŒ Ø´Ø¯Ù‡ Ø§Ø³Øª.' : 'Ø¨Ø±Ø§ÛŒ Ø§ÛŒÙ† Ú©Ø±ÙˆÙ† Ø²Ù…Ø§Ù†â€ŒØ¨Ù†Ø¯ÛŒ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯.',
+			);
+		}
+
+		return $checks;
+	}
+
+	public function check_pending_uploads() {
+		$stats = CRPCRM_Dynamic_Form_Renderer::get_pending_upload_health_stats();
+
+		return array(
+			array(
+				'key'     => 'pending_uploads',
+				'label'   => 'ÙˆØ¶Ø¹ÛŒØª ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…ÙˆÙ‚Øª',
+				'status'  => empty( $stats['expired_pending'] ) ? 'ok' : 'warning',
+				'message' => sprintf( 'Ù…Ø¬Ù…ÙˆØ¹: %dØŒ Ù…Ù†Ù‚Ø¶ÛŒâ€ŒØ´Ø¯Ù‡: %d', absint( $stats['pending_total'] ?? 0 ), absint( $stats['expired_pending'] ?? 0 ) ),
+			),
+			array(
+				'key'     => 'daily_upload_usage',
+				'label'   => 'Ø§Ù†Ø¯Ø§Ø²Ù‡ Ø°Ø®ÛŒØ±Ù‡ Ø¢Ù…Ø§Ø± Ø¢Ù¾Ù„ÙˆØ¯',
+				'status'  => absint( $stats['daily_usage_entries'] ?? 0 ) > 50000 ? 'warning' : 'ok',
+				'message' => sprintf( 'ØªØ¹Ø¯Ø§Ø¯ Ø±ÙˆØ²Ù‡Ø§: %dØŒ Ø§Ù†Ø¯Ø§Ø²Ù‡ ØªÙ‚Ø±ÛŒØ¨ÛŒ: %d Ø¨Ø§ÛŒØª', absint( $stats['daily_usage_days'] ?? 0 ), absint( $stats['daily_usage_entries'] ?? 0 ) ),
+			),
+		);
+	}
+
+	public function check_file_link_signing() {
+		$url = CRPCRM_Request_File_Access_Service::build_file_url(
+			array(
+				'relative_path' => 'crpcrm-protected/request-files/health-check/sample.pdf',
+				'original_name' => 'sample.pdf',
+				'mime_type'     => 'application/pdf',
+			),
+			array(
+				'source_type' => 'health_check',
+				'source_id'   => 0,
+				'source_field'=> 'sample',
+			),
+			'download'
+		);
+
+		return array(
+			array(
+				'key'     => 'file_link_signing',
+				'label'   => 'Ø§ÛŒØ¬Ø§Ø¯ Ù„ÛŒÙ†Ú© Ø§Ù…Ù† ÙØ§ÛŒÙ„',
+				'status'  => $url ? 'ok' : 'error',
+				'message' => $url ? 'Ø§ÛŒØ¬Ø§Ø¯ Ù„ÛŒÙ†Ú© Ø§Ù…Ù† Ø¨Ø¯ÙˆÙ† Ø®Ø·Ø§ Ø§Ù†Ø¬Ø§Ù… Ø´Ø¯.' : 'Ø§ÛŒØ¬Ø§Ø¯ Ù„ÛŒÙ†Ú© Ø§Ù…Ù† ÙØ§ÛŒÙ„ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.',
+			),
+		);
 	}
 }

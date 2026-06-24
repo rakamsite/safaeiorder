@@ -616,14 +616,20 @@ class CRPCRM_Admin_Pages {
 					$this->staff_redirect( $tab, 'db_error' );
 				}
 				if ( ! empty( $request_attachments ) ) {
+					$finalized_new_request_attachments = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files_strict( $request_attachments, 'staff_request', $id, 'request_attachment', $user_id );
+					if ( is_wp_error( $finalized_new_request_attachments ) ) {
+						$this->staff_redirect( $tab, 'attachment_finalize_failed' );
+					}
+					$finalized_request_attachments = array_merge( $existing_request_attachments, $finalized_new_request_attachments );
 					$attachment_result = $this->staff_repository->update_staff_request(
 						$id,
 						array(
-							'request_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( $merged_request_attachments, 'staff_request', $id, 'request_attachment', $user_id ),
+							'request_attachment' => $finalized_request_attachments,
 						)
 					);
 					if ( is_wp_error( $attachment_result ) ) {
-						$this->staff_redirect( $tab, 'db_error' );
+						( new CRPCRM_Request_File_Cleanup_Service() )->cleanup_files( $finalized_new_request_attachments );
+						$this->staff_redirect( $tab, 'attachment_save_partial' );
 					}
 				}
 				CRPCRM_Logger::info( 'staff_request_updated', 'staff_request_updated', array( 'user_id' => $user_id, 'request_id' => $id ) );
@@ -633,14 +639,19 @@ class CRPCRM_Admin_Pages {
 					$this->staff_redirect( $tab, 'db_error' );
 				}
 				if ( ! empty( $request_attachments ) ) {
+					$finalized_new_request_attachments = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files_strict( $request_attachments, 'staff_request', $id, 'request_attachment', $user_id );
+					if ( is_wp_error( $finalized_new_request_attachments ) ) {
+						$this->staff_redirect( $tab, 'attachment_finalize_failed' );
+					}
 					$attachment_result = $this->staff_repository->update_staff_request(
 						$id,
 						array(
-							'request_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( $request_attachments, 'staff_request', $id, 'request_attachment', $user_id ),
+							'request_attachment' => $finalized_new_request_attachments,
 						)
 					);
 					if ( is_wp_error( $attachment_result ) ) {
-						$this->staff_redirect( $tab, 'db_error' );
+						( new CRPCRM_Request_File_Cleanup_Service() )->cleanup_files( $finalized_new_request_attachments );
+						$this->staff_redirect( $tab, 'attachment_save_partial' );
 					}
 				}
 				CRPCRM_Logger::info( 'staff_request_created', 'staff_request_created', array( 'user_id' => $user_id, 'request_id' => $id ) );
@@ -678,14 +689,20 @@ class CRPCRM_Admin_Pages {
 				$this->staff_redirect( $tab, 'db_error' );
 			}
 			if ( ! empty( $manager_response_attachments ) ) {
+				$finalized_new_manager_attachments = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files_strict( $manager_response_attachments, 'staff_request', $id, 'manager_response_attachment', $user_id );
+				if ( is_wp_error( $finalized_new_manager_attachments ) ) {
+					$this->staff_redirect( $tab, 'attachment_finalize_failed' );
+				}
+				$finalized_manager_attachments = array_merge( $existing_manager_attachments, $finalized_new_manager_attachments );
 				$attachment_result = $this->staff_repository->update_staff_request(
 					$id,
 					array(
-						'manager_response_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( $merged_manager_attachments, 'staff_request', $id, 'manager_response_attachment', $user_id ),
+						'manager_response_attachment' => $finalized_manager_attachments,
 					)
 				);
 				if ( is_wp_error( $attachment_result ) ) {
-					$this->staff_redirect( $tab, 'db_error' );
+					( new CRPCRM_Request_File_Cleanup_Service() )->cleanup_files( $finalized_new_manager_attachments );
+					$this->staff_redirect( $tab, 'attachment_save_partial' );
 				}
 			}
 			$this->notify_about_staff_request_update( $id, $manager_response, $manager_response_attachments );
