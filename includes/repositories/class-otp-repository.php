@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_OTP_Repository {
 	private $table;
+	private $countable_statuses = array( 'created', 'sent', 'verified', 'blocked', 'expired' );
 
 	public function __construct() {
 		$this->table = CRPCRM_DB::table( 'otp_logs' );
@@ -45,39 +46,55 @@ class CRPCRM_OTP_Repository {
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d LIMIT 1", absint( $id ) ), ARRAY_A );
 	}
 
-	public function find_latest_active_by_phone( $phone_normalized ) {
+	public function find_latest_active_by_phone( $phone_normalized, $statuses = null ) {
 		global $wpdb;
+		$statuses = $this->sanitize_status_list( $statuses );
+		if ( empty( $statuses ) ) {
+			return null;
+		}
+
+		$status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table} WHERE phone_normalized = %s AND status IN ('created','sent') ORDER BY id DESC LIMIT 1",
-				sanitize_text_field( $phone_normalized )
+				"SELECT * FROM {$this->table} WHERE phone_normalized = %s AND status IN ({$status_placeholders}) ORDER BY id DESC LIMIT 1",
+				array_merge( array( sanitize_text_field( $phone_normalized ) ), $statuses )
 			),
 			ARRAY_A
 		);
 	}
 
-	public function count_recent_by_phone( $phone_normalized, $since ) {
+	public function count_recent_by_phone( $phone_normalized, $since, $statuses = null ) {
 		global $wpdb;
+		$statuses = $this->sanitize_status_list( $statuses );
+		if ( empty( $statuses ) ) {
+			return 0;
+		}
+
+		$status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table} WHERE phone_normalized = %s AND created_at >= %s",
-				sanitize_text_field( $phone_normalized ),
-				sanitize_text_field( $since )
+				"SELECT COUNT(*) FROM {$this->table} WHERE phone_normalized = %s AND status IN ({$status_placeholders}) AND created_at >= %s",
+				array_merge( array( sanitize_text_field( $phone_normalized ) ), $statuses, array( sanitize_text_field( $since ) ) )
 			)
 		);
 	}
 
-	public function count_recent_by_ip_hash( $ip_hash, $since ) {
+	public function count_recent_by_ip_hash( $ip_hash, $since, $statuses = null ) {
 		global $wpdb;
 		if ( empty( $ip_hash ) ) {
 			return 0;
 		}
+		$statuses = $this->sanitize_status_list( $statuses );
+		if ( empty( $statuses ) ) {
+			return 0;
+		}
+
+		$status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table} WHERE ip_hash = %s AND created_at >= %s",
-				sanitize_text_field( $ip_hash ),
-				sanitize_text_field( $since )
+				"SELECT COUNT(*) FROM {$this->table} WHERE ip_hash = %s AND status IN ({$status_placeholders}) AND created_at >= %s",
+				array_merge( array( sanitize_text_field( $ip_hash ) ), $statuses, array( sanitize_text_field( $since ) ) )
 			)
 		);
 	}
@@ -112,5 +129,19 @@ class CRPCRM_OTP_Repository {
 		}
 
 		return $clean;
+	}
+
+	private function sanitize_status_list( $statuses ) {
+		if ( null === $statuses ) {
+			$statuses = $this->countable_statuses;
+		}
+
+		if ( ! is_array( $statuses ) ) {
+			$statuses = array( $statuses );
+		}
+
+		$statuses = array_values( array_filter( array_map( 'sanitize_key', $statuses ) ) );
+
+		return array_values( array_intersect( $statuses, $this->countable_statuses ) );
 	}
 }

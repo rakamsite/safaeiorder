@@ -131,7 +131,14 @@ class CRPCRM_Portal_Shortcode {
 		}
 
 		if ( ! CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) {
-			return '<div class="crpcrm-feature-disabled" dir="rtl">' . esc_html( CRPCRM_Feature_Manager::disabled_message() ) . '</div>';
+			return $this->render_view(
+				'portal-placeholder.php',
+				array(
+					'notice'              => array( 'type' => 'error', 'message' => CRPCRM_Feature_Manager::disabled_message_for_feature( 'otp' ) ),
+					'logout_url'          => '',
+					'placeholder_message'  => CRPCRM_Feature_Manager::disabled_message_for_feature( 'otp' ),
+				)
+			);
 		}
 
 		$state_token = isset( $_GET['crpcrm_otp_state'] ) ? sanitize_text_field( wp_unslash( $_GET['crpcrm_otp_state'] ) ) : '';
@@ -508,6 +515,7 @@ class CRPCRM_Portal_Shortcode {
 	}
 
 	public function handle_change_phone() {
+		$this->guard_feature( 'otp' );
 		check_admin_referer( 'crpcrm_change_otp_phone', 'crpcrm_otp_nonce' );
 		wp_safe_redirect( $this->posted_redirect_url() );
 		exit;
@@ -889,7 +897,7 @@ class CRPCRM_Portal_Shortcode {
 
 	private function guard_feature( $feature ) {
 		if ( ! CRPCRM_Feature_Manager::is_enabled( $feature ) ) {
-			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
+			wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message_for_feature( $feature ) ) );
 		}
 	}
 

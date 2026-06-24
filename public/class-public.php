@@ -51,8 +51,15 @@ class CRPCRM_Public {
 				'productSearchLoading' => 'در حال جستجو...',
 				'productRemoveLabel'   => 'حذف محصول',
 				'fileUploadLoading'    => 'در حال بارگذاری...',
+				'fileUploadFallback'   => 'بارگذاری خودکار در این مرورگر پشتیبانی نمی‌شود. فایل را همراه فرم ارسال کنید.',
+				'fileUploadInvalid'    => 'نوع فایل مجاز نیست.',
+				'fileUploadTooLarge'   => 'حجم فایل بیش از حد مجاز است.',
+				'fileUploadNetwork'    => 'ارتباط با سرور برقرار نشد.',
+				'fileUploadMaxSize'    => CRPCRM_Dynamic_Form_Renderer::MAX_FILE_SIZE,
 				'fileUploadError'      => 'بارگذاری فایل انجام نشد.',
 				'fileUploadedLabel'    => 'بارگذاری شده',
+				'filePreviewLabel'     => 'مشاهده فایل',
+				'fileDownloadLabel'    => 'دانلود فایل',
 			)
 		);
 	}

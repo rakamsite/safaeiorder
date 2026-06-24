@@ -19,6 +19,7 @@ $log_levels      = array( 'debug' => 'خطایابی', 'info' => 'اطلاع‌�
 $saveable_tabs   = CRPCRM_Settings::saveable_tabs();
 $portal_menu_id  = absint( $settings['portal_menu_id'] ?? 0 );
 $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( array( 'hide_empty' => false ) ) : array();
+$feature_messages = CRPCRM_Feature_Manager::get_toggle_notice();
 ?>
 <div class="wrap crpcrm-admin-wrap" dir="rtl">
 	<h1><?php echo esc_html( 'تنظیمات دیجیتال مارکتینگ' ); ?></h1>
@@ -28,6 +29,9 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 	<?php endif; ?>
 	<?php if ( isset( $_GET['roles-rebuilt'] ) && 'true' === sanitize_text_field( wp_unslash( $_GET['roles-rebuilt'] ) ) ) : ?>
 		<div class="notice notice-success is-dismissible"><p><?php echo esc_html( 'نقش‌ها و دسترسی‌ها با موفقیت بازسازی شدند.' ); ?></p></div>
+	<?php endif; ?>
+	<?php if ( ! empty( $feature_messages ) ) : ?>
+		<div class="notice notice-warning is-dismissible"><p><?php echo esc_html( implode( ' ', array_map( 'sanitize_text_field', $feature_messages ) ) ); ?></p></div>
 	<?php endif; ?>
 	<?php if ( $portal_warning ) : ?>
 		<div class="notice notice-warning"><p><?php echo esc_html( $portal_warning ); ?></p></div>
@@ -57,7 +61,7 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 			<h2><?php echo esc_html( 'امکانات افزونه' ); ?></h2>
 			<table class="form-table" role="presentation"><tbody>
 				<?php foreach ( CRPCRM_Feature_Manager::get_features() as $feature_id => $feature_label ) : ?>
-					<tr><th><?php echo esc_html( $feature_label ); ?></th><td><label><input name="crpcrm_features[<?php echo esc_attr( $feature_id ); ?>]" type="checkbox" value="yes" <?php checked( CRPCRM_Feature_Manager::is_enabled( $feature_id ) ); ?> /> <?php echo esc_html( 'فعال باشد' ); ?></label></td></tr>
+					<tr><th><?php echo esc_html( $feature_label ); ?></th><td><label><input name="crpcrm_features[<?php echo esc_attr( $feature_id ); ?>]" type="checkbox" value="yes" <?php checked( CRPCRM_Feature_Manager::is_enabled( $feature_id ) ); ?> /> <?php echo esc_html( 'فعال باشد' ); ?></label><?php $feature_note = CRPCRM_Feature_Manager::get_feature_toggle_message( $feature_id ); ?><?php if ( '' !== $feature_note ) : ?><p class="description"><?php echo esc_html( $feature_note ); ?></p><?php endif; ?></td></tr>
 				<?php endforeach; ?>
 			</tbody></table>
 		<?php elseif ( 'registration_fields' === $active_tab ) : ?>
@@ -118,9 +122,12 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 				<tr><th><label for="sms_ir_template_id_otp"><?php echo esc_html( 'شناسه قالب OTP در SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_template_id_otp]" id="sms_ir_template_id_otp" type="text" value="<?php echo esc_attr( $settings['sms_ir_template_id_otp'] ); ?>" class="regular-text" /></td></tr>
 				<tr><th><label for="sms_ir_template_id_request_created"><?php echo esc_html( 'شناسه قالب ثبت درخواست در SMS.ir' ); ?></label></th><td><input name="crpcrm_settings[sms_ir_template_id_request_created]" id="sms_ir_template_id_request_created" type="text" value="<?php echo esc_attr( $settings['sms_ir_template_id_request_created'] ); ?>" class="regular-text" /></td></tr>
 				<?php endif; ?>
+				<tr><th><label for="otp_rate_limit_phone_limit"><?php echo esc_html( 'محدودیت درخواست برای هر شماره' ); ?></label></th><td><input name="crpcrm_settings[otp_rate_limit_phone_limit]" id="otp_rate_limit_phone_limit" type="number" min="1" max="20" value="<?php echo esc_attr( $settings['otp_rate_limit_phone_limit'] ); ?>" /><p class="description"><?php echo esc_html( 'پیشنهاد: 6 درخواست در هر بازه.' ); ?></p></td></tr>
+				<tr><th><label for="otp_rate_limit_ip_limit"><?php echo esc_html( 'محدودیت درخواست برای هر IP' ); ?></label></th><td><input name="crpcrm_settings[otp_rate_limit_ip_limit]" id="otp_rate_limit_ip_limit" type="number" min="1" max="200" value="<?php echo esc_attr( $settings['otp_rate_limit_ip_limit'] ); ?>" /><p class="description"><?php echo esc_html( 'پیشنهاد: 50 درخواست در هر بازه.' ); ?></p></td></tr>
+				<tr><th><label for="otp_rate_limit_window_minutes"><?php echo esc_html( 'طول بازه محدودیت' ); ?></label></th><td><input name="crpcrm_settings[otp_rate_limit_window_minutes]" id="otp_rate_limit_window_minutes" type="number" min="1" max="1440" value="<?php echo esc_attr( $settings['otp_rate_limit_window_minutes'] ); ?>" /><p class="description"><?php echo esc_html( 'پیشنهاد: 15 دقیقه.' ); ?></p></td></tr>
+				<tr><th><label for="otp_resend_seconds"><?php echo esc_html( 'فاصله مجاز ارسال مجدد' ); ?></label></th><td><input name="crpcrm_settings[otp_resend_seconds]" id="otp_resend_seconds" type="number" min="10" max="600" value="<?php echo esc_attr( $settings['otp_resend_seconds'] ); ?>" /><p class="description"><?php echo esc_html( 'پیشنهاد: 60 ثانیه.' ); ?></p></td></tr>
 				<?php if ( CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) : ?>
 				<tr><th><label for="otp_expiration_minutes"><?php echo esc_html( 'مدت اعتبار کد OTP به دقیقه' ); ?></label></th><td><input name="crpcrm_settings[otp_expiration_minutes]" id="otp_expiration_minutes" type="number" min="1" max="60" value="<?php echo esc_attr( $settings['otp_expiration_minutes'] ); ?>" /></td></tr>
-				<tr><th><label for="otp_resend_seconds"><?php echo esc_html( 'فاصله مجاز ارسال مجدد به ثانیه' ); ?></label></th><td><input name="crpcrm_settings[otp_resend_seconds]" id="otp_resend_seconds" type="number" min="10" max="600" value="<?php echo esc_attr( $settings['otp_resend_seconds'] ); ?>" /></td></tr>
 				<tr><th><label for="otp_max_attempts"><?php echo esc_html( 'حداکثر تلاش برای وارد کردن کد' ); ?></label></th><td><input name="crpcrm_settings[otp_max_attempts]" id="otp_max_attempts" type="number" min="1" max="20" value="<?php echo esc_attr( $settings['otp_max_attempts'] ); ?>" /></td></tr>
 				<?php if ( current_user_can( 'manage_options' ) ) : ?><tr><th><?php echo esc_html( 'حالت تست OTP' ); ?></th><td><label><input name="crpcrm_settings[otp_debug_mode]" type="checkbox" value="yes" <?php checked( $settings['otp_debug_mode'], 'yes' ); ?> /> <?php echo esc_html( 'فعال باشد' ); ?></label><p class="description"><?php echo esc_html( 'در حالت تست، کد OTP در لاگ داخلی افزونه ثبت می‌شود. این گزینه در سایت عملیاتی نباید فعال باشد.' ); ?></p></td></tr><?php endif; ?>
 				<?php endif; ?>
@@ -186,3 +193,4 @@ $portal_menus    = function_exists( 'wp_get_nav_menus' ) ? wp_get_nav_menus( arr
 		<?php include CRPCRM_PLUGIN_DIR . 'admin/views/settings-tools.php'; ?>
 	<?php endif; ?>
 </div>
+

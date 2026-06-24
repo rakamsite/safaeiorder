@@ -191,7 +191,7 @@ class CRPCRM_Admin_Pages {
 			$pagination,
 			array(
 				'include_staff'   => CRPCRM_Feature_Manager::is_enabled( 'staff' ),
-				'include_landings'=> CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ),
+				'include_landings'=> CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) && CRPCRM_Feature_Manager::is_enabled( 'tracking' ),
 			)
 		);
 		$total = absint( $dashboard['request_total'] ?? 0 );
@@ -213,9 +213,9 @@ class CRPCRM_Admin_Pages {
 				'per_page'       => $per_page,
 				'total'          => $total,
 				'total_pages'    => max( 1, (int) ceil( $total / $per_page ) ),
-				'landing_enabled'=> CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ),
+				'landing_enabled'=> CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) && CRPCRM_Feature_Manager::is_enabled( 'tracking' ),
 				'staff_enabled'  => CRPCRM_Feature_Manager::is_enabled( 'staff' ),
-				'assignable_users' => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->get_assignable_users() : array(),
+				'assignable_users' => $this->get_assignable_users(),
 			)
 		);
 	}
@@ -332,6 +332,21 @@ class CRPCRM_Admin_Pages {
 				'offset' => ( $page - 1 ) * $per_page,
 			)
 		);
+		if ( ! empty( $notifications ) ) {
+			$notification_ids = array_values(
+				array_filter(
+					array_map(
+						static function ( $notification ) {
+							return absint( $notification['id'] ?? 0 );
+						},
+						(array) $notifications
+					)
+				)
+			);
+			if ( ! empty( $notification_ids ) ) {
+				$this->notification_service->mark_seen( $notification_ids, $user_id );
+			}
+		}
 
 		$this->render(
 			'notifications.php',
@@ -738,6 +753,11 @@ class CRPCRM_Admin_Pages {
 		$request_id = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
 		check_admin_referer( 'crpcrm_claim_request_' . $request_id );
 
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			CRPCRM_Logger::warning( 'request_claim_failed', 'request_claim_failed', array( 'request_id' => $request_id, 'user_id' => get_current_user_id(), 'reason' => 'feature_disabled' ) );
+			$this->redirect_to_request( $request_id, 'access_denied' );
+		}
+
 		if ( ! current_user_can( 'crpcrm_claim_requests' ) ) {
 			CRPCRM_Logger::warning( 'request_claim_failed', 'request_claim_failed', array( 'request_id' => $request_id, 'user_id' => get_current_user_id(), 'reason' => 'capability' ) );
 			$this->redirect_to_request( $request_id, 'access_denied' );
@@ -756,6 +776,11 @@ class CRPCRM_Admin_Pages {
 	public function handle_change_owner() {
 		$request_id = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
 		check_admin_referer( 'crpcrm_change_owner_' . $request_id );
+
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			CRPCRM_Logger::warning( 'request_owner_change_failed', 'request_owner_change_failed', array( 'request_id' => $request_id, 'user_id' => get_current_user_id(), 'reason' => 'feature_disabled' ) );
+			$this->redirect_to_request( $request_id, 'access_denied' );
+		}
 
 		$request = $this->request_repository->get( $request_id );
 		$new_owner_id = isset( $_POST['owner_id'] ) ? absint( $_POST['owner_id'] ) : 0;
@@ -792,6 +817,11 @@ class CRPCRM_Admin_Pages {
 	public function handle_release_owner() {
 		$request_id = isset( $_POST['request_id'] ) ? absint( $_POST['request_id'] ) : 0;
 		check_admin_referer( 'crpcrm_release_owner_' . $request_id );
+
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			CRPCRM_Logger::warning( 'request_owner_change_failed', 'request_owner_change_failed', array( 'request_id' => $request_id, 'user_id' => get_current_user_id(), 'reason' => 'feature_disabled', 'action' => 'release_owner' ) );
+			$this->redirect_to_request( $request_id, 'access_denied' );
+		}
 
 		if ( ! CRPCRM_Request_Access_Service::can_manage_request( null, get_current_user_id() ) ) {
 			CRPCRM_Logger::warning( 'request_access_denied', 'request_access_denied', array( 'request_id' => $request_id, 'user_id' => get_current_user_id(), 'action' => 'release_owner' ) );
@@ -934,21 +964,6 @@ class CRPCRM_Admin_Pages {
 			$this->redirect_to_request_list( 'access_denied' );
 		}
 
-		$customer_mode = isset( $_POST['customer_mode'] ) ? sanitize_key( wp_unslash( $_POST['customer_mode'] ) ) : 'existing';
-		$customer      = null;
-		if ( 'new' === $customer_mode ) {
-			$customer = $this->create_customer_from_manual_request( $_POST );
-			if ( is_wp_error( $customer ) ) {
-				$this->redirect_to_manual_request_form( $customer->get_error_code() );
-			}
-		} else {
-			$customer_id = isset( $_POST['customer_id'] ) ? absint( $_POST['customer_id'] ) : 0;
-			$customer    = $this->customer_repository->get( $customer_id );
-			if ( ! $customer ) {
-				$this->redirect_to_manual_request_form( 'manual_customer_required' );
-			}
-		}
-
 		$form_id          = isset( $_POST['form_id'] ) ? sanitize_key( wp_unslash( $_POST['form_id'] ) ) : '';
 		$form             = CRPCRM_Form_Registry::get_enabled_form( $form_id );
 		if ( ! $form && empty( $form_id ) && ! empty( $_POST['request_type'] ) ) {
@@ -958,19 +973,47 @@ class CRPCRM_Admin_Pages {
 		$allowed_statuses = array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' );
 		$status           = isset( $_POST['request_status'] ) ? sanitize_key( wp_unslash( $_POST['request_status'] ) ) : 'new';
 		if ( ! $form ) {
-			$this->redirect_to_manual_request_form( 'manual_form_invalid' );
+			$this->redirect_to_manual_request_form( 'manual_form_invalid', $this->build_manual_request_redirect_args( $_POST ) );
 		}
 		$request_type = sanitize_key( $form['request_type'] ?? '' );
 		$request_type = $request_type ? $request_type : sanitize_key( $form['id'] ?? '' );
 		if ( ! CRPCRM_Request_Type_Registry::is_registered( $request_type ) ) {
-			$this->redirect_to_manual_request_form( 'manual_request_type_invalid' );
+			$this->redirect_to_manual_request_form( 'manual_request_type_invalid', $this->build_manual_request_redirect_args( $_POST ) );
 		}
 		$validated = CRPCRM_Request_Forms::sanitize_and_validate( $form, $_POST, $_FILES );
 		if ( ! empty( $validated['errors'] ) ) {
-			$this->redirect_to_manual_request_form( 'manual_form_invalid' );
+			$this->redirect_to_manual_request_form( 'manual_form_invalid', $this->build_manual_request_redirect_args( $_POST ) );
 		}
 		if ( ! in_array( $status, $allowed_statuses, true ) ) {
 			$status = 'new';
+		}
+
+		$customer_mode = isset( $_POST['customer_mode'] ) ? sanitize_key( wp_unslash( $_POST['customer_mode'] ) ) : 'existing';
+		$customer      = null;
+		$created_customer = false;
+		$created_user     = false;
+		if ( 'new' === $customer_mode ) {
+			$customer_result = $this->create_customer_from_manual_request( $_POST );
+			if ( is_wp_error( $customer_result ) ) {
+				$this->redirect_to_manual_request_form(
+					$customer_result->get_error_code(),
+					$this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) )
+				);
+			}
+
+			$customer          = isset( $customer_result['customer'] ) && is_array( $customer_result['customer'] ) ? $customer_result['customer'] : null;
+			$created_customer   = ! empty( $customer_result['created_customer'] );
+			$created_user       = ! empty( $customer_result['created_user'] );
+		} else {
+			$customer_id = isset( $_POST['customer_id'] ) ? absint( $_POST['customer_id'] ) : 0;
+			$customer    = $this->customer_repository->get( $customer_id );
+			if ( ! $customer ) {
+				$this->redirect_to_manual_request_form( 'manual_customer_required', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
+			}
+		}
+
+		if ( empty( $customer ) || empty( $customer['id'] ) ) {
+			$this->redirect_to_manual_request_form( 'manual_customer_failed', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
 		}
 
 		$owner_id = get_current_user_id();
@@ -1016,7 +1059,8 @@ class CRPCRM_Admin_Pages {
 		}
 		$request_id = $this->request_repository->create( $request_args );
 		if ( ! $request_id ) {
-			$this->redirect_to_manual_request_form( 'manual_request_failed' );
+			$this->rollback_manual_request_customer( $customer, $created_customer, $created_user );
+			$this->redirect_to_manual_request_form( 'manual_request_failed', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
 		}
 
 		$request = $this->request_repository->get( $request_id );
@@ -1045,21 +1089,94 @@ class CRPCRM_Admin_Pages {
 		if ( '' === $name || '' === $province || '' === $city || ! CRPCRM_Helpers::is_valid_iran_phone_normalized( $phone ) ) {
 			return new WP_Error( 'manual_customer_invalid', 'اطلاعات مشتری جدید معتبر نیست.' );
 		}
-		if ( $this->customer_repository->find_by_phone_normalized( $phone ) ) {
-			return new WP_Error( 'manual_customer_exists', 'این شماره موبایل قبلاً ثبت شده است.' );
+		$existing_customer = $this->customer_repository->find_by_phone_normalized( $phone );
+		if ( $existing_customer ) {
+			return array(
+				'customer'          => $existing_customer,
+				'customer_id'       => absint( $existing_customer['id'] ),
+				'user_id'           => absint( $existing_customer['user_id'] ),
+				'created_customer'   => false,
+				'created_user'      => false,
+			);
 		}
-		$user_id = wp_insert_user( array( 'user_login' => $phone, 'user_pass' => wp_generate_password( 32, true, true ), 'role' => 'customer', 'display_name' => $name ) );
-		if ( is_wp_error( $user_id ) ) {
-			return new WP_Error( 'manual_customer_failed', $user_id->get_error_message() );
+
+		$user          = $this->find_existing_user_by_phone( $phone );
+		$created_user  = false;
+		if ( ! $user ) {
+			$user_id = wp_insert_user(
+				array(
+					'user_login'   => $phone,
+					'user_pass'    => wp_generate_password( 32, true, true ),
+					'role'         => 'customer',
+					'display_name' => $name,
+				)
+			);
+			if ( is_wp_error( $user_id ) ) {
+				return new WP_Error( 'manual_customer_failed', $user_id->get_error_message() );
+			}
+			$user = get_user_by( 'id', absint( $user_id ) );
+			$created_user = true;
 		}
-		update_user_meta( $user_id, 'crpcrm_phone_normalized', $phone );
+
+		if ( ! $user || ! isset( $user->ID ) ) {
+			return new WP_Error( 'manual_customer_failed', 'ساخت کاربر جدید انجام نشد.' );
+		}
+
+		$existing_customer_by_user = $this->customer_repository->find_by_user_id( $user->ID );
+		if ( $existing_customer_by_user ) {
+			return array(
+				'customer'        => $existing_customer_by_user,
+				'customer_id'     => absint( $existing_customer_by_user['id'] ),
+				'user_id'         => absint( $existing_customer_by_user['user_id'] ),
+				'created_customer' => false,
+				'created_user'    => $created_user,
+			);
+		}
+
+		update_user_meta( $user->ID, 'crpcrm_phone_normalized', $phone );
 		$source      = isset( $posted['new_customer_source'] ) ? sanitize_key( wp_unslash( $posted['new_customer_source'] ) ) : 'direct';
-		$customer_id = $this->customer_repository->create( array( 'user_id' => $user_id, 'full_name' => $name, 'phone' => $phone, 'phone_normalized' => $phone, 'province' => $province, 'city' => $city, 'profile_completed' => 1, 'first_source' => $source, 'last_source' => $source, 'first_seen_at' => CRPCRM_Helpers::current_datetime(), 'last_seen_at' => CRPCRM_Helpers::current_datetime() ) );
+		$customer_id = $this->customer_repository->create(
+			array(
+				'user_id'           => $user->ID,
+				'full_name'         => $name,
+				'phone'             => $phone,
+				'phone_normalized'  => $phone,
+				'province'          => $province,
+				'city'              => $city,
+				'profile_completed' => 1,
+				'first_source'      => $source,
+				'last_source'       => $source,
+				'first_seen_at'     => CRPCRM_Helpers::current_datetime(),
+				'last_seen_at'      => CRPCRM_Helpers::current_datetime(),
+			)
+		);
 		if ( ! $customer_id ) {
-			wp_delete_user( $user_id );
+			if ( $created_user ) {
+				$this->delete_user_safely( $user->ID );
+			}
 			return new WP_Error( 'manual_customer_failed', 'ساخت مشتری انجام نشد.' );
 		}
-		return $this->customer_repository->get( $customer_id );
+
+		$customer = $this->customer_repository->get( $customer_id );
+		if ( ! $customer ) {
+			$this->rollback_manual_request_customer(
+				array(
+					'id'      => $customer_id,
+					'user_id' => $user->ID,
+				),
+				true,
+				$created_user
+			);
+			return new WP_Error( 'manual_customer_failed', 'ساخت مشتری انجام نشد.' );
+		}
+
+		return array(
+			'customer'         => $customer,
+			'customer_id'      => $customer_id,
+			'user_id'          => $user->ID,
+			'created_customer'  => true,
+			'created_user'      => $created_user,
+		);
 	}
 
 	private function render_manual_request_form() {
@@ -1074,8 +1191,8 @@ class CRPCRM_Admin_Pages {
 		$this->render( 'request-create.php', array( 'customer_search' => $search, 'customer_results' => $this->customer_repository->search_for_manual_request( $search ), 'assignable_users' => CRPCRM_Request_Access_Service::can_manage_request() ? $this->get_assignable_users() : array(), 'can_manage' => CRPCRM_Request_Access_Service::can_manage_request(), 'forms' => $forms, 'selected_form' => $selected_form ) );
 	}
 
-	private function redirect_to_manual_request_form( $notice ) {
-		wp_safe_redirect( crpcrm_admin_requests_url( array( 'action' => 'new', 'crpcrm_notice' => sanitize_key( $notice ) ) ) );
+	private function redirect_to_manual_request_form( $notice, $args = array() ) {
+		wp_safe_redirect( crpcrm_admin_requests_url( array_merge( array( 'action' => 'new', 'crpcrm_notice' => sanitize_key( $notice ) ), $args ) ) );
 		exit;
 	}
 
@@ -1303,6 +1420,10 @@ class CRPCRM_Admin_Pages {
 	}
 
 	private function get_assignable_users() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			return array();
+		}
+
 		return get_users(
 			array(
 				'role__in' => array( 'sales_agent', 'sales_manager' ),
@@ -1326,6 +1447,86 @@ class CRPCRM_Admin_Pages {
 	private function redirect_to_request_list( $notice ) {
 		wp_safe_redirect( add_query_arg( array( 'page' => 'crpcrm-requests', 'crpcrm_notice' => sanitize_key( $notice ) ), admin_url( 'admin.php' ) ) );
 		exit;
+	}
+
+	private function build_manual_request_redirect_args( $posted = array(), $args = array() ) {
+		$redirect_args = array();
+		$customer_mode = isset( $args['customer_mode'] ) ? sanitize_key( $args['customer_mode'] ) : ( isset( $posted['customer_mode'] ) ? sanitize_key( wp_unslash( $posted['customer_mode'] ) ) : '' );
+		if ( '' !== $customer_mode ) {
+			$redirect_args['customer_mode'] = $customer_mode;
+		}
+
+		$form_id       = isset( $args['form_id'] ) ? sanitize_key( $args['form_id'] ) : ( isset( $posted['form_id'] ) ? sanitize_key( wp_unslash( $posted['form_id'] ) ) : '' );
+		if ( '' !== $form_id ) {
+			$redirect_args['form_id'] = $form_id;
+		}
+
+		$search_term = isset( $args['customer_search'] ) ? sanitize_text_field( $args['customer_search'] ) : '';
+		if ( '' === $search_term ) {
+			if ( ! empty( $posted['new_customer_phone'] ) ) {
+				$search_term = sanitize_text_field( wp_unslash( $posted['new_customer_phone'] ) );
+			} elseif ( ! empty( $posted['customer_search'] ) ) {
+				$search_term = sanitize_text_field( wp_unslash( $posted['customer_search'] ) );
+			}
+		}
+		if ( '' !== $search_term ) {
+			$redirect_args['customer_search'] = $search_term;
+		}
+
+		return $redirect_args;
+	}
+
+	private function find_existing_user_by_phone( $phone_normalized ) {
+		$phone_normalized = CRPCRM_Helpers::normalize_iran_phone( $phone_normalized );
+		$user             = get_user_by( 'login', $phone_normalized );
+		if ( $user ) {
+			return $user;
+		}
+
+		$users = get_users(
+			array(
+				'meta_key'   => 'crpcrm_phone_normalized',
+				'meta_value' => $phone_normalized,
+				'number'     => 1,
+				'fields'     => 'all',
+			)
+		);
+
+		return ! empty( $users ) ? $users[0] : null;
+	}
+
+	private function delete_user_safely( $user_id ) {
+		$user_id = absint( $user_id );
+		if ( ! $user_id ) {
+			return false;
+		}
+
+		if ( ! function_exists( 'wp_delete_user' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/user.php';
+		}
+
+		if ( ! function_exists( 'wp_delete_user' ) ) {
+			return false;
+		}
+
+		return (bool) wp_delete_user( $user_id );
+	}
+
+	private function rollback_manual_request_customer( $customer, $created_customer, $created_user ) {
+		$customer_id = is_array( $customer ) ? absint( $customer['id'] ?? ( $customer['customer_id'] ?? 0 ) ) : 0;
+		$user_id     = is_array( $customer ) ? absint( $customer['user_id'] ?? 0 ) : 0;
+
+		if ( $created_customer && $customer_id ) {
+			$deleted = $this->customer_repository->delete_permanently( $customer_id );
+			if ( is_wp_error( $deleted ) ) {
+				CRPCRM_Logger::warning( 'manual_request_customer_rollback_failed', 'manual_request_customer_rollback_failed', array( 'customer_id' => $customer_id, 'user_id' => get_current_user_id(), 'error' => $deleted->get_error_code() ) );
+				return;
+			}
+		}
+
+		if ( $created_user && $user_id ) {
+			$this->delete_user_safely( $user_id );
+		}
 	}
 
 	private function render_message( $message ) {

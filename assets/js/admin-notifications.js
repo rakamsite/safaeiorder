@@ -1,8 +1,25 @@
 (function () {
 	'use strict';
 
+	if (window.Element && !Element.prototype.matches) {
+		Element.prototype.matches = Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
+	}
+
+	if (window.Element && !Element.prototype.closest) {
+		Element.prototype.closest = function (selector) {
+			var node = this;
+			while (node && node.nodeType === 1) {
+				if (node.matches && node.matches(selector)) {
+					return node;
+				}
+				node = node.parentElement || node.parentNode;
+			}
+			return null;
+		};
+	}
+
 	var config = window.crpcrmNotifications || {};
-	var enabled = !!config.enabled && !!config.ajax_url && !!config.nonce && !!config.notifications_page_url;
+	var enabled = !!window.Promise && !!config.enabled && !!config.ajax_url && !!config.nonce && !!config.notifications_page_url;
 	var pollTimer = null;
 	var requestInFlight = false;
 	var isPollingActive = false;
@@ -96,12 +113,81 @@
 		}, 180);
 	}
 
-	function navigateToNotificationsPage() {
-		window.location.href = getNotificationsPageUrl();
+	function navigateToUrl(url) {
+		window.location.href = url || getNotificationsPageUrl();
+	}
+
+	function postAjax(action, params) {
+		if (!window.fetch || !window.URLSearchParams) {
+			return Promise.reject(new Error('unsupported'));
+		}
+
+		var formData = new URLSearchParams();
+		formData.append('action', action);
+		formData.append('nonce', config.nonce);
+
+		Object.keys(params || {}).forEach(function (key) {
+			var value = params[key];
+			if (Array.isArray(value)) {
+				value.forEach(function (item) {
+					formData.append(key + '[]', item);
+				});
+				return;
+			}
+
+			if (null === value || 'undefined' === typeof value) {
+				return;
+			}
+
+			formData.append(key, value);
+		});
+
+		return fetch(config.ajax_url, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+			},
+			body: formData.toString()
+		}).then(function (response) {
+			return response.json();
+		});
+	}
+
+	function markNotificationsSeen(ids) {
+		if (!enabled || !ids || !ids.length) {
+			return Promise.resolve();
+		}
+
+		return postAjax('crpcrm_mark_notification_seen', {
+			notification_ids: ids
+		}).catch(function (error) {
+			debugLog('crpcrm notification seen failed', error);
+		});
+	}
+
+	function markNotificationRead(notification) {
+		if (!enabled || !notification || !notification.id) {
+			return Promise.resolve(notification && notification.target_url ? notification.target_url : getNotificationsPageUrl());
+		}
+
+		return postAjax('crpcrm_mark_notification_read', {
+			notification_id: notification.id
+		}).then(function (payload) {
+			if (payload && payload.success && payload.data && payload.data.target_url) {
+				return payload.data.target_url;
+			}
+
+			return notification.target_url || getNotificationsPageUrl();
+		}).catch(function (error) {
+			debugLog('crpcrm notification read failed', error);
+			return notification.target_url || getNotificationsPageUrl();
+		});
 	}
 
 	function createToast(notification) {
 		var toast = document.createElement('div');
+		var isNavigating = false;
 		toast.className = 'crpcrm-toast';
 		toast.setAttribute('role', 'button');
 		toast.setAttribute('tabindex', '0');
@@ -136,13 +222,19 @@
 			if (event.target && event.target.closest && event.target.closest('.crpcrm-toast-close')) {
 				return;
 			}
-			navigateToNotificationsPage();
+			if (isNavigating) {
+				return;
+			}
+			isNavigating = true;
+			markNotificationRead(notification).then(function (targetUrl) {
+				navigateToUrl(targetUrl || notification.target_url || getNotificationsPageUrl());
+			});
 		});
 
 		toast.addEventListener('keydown', function (event) {
 			if ('Enter' === event.key || ' ' === event.key || 'Spacebar' === event.key) {
 				event.preventDefault();
-				navigateToNotificationsPage();
+				toast.click();
 			}
 		});
 
@@ -173,6 +265,7 @@
 			var toast = createToast(notification);
 			activeToasts.push(toast);
 			toastContainer.appendChild(toast);
+			markNotificationsSeen([notification.id]);
 			window.setTimeout((function (toastNode) {
 				return function () {
 					toastNode.classList.add('is-visible');
@@ -251,24 +344,9 @@
 		}
 
 		requestInFlight = true;
-
-		var formData = new URLSearchParams();
-		formData.append('action', 'crpcrm_get_new_notifications');
-		formData.append('nonce', config.nonce);
-
-		fetch(config.ajax_url, {
-			method: 'POST',
-			credentials: 'same-origin',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-			},
-			body: formData.toString()
-		})
+		postAjax('crpcrm_get_new_notifications', {})
 			.then(function (response) {
-				return response.json();
-			})
-			.then(function (payload) {
-				queueNotifications(parseResponse(payload));
+				queueNotifications(parseResponse(response));
 			})
 			.catch(function (error) {
 				debugLog('crpcrm notification poll failed', error);

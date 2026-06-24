@@ -19,6 +19,8 @@ class CRPCRM_Notification_Service {
 	public function register_hooks() {
 		add_action( 'admin_post_crpcrm_notification_action', array( $this, 'handle_action' ) );
 		add_action( 'wp_ajax_crpcrm_get_new_notifications', array( $this, 'ajax_get_new_notifications' ) );
+		add_action( 'wp_ajax_crpcrm_mark_notification_seen', array( $this, 'ajax_mark_seen' ) );
+		add_action( 'wp_ajax_crpcrm_mark_notification_read', array( $this, 'ajax_mark_read' ) );
 	}
 
 	public static function is_enabled() {
@@ -74,10 +76,18 @@ class CRPCRM_Notification_Service {
 	}
 
 	public function get_staff_manager_recipients() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			return array();
+		}
+
 		return $this->get_user_recipients_by_capability( array( 'crpcrm_manage_staff_portal', 'crpcrm_view_reports', 'crpcrm_manage_plugin', 'manage_options' ) );
 	}
 
 	public function get_sales_agent_recipients() {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			return array();
+		}
+
 		return $this->get_user_recipients_by_capability( array( 'crpcrm_view_assigned_requests', 'crpcrm_claim_requests', 'crpcrm_create_requests' ) );
 	}
 
@@ -188,7 +198,6 @@ class CRPCRM_Notification_Service {
 
 		$user_id = get_current_user_id();
 		$notifications = $this->get_recent_unseen_for_user( $user_id, 5 );
-		$ids = array();
 		$payload = array();
 
 		foreach ( $notifications as $notification ) {
@@ -201,18 +210,63 @@ class CRPCRM_Notification_Service {
 				continue;
 			}
 
-			$ids[] = $notification_id;
 			$payload[] = $this->sanitize_notification_payload( $notification );
-		}
-
-		if ( ! empty( $ids ) ) {
-			$this->mark_seen( $ids, $user_id );
 		}
 
 		wp_send_json_success(
 			array(
 				'notifications'          => $payload,
 				'notifications_page_url' => $this->get_notifications_page_url(),
+			)
+		);
+	}
+
+	public function ajax_mark_seen() {
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => 'unauthorized' ), 401 );
+		}
+
+		check_ajax_referer( 'crpcrm_get_new_notifications', 'nonce' );
+
+		if ( ! self::is_enabled() || ! self::current_user_can_view_notifications() ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+
+		$user_id = get_current_user_id();
+		$ids     = isset( $_POST['notification_ids'] ) ? (array) wp_unslash( $_POST['notification_ids'] ) : array();
+		$updated = $this->mark_seen( $ids, $user_id );
+
+		wp_send_json_success(
+			array(
+				'updated' => false === $updated ? 0 : absint( $updated ),
+			)
+		);
+	}
+
+	public function ajax_mark_read() {
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => 'unauthorized' ), 401 );
+		}
+
+		check_ajax_referer( 'crpcrm_get_new_notifications', 'nonce' );
+
+		if ( ! self::is_enabled() || ! self::current_user_can_view_notifications() ) {
+			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+		}
+
+		$user_id         = get_current_user_id();
+		$notification_id = isset( $_POST['notification_id'] ) ? absint( wp_unslash( $_POST['notification_id'] ) ) : 0;
+		$notification    = $this->get_notification( $notification_id, $user_id );
+
+		if ( ! $notification ) {
+			wp_send_json_error( array( 'message' => 'not_found' ), 404 );
+		}
+
+		$this->mark_read( $notification_id, $user_id );
+
+		wp_send_json_success(
+			array(
+				'target_url' => $this->get_safe_notification_target_url( $notification['target_url'] ?? '', $this->get_notifications_page_url() ),
 			)
 		);
 	}
@@ -376,7 +430,7 @@ class CRPCRM_Notification_Service {
 	}
 
 	public function notify_daily_report_created( $report_id, $report_user_id, $report_title = '' ) {
-		if ( ! self::is_enabled() ) {
+		if ( ! self::is_enabled() || ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
 			return array();
 		}
 
@@ -397,7 +451,7 @@ class CRPCRM_Notification_Service {
 	}
 
 	public function notify_staff_request_created( $request_id, $request_user_id, $request_title = '' ) {
-		if ( ! self::is_enabled() ) {
+		if ( ! self::is_enabled() || ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
 			return array();
 		}
 
@@ -418,7 +472,7 @@ class CRPCRM_Notification_Service {
 	}
 
 	public function notify_issue_created( $issue_id, $issue_user_id, $issue_title = '' ) {
-		if ( ! self::is_enabled() ) {
+		if ( ! self::is_enabled() || ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
 			return array();
 		}
 
@@ -439,7 +493,7 @@ class CRPCRM_Notification_Service {
 	}
 
 	public function notify_announcement_created( $announcement_id, $recipient_user_ids, $announcement_title = '' ) {
-		if ( ! self::is_enabled() ) {
+		if ( ! self::is_enabled() || ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
 			return array();
 		}
 
@@ -563,10 +617,11 @@ class CRPCRM_Notification_Service {
 			return 0;
 		}
 
-		$sql    = "UPDATE {$this->table} SET is_read = 1, read_at = %s WHERE user_id = %d AND id = %d AND is_read = 0";
+		$sql    = "UPDATE {$this->table} SET is_seen = 1, seen_at = COALESCE(seen_at, %s), is_read = 1, read_at = %s WHERE user_id = %d AND id = %d AND is_read = 0";
 		$result = $wpdb->query(
 			$wpdb->prepare(
 				$sql,
+				CRPCRM_Helpers::current_datetime(),
 				CRPCRM_Helpers::current_datetime(),
 				$user_id,
 				$id
@@ -584,10 +639,11 @@ class CRPCRM_Notification_Service {
 			return 0;
 		}
 
-		$sql    = "UPDATE {$this->table} SET is_read = 1, read_at = %s WHERE user_id = %d AND is_read = 0";
+		$sql    = "UPDATE {$this->table} SET is_seen = 1, seen_at = COALESCE(seen_at, %s), is_read = 1, read_at = %s WHERE user_id = %d AND is_read = 0";
 		$result = $wpdb->query(
 			$wpdb->prepare(
 				$sql,
+				CRPCRM_Helpers::current_datetime(),
 				CRPCRM_Helpers::current_datetime(),
 				$user_id
 			)
@@ -681,13 +737,15 @@ class CRPCRM_Notification_Service {
 
 	private function sanitize_notification_payload( $notification ) {
 		$notification = is_array( $notification ) ? $notification : array();
+		$target_url   = $this->get_safe_notification_target_url( (string) ( $notification['target_url'] ?? '' ), $this->get_notifications_page_url() );
+
 		return array(
 			'id'                 => absint( $notification['id'] ?? 0 ),
 			'type'               => sanitize_key( (string) ( $notification['type'] ?? '' ) ),
 			'title'              => sanitize_text_field( (string) ( $notification['title'] ?? '' ) ),
 			'message'            => sanitize_textarea_field( (string) ( $notification['message'] ?? '' ) ),
 			'created_at'         => sanitize_text_field( (string) ( $notification['created_at'] ?? '' ) ),
-			'target_url'         => ! empty( $notification['target_url'] ) ? esc_url_raw( (string) $notification['target_url'] ) : '',
+			'target_url'         => $target_url,
 			'notifications_page_url' => $this->get_notifications_page_url(),
 		);
 	}

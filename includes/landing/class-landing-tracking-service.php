@@ -33,7 +33,7 @@ class CRPCRM_Landing_Tracking_Service {
 	}
 
 	public function enqueue_assets() {
-		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) || is_admin() ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) || ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) || is_admin() ) {
 			return;
 		}
 
@@ -99,7 +99,7 @@ class CRPCRM_Landing_Tracking_Service {
 			);
 		}
 
-		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) || ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
 			wp_send_json_success(
 				array(
 					'tracking' => false,
@@ -406,7 +406,7 @@ class CRPCRM_Landing_Tracking_Service {
 	}
 
 	private function is_tracking_available( $allow_ajax = false ) {
-		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) || ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
 			return false;
 		}
 

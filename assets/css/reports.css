@@ -22,11 +22,28 @@
 
 .crpcrm-reports-admin .crpcrm-filter-bar {
 	margin-top: 16px;
+	align-items: stretch;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.crpcrm-reports-admin .crpcrm-filter-toolbar {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	width: 100%;
 }
 
 .crpcrm-reports-admin .crpcrm-filter-grid {
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
 	gap: 14px;
+}
+
+.crpcrm-reports-admin .crpcrm-filter-grid .crpcrm-form-row {
+	flex: 1 1 190px;
+	min-width: 180px;
 }
 
 .crpcrm-reports-admin .crpcrm-form-row > span {
@@ -40,7 +57,12 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 10px;
-	margin-top: 16px;
+	margin-top: 0;
+	justify-content: flex-start;
+}
+
+.crpcrm-reports-admin .crpcrm-filter-actions .crpcrm-btn {
+	min-width: 132px;
 }
 
 .crpcrm-reports-admin .crpcrm-kpi-grid--reports {
@@ -230,6 +252,15 @@
 }
 
 @media (max-width: 782px) {
+	.crpcrm-reports-admin .crpcrm-filter-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+
+	.crpcrm-reports-admin .crpcrm-filter-grid .crpcrm-form-row {
+		min-width: 0;
+	}
+
 	.crpcrm-reports-admin .crpcrm-dashboard-grid--charts {
 		grid-template-columns: 1fr;
 	}

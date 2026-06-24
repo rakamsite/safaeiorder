@@ -127,6 +127,7 @@ $date_ranges = array(
 	'last_7_days'   => '۷ روز اخیر',
 	'last_30_days'  => '۳۰ روز اخیر',
 	'current_month' => 'ماه جاری',
+	'current_year'  => 'سال جاری',
 	'last_month'    => 'ماه قبل',
 	'custom'        => 'بازه دلخواه',
 );
@@ -200,6 +201,7 @@ $selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_
 
 	<form method="get" class="crpcrm-filter-bar crpcrm-reports-filter-bar">
 		<input type="hidden" name="page" value="crpcrm-reports">
+		<div class="crpcrm-filter-toolbar">
 		<div class="crpcrm-form-grid crpcrm-filter-grid">
 			<label class="crpcrm-form-row">
 				<span><?php echo esc_html( 'بازه زمانی' ); ?></span>
@@ -269,6 +271,7 @@ $selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_
 		<div class="crpcrm-filter-actions">
 			<button type="submit" class="crpcrm-btn crpcrm-btn-primary"><?php echo esc_html( 'اعمال فیلتر' ); ?></button>
 			<a class="crpcrm-btn crpcrm-btn-ghost" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-reports' ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'پاک کردن فیلترها' ); ?></a>
+		</div>
 		</div>
 	</form>
 

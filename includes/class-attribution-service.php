@@ -248,7 +248,7 @@ class CRPCRM_Attribution_Service {
 	}
 
 	public function persist_customer_landing_attribution( $customer_id, $user_id = 0, $context = array() ) {
-		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) || ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
 			return false;
 		}
 
@@ -452,7 +452,7 @@ class CRPCRM_Attribution_Service {
 	}
 
 	public function get_landing_attribution_for_new_request( $context = array() ) {
-		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
+		if ( ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) || ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
 			return array();
 		}
 

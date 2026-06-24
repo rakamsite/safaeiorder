@@ -372,12 +372,12 @@ class CRPCRM_Dynamic_Form_Renderer {
 			echo '</div>';
 		} elseif ( 'file_upload' === $type ) {
 			$accept = '.jpg,.jpeg,.png,.webp,.gif,.pdf';
-			echo '<div class="crpcrm-file-upload" data-field-name="' . esc_attr( $name ) . '">';
+			echo '<div class="crpcrm-file-upload" data-field-name="' . esc_attr( $name ) . '" data-field-required="' . ( $required ? '1' : '0' ) . '">';
 			echo '<input type="hidden" class="crpcrm-uploaded-files-store" name="' . esc_attr( $name . '__uploaded' ) . '" value="">';
 			echo '<div class="crpcrm-file-upload-list">';
 			echo self::render_file_input_row( $name, $accept, $required );
 			echo '</div>';
-			echo '<button type="button" class="crpcrm-file-upload-add">+</button>';
+			echo '<button type="button" class="crpcrm-file-upload-add" aria-label="' . esc_attr__( 'افزودن فایل', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'افزودن فایل', 'customer-request-portal-crm' ) . '">+</button>';
 			echo '</div>';
 		} else {
 			$input_class = 'admin' === $context ? '' : ' class="crpcrm-input"';
@@ -390,7 +390,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 	}
 
 	private static function render_file_input_row( $name, $accept, $required ) {
-		return '<div class="crpcrm-file-upload-row"><input type="file" name="' . esc_attr( $name ) . '[]" accept="' . esc_attr( $accept ) . '"' . ( $required ? ' data-required="1"' : '' ) . '><button type="button" class="crpcrm-file-upload-remove" aria-label="' . esc_attr__( 'حذف', 'customer-request-portal-crm' ) . '">&times;</button></div>';
+		return '<div class="crpcrm-file-upload-row"><input type="file" name="' . esc_attr( $name ) . '[]" accept="' . esc_attr( $accept ) . '"' . ( $required ? ' required data-required="1"' : '' ) . ' aria-label="' . esc_attr__( 'انتخاب فایل', 'customer-request-portal-crm' ) . '"><button type="button" class="crpcrm-file-upload-remove" aria-label="' . esc_attr__( 'حذف', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'حذف', 'customer-request-portal-crm' ) . '">&times;</button></div>';
 	}
 
 	private static function normalize_type( $type ) {
@@ -709,15 +709,15 @@ class CRPCRM_Dynamic_Form_Renderer {
 		if ( ! empty( $file['is_image'] ) ) {
 			$thumb = '<img class="crpcrm-file-thumb-image" src="' . esc_url( $full_url ? $full_url : $download_url ) . '" alt="' . $filename_attr . '" loading="lazy">';
 
-			return '<div class="crpcrm-file-item crpcrm-file-item-image"><button type="button" class="crpcrm-file-thumb" data-crpcrm-file-preview="1" data-full-url="' . esc_url( $full_url ? $full_url : $download_url ) . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '" data-mime-type="' . $mime_type . '">' . $thumb . '</button><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '">' . esc_html__( 'دانلود فایل', 'customer-request-portal-crm' ) . '</a></div>';
+			return '<div class="crpcrm-file-item crpcrm-file-item-image"><button type="button" class="crpcrm-file-thumb" aria-label="' . esc_attr__( 'مشاهده فایل', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'مشاهده فایل', 'customer-request-portal-crm' ) . '" data-crpcrm-file-preview="1" data-full-url="' . esc_url( $full_url ? $full_url : $download_url ) . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '" data-mime-type="' . $mime_type . '">' . $thumb . '</button><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل', 'customer-request-portal-crm' ) . '">' . esc_html__( 'دانلود فایل', 'customer-request-portal-crm' ) . '</a></div>';
 		}
 
 		if ( ! empty( $file['is_pdf'] ) ) {
-			return '<div class="crpcrm-file-item crpcrm-file-item-pdf"><a class="crpcrm-file-pdf" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '"><span class="crpcrm-file-pdf-icon">PDF</span><span class="crpcrm-file-name">' . esc_html( $filename ) . '</span></a><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '">' . esc_html__( 'دانلود فایل', 'customer-request-portal-crm' ) . '</a></div>';
+			return '<div class="crpcrm-file-item crpcrm-file-item-pdf"><a class="crpcrm-file-pdf" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل PDF', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'دانلود فایل PDF', 'customer-request-portal-crm' ) . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '"><span class="crpcrm-file-pdf-icon">PDF</span><span class="crpcrm-file-name">' . esc_html( $filename ) . '</span></a><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل', 'customer-request-portal-crm' ) . '">' . esc_html__( 'دانلود فایل', 'customer-request-portal-crm' ) . '</a></div>';
 		}
 
 		$label = $filename ? $filename : __( 'دانلود فایل', 'customer-request-portal-crm' );
-		return '<div class="crpcrm-file-item crpcrm-file-item-generic"><span class="crpcrm-file-generic-icon">فایل</span><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '">' . esc_html( $label ) . '</a></div>';
+		return '<div class="crpcrm-file-item crpcrm-file-item-generic"><span class="crpcrm-file-generic-icon">فایل</span><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل', 'customer-request-portal-crm' ) . '">' . esc_html( $label ) . '</a></div>';
 	}
 
 	private static function get_safe_download_url( $url ) {

@@ -131,6 +131,14 @@ class CRPCRM_Helpers {
 				$start = self::parse_local_datetime( $range['start'], $timezone );
 				$end   = self::parse_local_datetime( $range['end'], $timezone );
 				break;
+			case 'current_year':
+				$jalali      = self::gregorian_to_jalali( (int) $now->format( 'Y' ), (int) $now->format( 'n' ), (int) $now->format( 'j' ) );
+				$year        = (int) $jalali[0];
+				$start_parts = self::jalali_to_gregorian( $year, 1, 1 );
+				$end_parts   = self::jalali_to_gregorian( $year + 1, 1, 1 );
+				$start       = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', sprintf( '%04d-%02d-%02d 00:00:00', $start_parts[0], $start_parts[1], $start_parts[2] ), $timezone );
+				$end         = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', sprintf( '%04d-%02d-%02d 00:00:00', $end_parts[0], $end_parts[1], $end_parts[2] ), $timezone )->modify( '-1 second' );
+				break;
 			case 'custom':
 				if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $from ) ) {
 					$start = self::parse_local_datetime( $from . ' 00:00:00', $timezone );
@@ -487,5 +495,11 @@ class CRPCRM_Helpers {
 		$persian = array( '۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩' );
 		$latin   = array( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' );
 		return str_replace( $persian, $latin, $value );
+	}
+}
+
+if ( ! function_exists( 'crpcrm_admin_requests_url' ) ) {
+	function crpcrm_admin_requests_url( $args = array() ) {
+		return add_query_arg( wp_parse_args( $args, array( 'page' => 'crpcrm-requests' ) ), admin_url( 'admin.php' ) );
 	}
 }

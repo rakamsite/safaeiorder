@@ -46,12 +46,6 @@ $notice_messages = array(
 );
 $notice = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_notice'] ) ) : '';
 
-if ( ! function_exists( 'crpcrm_admin_requests_url' ) ) {
-function crpcrm_admin_requests_url( $args = array() ) {
-	return add_query_arg( array_merge( array( 'page' => 'crpcrm-requests' ), $args ), admin_url( 'admin.php' ) );
-}
-}
-
 if ( ! function_exists( 'crpcrm_admin_customer_profile_url' ) ) {
 function crpcrm_admin_customer_profile_url( $customer_id, $args = array() ) {
 	return add_query_arg( array_merge( array( 'page' => 'crpcrm-customer-profile', 'customer_id' => absint( $customer_id ) ), $args ), admin_url( 'admin.php' ) );
@@ -199,6 +193,9 @@ function crpcrm_request_operational_badges( $request ) {
 
 if ( ! function_exists( 'crpcrm_admin_owner_form' ) ) {
 function crpcrm_admin_owner_form( $request_id, $owner_id, $assignable_users ) {
+	if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+		return;
+	}
 	?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-inline-form">
 		<input type="hidden" name="action" value="crpcrm_change_owner">
@@ -505,7 +502,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 							<td class="crpcrm-actions">
 								<a class="button button-small" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'request_id' => absint( $item['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده' ); ?></a>
 								<?php if ( empty( $item['owner_id'] ) && CRPCRM_Request_Access_Service::can_claim_request( $item ) ) : ?><?php crpcrm_admin_claim_form( $item['id'] ); ?><?php endif; ?>
-								<?php if ( $can_manage ) : ?>
+								<?php if ( $can_manage && CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
 									<?php crpcrm_admin_owner_form( $item['id'], $item['owner_id'], $assignable_users ); ?>
 									<?php if ( ! empty( $item['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $item['id'] ); ?><?php endif; ?>
 								<?php endif; ?>
@@ -666,7 +663,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'عملیات' ); ?></h2>
 			<div class="crpcrm-request-actions crpcrm-request-actions-panel">
 				<?php if ( $can_claim ) : ?><?php crpcrm_admin_claim_form( $request['id'] ); ?><?php endif; ?>
-				<?php if ( $can_manage ) : ?>
+				<?php if ( $can_manage && CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
 					<?php crpcrm_admin_owner_form( $request['id'], $request['owner_id'], $assignable_users ); ?>
 					<?php if ( ! empty( $request['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $request['id'] ); ?><?php endif; ?>
 				<?php endif; ?>
@@ -693,3 +690,4 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		</div>
 	<?php endif; ?>
 </div>
+
