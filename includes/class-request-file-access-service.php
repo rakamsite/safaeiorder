@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_Request_File_Access_Service {
 	const ACTION = 'crpcrm_request_file';
+	const LINK_TTL = 3600;
 
 	public function register_hooks() {
 		add_action( 'admin_post_' . self::ACTION, array( $this, 'handle_request_file' ) );
@@ -30,6 +31,11 @@ class CRPCRM_Request_File_Access_Service {
 		$signature = isset( $_GET['sig'] ) ? sanitize_text_field( wp_unslash( $_GET['sig'] ) ) : '';
 		$mode      = isset( $_GET['mode'] ) ? sanitize_key( wp_unslash( $_GET['mode'] ) ) : 'download';
 		$payload   = $this->verify_reference( $reference, $signature );
+
+		if ( is_wp_error( $payload ) ) {
+			$response = 'crpcrm_file_expired' === $payload->get_error_code() ? 410 : 400;
+			wp_die( esc_html( $payload->get_error_message() ), '', array( 'response' => $response ) );
+		}
 
 		if ( empty( $payload ) ) {
 			wp_die( esc_html__( 'اطلاعات فایل معتبر نیست.', 'customer-request-portal-crm' ), '', array( 'response' => 400 ) );
@@ -53,6 +59,8 @@ class CRPCRM_Request_File_Access_Service {
 		if ( empty( $payload ) ) {
 			return '';
 		}
+
+		$payload['exp'] = CRPCRM_Helpers::current_timestamp() + self::LINK_TTL;
 
 		$reference = self::encode_reference( $payload );
 		$signature = self::sign_reference( $reference );
@@ -135,12 +143,7 @@ class CRPCRM_Request_File_Access_Service {
 		$token   = sanitize_text_field( $payload['token'] ?? '' );
 		$pending = CRPCRM_Dynamic_Form_Renderer::get_pending_upload_meta( $token );
 
-		if ( ! $pending || absint( $pending['current_user_id'] ?? 0 ) !== get_current_user_id() ) {
-			return array();
-		}
-
-		$field_key = sanitize_key( $payload['field_key'] ?? '' );
-		if ( $field_key && sanitize_key( $pending['field_key'] ?? '' ) && $field_key !== sanitize_key( $pending['field_key'] ?? '' ) ) {
+		if ( ! $pending || ! CRPCRM_Dynamic_Form_Renderer::pending_upload_belongs_to_actor( $pending, sanitize_key( $payload['field_key'] ?? '' ) ) ) {
 			return array();
 		}
 
@@ -272,6 +275,10 @@ class CRPCRM_Request_File_Access_Service {
 			$mime_type = 'application/octet-stream';
 		}
 
+		while ( ob_get_level() ) {
+			ob_end_clean();
+		}
+
 		nocache_headers();
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Content-Type: ' . $mime_type );
@@ -297,7 +304,16 @@ class CRPCRM_Request_File_Access_Service {
 		}
 
 		$decoded = self::decode_reference( $reference );
-		return is_array( $decoded ) ? $decoded : array();
+		if ( ! is_array( $decoded ) ) {
+			return array();
+		}
+
+		$expires_at = absint( $decoded['exp'] ?? 0 );
+		if ( $expires_at && $expires_at < CRPCRM_Helpers::current_timestamp() ) {
+			return new WP_Error( 'crpcrm_file_expired', __( 'مهلت دسترسی به این فایل به پایان رسیده است. لطفاً دوباره از داخل پنل فایل را باز کنید.', 'customer-request-portal-crm' ) );
+		}
+
+		return $decoded;
 	}
 
 	private static function encode_reference( $payload ) {

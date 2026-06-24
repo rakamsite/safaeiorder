@@ -159,6 +159,8 @@ class CRPCRM_Admin_Menu {
 				'fileUploadTooLarge'   => 'حجم فایل بیش از حد مجاز است.',
 				'fileUploadNetwork'    => 'ارتباط با سرور برقرار نشد.',
 				'fileUploadMaxSize'    => CRPCRM_Dynamic_Form_Renderer::MAX_FILE_SIZE,
+				'fileUploadMaxFiles'   => CRPCRM_Dynamic_Form_Renderer::MAX_FILES_PER_FIELD,
+				'fileUploadMaxTotalSize' => CRPCRM_Dynamic_Form_Renderer::MAX_TOTAL_REQUEST_SIZE,
 				'fileUploadError'      => 'بارگذاری فایل انجام نشد.',
 				'fileUploadedLabel'    => 'بارگذاری شده',
 				'filePreviewLabel'     => 'مشاهده فایل',

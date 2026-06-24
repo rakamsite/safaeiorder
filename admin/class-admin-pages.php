@@ -575,23 +575,24 @@ class CRPCRM_Admin_Pages {
 			$row = $id ? $this->staff_repository->get_staff_request( $id ) : null;
 			if ( $row && ( absint( $row['user_id'] ) !== $user_id || 'new' !== $row['status'] ) ) { $this->staff_redirect( $tab, 'access_denied' ); }
 			$data = array( 'user_id' => $user_id, 'category' => sanitize_key( wp_unslash( $_POST['category'] ?? '' ) ), 'title' => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ), 'description' => sanitize_textarea_field( wp_unslash( $_POST['description'] ?? '' ) ), 'priority' => sanitize_key( wp_unslash( $_POST['priority'] ?? 'normal' ) ) );
-			$request_attachment = $this->handle_staff_attachment_upload( 'request_attachment', 'staff_request' );
-			if ( is_wp_error( $request_attachment ) ) {
+			$request_attachments = $this->handle_staff_attachment_upload( 'request_attachment', 'staff_request' );
+			if ( is_wp_error( $request_attachments ) ) {
 				$this->staff_redirect( $tab, 'attachment_upload_failed' );
 			}
 			if ( $id ) {
-				if ( ! empty( $request_attachment ) ) {
-					$data['request_attachment'] = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array( $request_attachment ), 'staff_request', $id, 'request_attachment', $user_id );
+				if ( ! empty( $request_attachments ) ) {
+					$existing_request_attachments = CRPCRM_Dynamic_Form_Renderer::get_uploaded_file_payload( $row['request_attachment'] ?? '' );
+					$data['request_attachment'] = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array_merge( $existing_request_attachments, $request_attachments ), 'staff_request', $id, 'request_attachment', $user_id );
 				}
 				$this->staff_repository->update_staff_request( $id, $data );
 				CRPCRM_Logger::info( 'staff_request_updated', 'staff_request_updated', array( 'user_id' => $user_id, 'request_id' => $id ) );
 			} else {
 				$id = $this->staff_repository->create_staff_request( $data );
-				if ( ! empty( $request_attachment ) ) {
+				if ( ! empty( $request_attachments ) ) {
 					$this->staff_repository->update_staff_request(
 						$id,
 						array(
-							'request_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array( $request_attachment ), 'staff_request', $id, 'request_attachment', $user_id ),
+							'request_attachment' => CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( $request_attachments, 'staff_request', $id, 'request_attachment', $user_id ),
 						)
 					);
 				}
@@ -601,19 +602,24 @@ class CRPCRM_Admin_Pages {
 		} elseif ( 'manage_staff_request' === $action && $can_manage ) {
 			$tab = 'requests'; $id = absint( $_POST['request_id'] ?? 0 );
 			$manager_response = sanitize_textarea_field( wp_unslash( $_POST['manager_response'] ?? '' ) );
-			$manager_response_attachment = $this->handle_staff_attachment_upload( 'manager_response_attachment', 'staff_request_reply' );
-			if ( is_wp_error( $manager_response_attachment ) ) {
+			$manager_response_attachments = $this->handle_staff_attachment_upload( 'manager_response_attachment', 'staff_request_reply' );
+			if ( is_wp_error( $manager_response_attachments ) ) {
 				$this->staff_redirect( $tab, 'attachment_upload_failed' );
 			}
 			$update_data = array(
 				'status'           => sanitize_key( wp_unslash( $_POST['status'] ?? 'seen' ) ),
 				'manager_response' => $manager_response,
 			);
-			if ( ! empty( $manager_response_attachment ) ) {
-				$update_data['manager_response_attachment'] = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array( $manager_response_attachment ), 'staff_request', $id, 'manager_response_attachment', $user_id );
+			if ( ! empty( $manager_response_attachments ) ) {
+				$existing_manager_attachments = array();
+				$current_request = $this->staff_repository->get_staff_request( $id );
+				if ( $current_request ) {
+					$existing_manager_attachments = CRPCRM_Dynamic_Form_Renderer::get_uploaded_file_payload( $current_request['manager_response_attachment'] ?? '' );
+				}
+				$update_data['manager_response_attachment'] = CRPCRM_Dynamic_Form_Renderer::finalize_record_uploaded_files( array_merge( $existing_manager_attachments, $manager_response_attachments ), 'staff_request', $id, 'manager_response_attachment', $user_id );
 			}
 			$this->staff_repository->update_staff_request( $id, $update_data );
-			$this->notify_about_staff_request_update( $id, $manager_response, $manager_response_attachment );
+			$this->notify_about_staff_request_update( $id, $manager_response, $manager_response_attachments );
 			CRPCRM_Logger::info( 'staff_request_status_changed', 'staff_request_status_changed', array( 'user_id' => $user_id, 'request_id' => $id ) );
 		} elseif ( 'save_issue' === $action && ! $can_manage ) {
 			$tab = 'issues'; $id = absint( $_POST['issue_id'] ?? 0 ); $row = $id ? $this->staff_repository->get_issue( $id ) : null;
@@ -1306,16 +1312,9 @@ class CRPCRM_Admin_Pages {
 	}
 
 	private function handle_staff_attachment_upload( $file_key, $context ) {
-		if ( empty( $_FILES[ $file_key ] ) || ! is_array( $_FILES[ $file_key ] ) ) {
-			return array();
-		}
-
-		$file = $_FILES[ $file_key ];
-		if ( empty( $file['name'] ) || UPLOAD_ERR_NO_FILE === (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
-			return array();
-		}
-
-		$uploaded = CRPCRM_Dynamic_Form_Renderer::handle_async_upload( $file );
+		$payload = wp_unslash( $_POST[ $file_key . '__uploaded' ] ?? '' );
+		$file_group = isset( $_FILES[ $file_key ] ) && is_array( $_FILES[ $file_key ] ) ? $_FILES[ $file_key ] : null;
+		$uploaded = CRPCRM_Dynamic_Form_Renderer::collect_submitted_uploaded_files( $payload, $file_group, $file_key );
 		if ( is_wp_error( $uploaded ) ) {
 			CRPCRM_Logger::error(
 				'staff_attachment_upload_failed',
