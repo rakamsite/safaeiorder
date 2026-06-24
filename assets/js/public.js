@@ -44,7 +44,8 @@
 	}
 
 	function pad(number) {
-		return String(number).padStart(2, '0');
+		number = parseInt(number, 10) || 0;
+		return number < 10 ? '0' + number : String(number);
 	}
 
 	function gregorianToJalali(gy, gm, gd) {
@@ -503,6 +504,28 @@
 		return window.crpcrmPublic || {};
 	}
 
+	function clearElement(element) {
+		if (!element) {
+			return;
+		}
+
+		while (element.firstChild) {
+			element.removeChild(element.firstChild);
+		}
+	}
+
+	function renderStatusMessage(container, className, message) {
+		clearElement(container);
+		if (!container) {
+			return;
+		}
+
+		var notice = document.createElement('div');
+		notice.className = className;
+		notice.textContent = message;
+		container.appendChild(notice);
+	}
+
 	function syncProductHiddenValue(container, hidden) {
 		var ids = Array.prototype.map.call(container.querySelectorAll('.crpcrm-product-chip'), function (chip) {
 			return chip.getAttribute('data-product-id');
@@ -542,6 +565,19 @@
 	}
 
 	function initProductSearch(scope, labels) {
+		if (!document.body.dataset.crpcrmProductSearchDismissBound) {
+			document.body.dataset.crpcrmProductSearchDismissBound = '1';
+			document.addEventListener('click', function (event) {
+				if (event.target.closest('.crpcrm-product-search')) {
+					return;
+				}
+
+				document.querySelectorAll('.crpcrm-product-search-results').forEach(function (results) {
+					results.hidden = true;
+				});
+			});
+		}
+
 		scope.querySelectorAll('.crpcrm-product-search').forEach(function (wrapper) {
 			if (wrapper.dataset.initialized === '1') {
 				return;
@@ -555,7 +591,7 @@
 			var abortController = null;
 
 			function renderResults(items) {
-				results.innerHTML = '';
+				clearElement(results);
 				if (!items.length) {
 					var empty = document.createElement('div');
 					empty.className = 'crpcrm-product-search-empty';
@@ -585,7 +621,7 @@
 						createProductChip(selected, hidden, product, labels);
 						input.value = '';
 						results.hidden = true;
-						results.innerHTML = '';
+						clearElement(results);
 					});
 					results.appendChild(button);
 				});
@@ -597,18 +633,18 @@
 				var term = input.value.trim();
 				if (term.length < (labels.productSearchMin || 2)) {
 					results.hidden = true;
-					results.innerHTML = '';
+					clearElement(results);
 					return;
 				}
 
 				if (!labels.ajaxUrl || !window.fetch || !window.URLSearchParams) {
 					results.hidden = true;
-					results.innerHTML = '';
+					clearElement(results);
 					return;
 				}
 
 				results.hidden = false;
-				results.innerHTML = '<div class="crpcrm-product-search-empty">' + (labels.productSearchLoading || 'در حال جستجو...') + '</div>';
+				renderStatusMessage(results, 'crpcrm-product-search-empty', labels.productSearchLoading || 'در حال جستجو...');
 
 				if (window.AbortController) {
 					if (abortController) {
@@ -641,12 +677,6 @@
 						}
 						results.hidden = true;
 					});
-			});
-
-			document.addEventListener('click', function (event) {
-				if (!wrapper.contains(event.target)) {
-					results.hidden = true;
-				}
 			});
 		});
 	}
@@ -1048,7 +1078,11 @@
 		formData.append('current_total_size', String(getUploadedFilesTotalSize(wrapper)));
 		formData.append('file', file);
 
-		preview.innerHTML = '<span class="crpcrm-file-upload-name">' + (config.fileUploadLoading || 'Uploading...') + '</span>';
+		clearElement(preview);
+		var loading = document.createElement('span');
+		loading.className = 'crpcrm-file-upload-name';
+		loading.textContent = config.fileUploadLoading || 'Uploading...';
+		preview.appendChild(loading);
 		row.classList.add('is-uploading');
 
 		fetch(config.ajaxUrl, {
@@ -1190,8 +1224,31 @@
 			return;
 		}
 
+		function releaseSubmitGuard() {
+			delete form.dataset.crpcrmSubmitting;
+			Array.prototype.forEach.call(form.querySelectorAll('[data-crpcrm-temporarily-disabled="1"]'), function (button) {
+				button.disabled = false;
+				button.removeAttribute('data-crpcrm-temporarily-disabled');
+			});
+		}
+
 		form.dataset.submitGuardBound = '1';
-		form.addEventListener('submit', function () {
+		form.addEventListener('invalid', function () {
+			releaseSubmitGuard();
+		}, true);
+		form.addEventListener('submit', function (event) {
+			if (form.dataset.crpcrmSubmitting === '1') {
+				event.preventDefault();
+				return;
+			}
+
+			if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
+				event.preventDefault();
+				releaseSubmitGuard();
+				return;
+			}
+
+			form.dataset.crpcrmSubmitting = '1';
 			var buttons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
 			Array.prototype.forEach.call(buttons, function (button) {
 				if (!button.disabled) {
@@ -1201,11 +1258,8 @@
 			});
 
 			window.setTimeout(function () {
-				Array.prototype.forEach.call(form.querySelectorAll('[data-crpcrm-temporarily-disabled="1"]'), function (button) {
-					button.disabled = false;
-					button.removeAttribute('data-crpcrm-temporarily-disabled');
-				});
-			}, 30000);
+				releaseSubmitGuard();
+			}, 12000);
 		});
 	}
 

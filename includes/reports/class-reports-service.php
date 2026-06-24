@@ -130,28 +130,10 @@ class CRPCRM_Reports_Service {
 
 		$days        = max( 1, (int) $start->diff( $end )->days + 1 );
 		$granularity = $this->get_trend_granularity( $days );
-		$group_sql   = $this->get_trend_group_expression( $granularity );
-		$sql         = "SELECT {$group_sql} AS bucket, COUNT(*) AS total FROM {$requests_table} r {$where['sql']} GROUP BY bucket ORDER BY bucket ASC";
+		$sql         = "SELECT DATE(r.created_at) AS bucket, COUNT(*) AS total FROM {$requests_table} r {$where['sql']} GROUP BY bucket ORDER BY bucket ASC";
 		$rows        = $wpdb->get_results( empty( $where['values'] ) ? $sql : $wpdb->prepare( $sql, $where['values'] ), ARRAY_A );
 
-		$series   = array();
-		$map      = array();
-		foreach ( $rows as $row ) {
-			$map[ sanitize_text_field( $row['bucket'] ) ] = absint( $row['total'] );
-		}
-		$end = $end->setTime( 23, 59, 59 );
-		$current = $this->get_trend_start_cursor( $start, $granularity );
-		$guard   = 0;
-		while ( $current <= $end && $guard < 240 ) {
-			$key = $this->format_trend_bucket( $current, $granularity );
-			$series[] = array(
-				'date'  => $key,
-				'label' => $this->format_trend_label( $current, $granularity ),
-				'total' => absint( $map[ $key ] ?? 0 ),
-			);
-			$current = $this->advance_trend_cursor( $current, $granularity );
-			$guard++;
-		}
+		$series = $this->build_trend_series( is_array( $rows ) ? $rows : array(), $start, $end, $granularity );
 
 		return array(
 			'type'              => 'line',
@@ -533,61 +515,116 @@ class CRPCRM_Reports_Service {
 		return 'year';
 	}
 
-	private function get_trend_group_expression( $granularity ) {
+	private function build_trend_series( array $rows, DateTimeImmutable $start, DateTimeImmutable $end, $granularity ) {
 		if ( 'month' === $granularity ) {
-			return "DATE_FORMAT(r.created_at, '%Y-%m')";
+			return $this->build_jalali_month_trend_series( $rows, $start, $end );
 		}
 		if ( 'year' === $granularity ) {
-			return "DATE_FORMAT(r.created_at, '%Y')";
+			return $this->build_jalali_year_trend_series( $rows, $start, $end );
 		}
 
-		return 'DATE(r.created_at)';
+		$map     = array();
+		$series  = array();
+		$current = $start->setTime( 0, 0, 0 );
+		$end     = $end->setTime( 23, 59, 59 );
+		$guard   = 0;
+
+		foreach ( $rows as $row ) {
+			$key = sanitize_text_field( $row['bucket'] ?? '' );
+			if ( '' !== $key ) {
+				$map[ $key ] = absint( $row['total'] ?? 0 );
+			}
+		}
+
+		while ( $current <= $end && $guard < 800 ) {
+			$key      = $current->format( 'Y-m-d' );
+			$series[] = array(
+				'date'  => $key,
+				'label' => CRPCRM_Helpers::format_jalali_date( $key ),
+				'total' => absint( $map[ $key ] ?? 0 ),
+			);
+			$current = $current->modify( '+1 day' );
+			$guard++;
+		}
+
+		return $series;
 	}
 
-	private function get_trend_start_cursor( DateTimeImmutable $start, $granularity ) {
-		if ( 'month' === $granularity ) {
-			return $start->modify( 'first day of this month' )->setTime( 0, 0, 0 );
-		}
-		if ( 'year' === $granularity ) {
-			return $start->setDate( (int) $start->format( 'Y' ), 1, 1 )->setTime( 0, 0, 0 );
+	private function build_jalali_month_trend_series( array $rows, DateTimeImmutable $start, DateTimeImmutable $end ) {
+		$map         = array();
+		$start_parts = CRPCRM_Helpers::get_jalali_parts( $start->format( 'Y-m-d' ) );
+		$end_parts   = CRPCRM_Helpers::get_jalali_parts( $end->format( 'Y-m-d' ) );
+		$series      = array();
+		$guard       = 0;
+
+		foreach ( $rows as $row ) {
+			$parts = CRPCRM_Helpers::get_jalali_parts( $row['bucket'] ?? '' );
+			if ( count( $parts ) < 2 ) {
+				continue;
+			}
+			$key = sprintf( '%04d-%02d', (int) $parts[0], (int) $parts[1] );
+			if ( ! isset( $map[ $key ] ) ) {
+				$map[ $key ] = 0;
+			}
+			$map[ $key ] += absint( $row['total'] ?? 0 );
 		}
 
-		return $start->setTime( 0, 0, 0 );
+		$year  = (int) ( $start_parts[0] ?? 0 );
+		$month = (int) ( $start_parts[1] ?? 0 );
+		$end_year  = (int) ( $end_parts[0] ?? 0 );
+		$end_month = (int) ( $end_parts[1] ?? 0 );
+
+		while ( ( $year < $end_year || ( $year === $end_year && $month <= $end_month ) ) && $guard < 240 ) {
+			$key      = sprintf( '%04d-%02d', $year, $month );
+			$series[] = array(
+				'date'  => $key,
+				'label' => sprintf( '%s %s', CRPCRM_Helpers::get_jalali_month_name( $month ), CRPCRM_Helpers::to_persian_digits( $year ) ),
+				'total' => absint( $map[ $key ] ?? 0 ),
+			);
+			$month++;
+			if ( $month > 12 ) {
+				$month = 1;
+				$year++;
+			}
+			$guard++;
+		}
+
+		return $series;
 	}
 
-	private function advance_trend_cursor( DateTimeImmutable $current, $granularity ) {
-		if ( 'month' === $granularity ) {
-			return $current->modify( '+1 month' );
-		}
-		if ( 'year' === $granularity ) {
-			return $current->modify( '+1 year' );
+	private function build_jalali_year_trend_series( array $rows, DateTimeImmutable $start, DateTimeImmutable $end ) {
+		$map         = array();
+		$start_parts = CRPCRM_Helpers::get_jalali_parts( $start->format( 'Y-m-d' ) );
+		$end_parts   = CRPCRM_Helpers::get_jalali_parts( $end->format( 'Y-m-d' ) );
+		$series      = array();
+		$guard       = 0;
+
+		foreach ( $rows as $row ) {
+			$parts = CRPCRM_Helpers::get_jalali_parts( $row['bucket'] ?? '' );
+			if ( empty( $parts ) ) {
+				continue;
+			}
+			$key = sprintf( '%04d', (int) $parts[0] );
+			if ( ! isset( $map[ $key ] ) ) {
+				$map[ $key ] = 0;
+			}
+			$map[ $key ] += absint( $row['total'] ?? 0 );
 		}
 
-		return $current->modify( '+1 day' );
-	}
-
-	private function format_trend_bucket( DateTimeImmutable $current, $granularity ) {
-		if ( 'month' === $granularity ) {
-			return $current->format( 'Y-m' );
-		}
-		if ( 'year' === $granularity ) {
-			return $current->format( 'Y' );
-		}
-
-		return $current->format( 'Y-m-d' );
-	}
-
-	private function format_trend_label( DateTimeImmutable $current, $granularity ) {
-		if ( 'month' === $granularity ) {
-			$jalali = CRPCRM_Helpers::gregorian_to_jalali( (int) $current->format( 'Y' ), (int) $current->format( 'n' ), 1 );
-			return CRPCRM_Helpers::to_persian_digits( sprintf( '%04d/%02d', $jalali[0], $jalali[1] ) );
-		}
-		if ( 'year' === $granularity ) {
-			$jalali = CRPCRM_Helpers::gregorian_to_jalali( (int) $current->format( 'Y' ), 1, 1 );
-			return CRPCRM_Helpers::to_persian_digits( sprintf( '%04d', $jalali[0] ) );
+		$year     = (int) ( $start_parts[0] ?? 0 );
+		$end_year = (int) ( $end_parts[0] ?? 0 );
+		while ( $year <= $end_year && $guard < 120 ) {
+			$key      = sprintf( '%04d', $year );
+			$series[] = array(
+				'date'  => $key,
+				'label' => CRPCRM_Helpers::to_persian_digits( $year ),
+				'total' => absint( $map[ $key ] ?? 0 ),
+			);
+			$year++;
+			$guard++;
 		}
 
-		return CRPCRM_Helpers::format_jalali_date( $current->format( 'Y-m-d' ) );
+		return $series;
 	}
 
 	private function get_trend_granularity_label( $granularity ) {

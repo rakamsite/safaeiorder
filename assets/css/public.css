@@ -782,6 +782,52 @@
 	line-height: 1.7;
 }
 
+@media (max-width: 760px) {
+	.crpcrm-table-wrap {
+		overflow: visible;
+	}
+
+	.crpcrm-requests-table {
+		min-width: 0;
+		border-spacing: 0 12px;
+		border-collapse: separate;
+	}
+
+	.crpcrm-requests-table thead {
+		display: none;
+	}
+
+	.crpcrm-requests-table,
+	.crpcrm-requests-table tbody,
+	.crpcrm-requests-table tr,
+	.crpcrm-requests-table td {
+		display: block;
+		width: 100%;
+	}
+
+	.crpcrm-requests-table tr {
+		background: #fff;
+		border: 1px solid #e5e7eb;
+		border-radius: 16px;
+		box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+		padding: 10px 12px;
+	}
+
+	.crpcrm-requests-table td {
+		border: 0;
+		padding: 8px 0;
+	}
+
+	.crpcrm-requests-table td::before {
+		content: attr(data-label);
+		display: block;
+		color: #6b7280;
+		font-size: 0.82rem;
+		font-weight: 700;
+		margin-bottom: 4px;
+	}
+}
+
 .crpcrm-status-badge {
 	background: #eff6ff;
 	border: 1px solid #bfdbfe;

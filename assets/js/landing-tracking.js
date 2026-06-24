@@ -83,7 +83,16 @@
 				return response.json();
 			} )
 			.then( function ( payload ) {
-				if ( payload && payload.success && payload.data && payload.data.tracking ) {
+				if (
+					payload &&
+					payload.success &&
+					payload.data &&
+					(
+						payload.data.tracking ||
+						payload.data.duplicate ||
+						payload.data.reason === 'rate_limited'
+					)
+				) {
 					markSession( slug );
 				}
 				if ( config.debug && window.console && console.debug ) {

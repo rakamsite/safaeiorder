@@ -88,13 +88,13 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 							<tbody>
 								<?php foreach ( $my_requests as $request ) : ?>
 									<tr>
-										<td><strong><?php echo esc_html( $request['request_code'] ); ?></strong></td>
-										<td><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'], $request ) ); ?></td>
-										<td><?php $request_data = CRPCRM_Request_Repository::get_merged_request_data( $request ); echo esc_html( wp_trim_words( CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] ), 18, '…' ) ); ?></td>
-										<td><span class="crpcrm-status-badge"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request['status'] ) ); ?></span></td>
-										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td>
-										<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request['last_activity_at'] ) ? $request['last_activity_at'] : $request['updated_at'] ) ); ?></td>
-										<td><a class="crpcrm-table-action" href="<?php echo esc_url( add_query_arg( array( 'crpcrm_page' => 'request_detail', 'request_id' => absint( $request['id'] ), 'request_code' => $request['request_code'] ), $portal_urls['dashboard'] ) ); ?>"><?php echo esc_html( 'مشاهده جزئیات' ); ?></a></td>
+										<td data-label="<?php echo esc_attr( 'کد پیگیری' ); ?>"><strong><?php echo esc_html( $request['request_code'] ); ?></strong></td>
+										<td data-label="<?php echo esc_attr( 'نوع درخواست' ); ?>"><?php echo esc_html( CRPCRM_Request_Forms::get_type_label( $request['request_type'], $request ) ); ?></td>
+										<td data-label="<?php echo esc_attr( 'خلاصه درخواست' ); ?>"><?php $request_data = CRPCRM_Request_Repository::get_merged_request_data( $request ); echo esc_html( wp_trim_words( CRPCRM_Request_Forms::build_display_summary( $request['request_type'], $request_data, $request['request_summary'] ), 18, '…' ) ); ?></td>
+										<td data-label="<?php echo esc_attr( 'وضعیت' ); ?>"><span class="crpcrm-status-badge"><?php echo esc_html( CRPCRM_Request_Forms::get_customer_status_label( $request['status'] ) ); ?></span></td>
+										<td data-label="<?php echo esc_attr( 'تاریخ ثبت' ); ?>"><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></td>
+										<td data-label="<?php echo esc_attr( 'آخرین بروزرسانی' ); ?>"><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( ! empty( $request['last_activity_at'] ) ? $request['last_activity_at'] : $request['updated_at'] ) ); ?></td>
+										<td data-label="<?php echo esc_attr( 'عملیات' ); ?>"><a class="crpcrm-table-action" href="<?php echo esc_url( add_query_arg( array( 'crpcrm_page' => 'request_detail', 'request_id' => absint( $request['id'] ), 'request_code' => $request['request_code'] ), $portal_urls['dashboard'] ) ); ?>"><?php echo esc_html( 'مشاهده جزئیات' ); ?></a></td>
 									</tr>
 								<?php endforeach; ?>
 							</tbody>
