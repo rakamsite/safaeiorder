@@ -97,7 +97,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		if ( $total_uploaded_size > self::MAX_TOTAL_REQUEST_SIZE ) {
 			$errors[] = sprintf(
-				__( 'Ù…Ø¬Ù…ÙˆØ¹ Ø­Ø¬Ù… ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ø§Ø±Ø³Ø§Ù„ÛŒ Ù†Ø¨Ø§ÛŒØ¯ Ø¨ÛŒØ´ØªØ± Ø§Ø² %s Ø¨Ø§Ø´Ø¯.', 'customer-request-portal-crm' ),
+				__( "\u{0645}\u{062C}\u{0645}\u{0648}\u{0639} \u{062D}\u{062C}\u{0645} \u{0641}\u{0627}\u{06CC}\u{0644}\u{200C}\u{0647}\u{0627}\u{06CC} \u{0627}\u{0631}\u{0633}\u{0627}\u{0644}\u{06CC} \u{0646}\u{0628}\u{0627}\u{06CC}\u{062F} \u{0628}\u{06CC}\u{0634}\u{062A}\u{0631} \u{0627}\u{0632} %s \u{0628}\u{0627}\u{0634}\u{062F}.", 'customer-request-portal-crm' ),
 				size_format( self::MAX_TOTAL_REQUEST_SIZE, 0 )
 			);
 		}
@@ -1670,9 +1670,6 @@ class CRPCRM_Dynamic_Form_Renderer {
 			return __( 'خطایی در بارگذاری فایل رخ داد.', 'customer-request-portal-crm' );
 		}
 
-		if ( false !== strpos( $message, 'Ã™â€¦Ã˜Â¬Ã™â€¦' ) || false !== strpos( $message, 'Ù…Ø¬Ù…ÙˆØ¹ Ø­Ø¬Ù…' ) ) {
-			return sprintf( __( 'مجموع حجم فایل‌های ارسالی نباید بیشتر از %s باشد.', 'customer-request-portal-crm' ), size_format( self::MAX_TOTAL_REQUEST_SIZE, 0 ) );
-		}
 
 		return $message;
 	}
