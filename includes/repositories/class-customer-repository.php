@@ -140,6 +140,22 @@ class CRPCRM_Customer_Repository {
 		$activities   = CRPCRM_DB::table( 'request_activities' );
 		$attributions = CRPCRM_DB::table( 'customer_attribution_events' );
 		$user_id      = absint( $customer['user_id'] );
+		$request_rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, request_data FROM {$requests} WHERE customer_id = %d", $customer_id ), ARRAY_A );
+		$cleanup      = new CRPCRM_Request_File_Cleanup_Service();
+		$files        = $cleanup->cleanup_request_rows( is_array( $request_rows ) ? $request_rows : array() );
+
+		if ( ! empty( $files['failed'] ) ) {
+			CRPCRM_Logger::warning(
+				'customer_file_cleanup_partial',
+				'customer',
+				array(
+					'customer_id' => $customer_id,
+					'deleted'     => absint( $files['deleted'] ?? 0 ),
+					'missing'     => absint( $files['missing'] ?? 0 ),
+					'failed'      => absint( $files['failed'] ?? 0 ),
+				)
+			);
+		}
 
 		$wpdb->query( 'START TRANSACTION' );
 

@@ -44,6 +44,7 @@ require_once CRPCRM_PLUGIN_DIR . 'includes/class-logger.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-activity.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-request-access-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-request-file-access-service.php';
+require_once CRPCRM_PLUGIN_DIR . 'includes/class-request-file-cleanup-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-request-workflow-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-lead-follow-up-service.php';
 require_once CRPCRM_PLUGIN_DIR . 'includes/class-settings.php';

@@ -117,6 +117,26 @@ class CRPCRM_Admin_Tools {
 		$this->where_equal( $where, $vals, 'r.request_source', $f['source'] );
 		if ( '' !== $f['campaign'] ) { $where[] = 'r.request_campaign LIKE %s'; $vals[] = '%' . $wpdb->esc_like( $f['campaign'] ) . '%'; }
 		if ( $f['owner_id'] ) { $where[] = 'r.owner_id = %d'; $vals[] = $f['owner_id']; }
+		$stream_sql = 'SELECT r.*, c.full_name AS customer_name, c.phone AS customer_phone, c.province AS customer_province, c.city AS customer_city, u.display_name AS owner_name FROM ' . CRPCRM_DB::table( 'requests' ) . ' r LEFT JOIN ' . CRPCRM_DB::table( 'customers' ) . ' c ON c.id = r.customer_id LEFT JOIN ' . $wpdb->users . ' u ON u.ID = r.owner_id WHERE ' . implode( ' AND ', $where ) . ' ORDER BY r.created_at DESC, r.id DESC';
+		$handle     = $this->csv->start_output( 'requests-export-' . CRPCRM_Helpers::current_date() . '.csv', array( 'Ú©Ø¯ Ù¾ÛŒÚ¯ÛŒØ±ÛŒ', 'ØªØ§Ø±ÛŒØ® Ø«Ø¨Øª', 'ØªØ§Ø±ÛŒØ® Ø¢Ø®Ø±ÛŒÙ† Ø¨Ø±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ', 'Ù†Ø§Ù… Ù…Ø´ØªØ±ÛŒ', 'Ù…ÙˆØ¨Ø§ÛŒÙ„', 'Ø§Ø³ØªØ§Ù†', 'Ø´Ù‡Ø±', 'Ù†ÙˆØ¹ Ø¯Ø±Ø®ÙˆØ§Ø³Øª', 'ÙˆØ¶Ø¹ÛŒØª', 'Ø®Ù„Ø§ØµÙ‡ Ø¯Ø±Ø®ÙˆØ§Ø³Øª', 'Ù…Ù†Ø¨Ø¹', 'Ù…Ø¯ÛŒÙˆÙ…', 'Ú©Ù…Ù¾ÛŒÙ†', 'Ù…Ø­ØªÙˆØ§', 'ØµÙØ­Ù‡ ÙˆØ±ÙˆØ¯', 'Ù…Ø³Ø¦ÙˆÙ„', 'Ø¢Ø®Ø±ÛŒÙ† Ø§Ù‚Ø¯Ø§Ù…', 'Ø¢Ø®Ø±ÛŒÙ† ÙØ¹Ø§Ù„ÛŒØª', 'Ù¾ÛŒÚ¯ÛŒØ±ÛŒ Ø¨Ø¹Ø¯ÛŒ', 'ØªØ§Ø±ÛŒØ® Ø¨Ø³ØªÙ‡â€ŒØ´Ø¯Ù†', 'Ø¯Ù„ÛŒÙ„ Ù†Ø§Ù…ÙˆÙÙ‚', 'Ø¯Ù„ÛŒÙ„ Ù†Ø§Ù…Ø¹ØªØ¨Ø±' ) );
+		$chunk_size = 500;
+		$offset     = 0;
+		$count      = 0;
+
+		do {
+			$query_vals = array_merge( $vals, array( $chunk_size, $offset ) );
+			$rows       = $wpdb->get_results( $wpdb->prepare( $stream_sql . ' LIMIT %d OFFSET %d', $query_vals ), ARRAY_A );
+
+			foreach ( $rows as $r ) {
+				$this->csv->write_row( $handle, array( $r['request_code'], $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ), $r['customer_name'], $r['customer_phone'], $r['customer_province'], $r['customer_city'], CRPCRM_Request_Type_Registry::get_label( $r['request_type'], $r ), CRPCRM_Labels::get_status_label( $r['status'] ), $r['request_summary'], CRPCRM_Labels::get_source_label( $r['request_source'] ), CRPCRM_Labels::get_medium_label( $r['request_medium'] ), $r['request_campaign'], $r['request_content'], $r['request_landing_page'], $r['owner_name'], CRPCRM_Labels::get_activity_label( $r['last_action'] ), $this->csv->format_datetime( $r['last_activity_at'] ), $this->csv->format_datetime( $r['next_follow_up_at'] ), $this->csv->format_datetime( $r['closed_at'] ), CRPCRM_Labels::get_close_reason_label( $r['close_reason'] ), CRPCRM_Labels::get_invalid_reason_label( $r['invalid_reason'] ) ) );
+				++$count;
+			}
+
+			$offset += $chunk_size;
+		} while ( count( $rows ) === $chunk_size );
+
+		CRPCRM_Logger::info( 'csv_export_requests', 'csv_export_requests', array( 'user_id' => get_current_user_id(), 'filters' => $f, 'count' => $count ) );
+		$this->csv->finish_output( $handle );
 		$sql = 'SELECT r.*, c.full_name AS customer_name, c.phone AS customer_phone, c.province AS customer_province, c.city AS customer_city, u.display_name AS owner_name FROM ' . CRPCRM_DB::table( 'requests' ) . ' r LEFT JOIN ' . CRPCRM_DB::table( 'customers' ) . ' c ON c.id = r.customer_id LEFT JOIN ' . $wpdb->users . ' u ON u.ID = r.owner_id WHERE ' . implode( ' AND ', $where ) . ' ORDER BY r.created_at DESC, r.id DESC';
 		$rows = $vals ? $wpdb->get_results( $wpdb->prepare( $sql, $vals ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
 		$out  = array();
@@ -139,6 +159,26 @@ class CRPCRM_Admin_Tools {
 		$this->where_equal( $where, $vals, 'c.last_source', $f['last_source'] );
 		if ( '' !== $f['profile_completed'] ) { $where[] = 'c.profile_completed = %d'; $vals[] = $f['profile_completed']; }
 		$requests = CRPCRM_DB::table( 'requests' );
+		$stream_sql = "SELECT c.*, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id) AS total_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.status IN ('new','in_progress','no_answer','follow_up')) AS open_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.status IN ('won','lost','invalid','closed')) AS closed_requests FROM " . CRPCRM_DB::table( 'customers' ) . ' c WHERE ' . implode( ' AND ', $where ) . ' ORDER BY c.created_at DESC, c.id DESC';
+		$handle     = $this->csv->start_output( 'customers-export-' . CRPCRM_Helpers::current_date() . '.csv', array( 'Ù†Ø§Ù… Ùˆ Ù†Ø§Ù… Ø®Ø§Ù†ÙˆØ§Ø¯Ú¯ÛŒ', 'Ù…ÙˆØ¨Ø§ÛŒÙ„', 'Ø§Ø³ØªØ§Ù†', 'Ø´Ù‡Ø±', 'ÙˆØ¶Ø¹ÛŒØª ØªÚ©Ù…ÛŒÙ„ Ù¾Ø±ÙˆÙØ§ÛŒÙ„', 'Ù…Ù†Ø¨Ø¹ Ø§ÙˆÙ„ÛŒÙ† ÙˆØ±ÙˆØ¯', 'Ú©Ù…Ù¾ÛŒÙ† Ø§ÙˆÙ„ÛŒÙ† ÙˆØ±ÙˆØ¯', 'ØªØ§Ø±ÛŒØ® Ø§ÙˆÙ„ÛŒÙ† ÙˆØ±ÙˆØ¯', 'Ù…Ù†Ø¨Ø¹ Ø¢Ø®Ø±ÛŒÙ† ÙˆØ±ÙˆØ¯', 'Ú©Ù…Ù¾ÛŒÙ† Ø¢Ø®Ø±ÛŒÙ† ÙˆØ±ÙˆØ¯', 'ØªØ§Ø±ÛŒØ® Ø¢Ø®Ø±ÛŒÙ† ÙˆØ±ÙˆØ¯', 'ØªØ¹Ø¯Ø§Ø¯ Ú©Ù„ Ø¯Ø±Ø®ÙˆØ§Ø³Øªâ€ŒÙ‡Ø§', 'ØªØ¹Ø¯Ø§Ø¯ Ø¯Ø±Ø®ÙˆØ§Ø³Øªâ€ŒÙ‡Ø§ÛŒ Ø¨Ø§Ø²', 'ØªØ¹Ø¯Ø§Ø¯ Ø¯Ø±Ø®ÙˆØ§Ø³Øªâ€ŒÙ‡Ø§ÛŒ Ø¨Ø³ØªÙ‡â€ŒØ´Ø¯Ù‡', 'ØªØ§Ø±ÛŒØ® Ø§ÛŒØ¬Ø§Ø¯ Ù¾Ø±ÙˆÙØ§ÛŒÙ„', 'ØªØ§Ø±ÛŒØ® Ø¨Ø±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ Ù¾Ø±ÙˆÙØ§ÛŒÙ„' ) );
+		$chunk_size = 500;
+		$offset     = 0;
+		$count      = 0;
+
+		do {
+			$query_vals = array_merge( $vals, array( $chunk_size, $offset ) );
+			$rows       = $wpdb->get_results( $wpdb->prepare( $stream_sql . ' LIMIT %d OFFSET %d', $query_vals ), ARRAY_A );
+
+			foreach ( $rows as $r ) {
+				$this->csv->write_row( $handle, array( $r['full_name'], $r['phone'], $r['province'], $r['city'], $this->csv->format_boolean( $r['profile_completed'] ), CRPCRM_Labels::get_source_label( $r['first_source'] ), $r['first_campaign'], $this->csv->format_datetime( $r['first_seen_at'] ), CRPCRM_Labels::get_source_label( $r['last_source'] ), $r['last_campaign'], $this->csv->format_datetime( $r['last_seen_at'] ), $r['total_requests'], $r['open_requests'], $r['closed_requests'], $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ) ) );
+				++$count;
+			}
+
+			$offset += $chunk_size;
+		} while ( count( $rows ) === $chunk_size );
+
+		CRPCRM_Logger::info( 'csv_export_customers', 'csv_export_customers', array( 'user_id' => get_current_user_id(), 'filters' => $f, 'count' => $count ) );
+		$this->csv->finish_output( $handle );
 		$sql = "SELECT c.*, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id) AS total_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.status IN ('new','in_progress','no_answer','follow_up')) AS open_requests, (SELECT COUNT(*) FROM {$requests} r WHERE r.customer_id = c.id AND r.status IN ('won','lost','invalid','closed')) AS closed_requests FROM " . CRPCRM_DB::table( 'customers' ) . ' c WHERE ' . implode( ' AND ', $where ) . ' ORDER BY c.created_at DESC, c.id DESC';
 		$rows = $vals ? $wpdb->get_results( $wpdb->prepare( $sql, $vals ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
 		$out = array();
@@ -175,6 +215,40 @@ class CRPCRM_Admin_Tools {
 		if ( 'daily_reports' === $type && '' !== $f['needs_manager_attention'] ) { $where[] = 't.needs_manager_attention = %d'; $vals[] = $f['needs_manager_attention']; }
 		if ( 'staff_requests' === $type ) { $this->where_equal( $where, $vals, 't.category', $f['category'] ); $this->where_equal( $where, $vals, 't.priority', $f['priority'] ); }
 		if ( 'staff_issues' === $type ) { $this->where_equal( $where, $vals, 't.severity', $f['severity'] ); if ( '' !== $f['needs_manager_decision'] ) { $where[] = 't.needs_manager_decision = %d'; $vals[] = $f['needs_manager_decision']; } }
+		$stream_sql = "SELECT t.*, u.display_name AS employee_name FROM {$table} t LEFT JOIN {$wpdb->users} u ON u.ID = t.user_id WHERE " . implode( ' AND ', $where ) . ' ORDER BY ' . ( 'daily_reports' === $type ? 't.report_date DESC, t.created_at DESC' : 't.created_at DESC' );
+		$headers    = 'daily_reports' === $type
+			? array( 'ØªØ§Ø±ÛŒØ® Ú¯Ø²Ø§Ø±Ø´', 'Ù†Ø§Ù… Ú©Ø§Ø±Ù…Ù†Ø¯', 'Ú©Ø§Ø±Ù‡Ø§ÛŒ Ø§Ù†Ø¬Ø§Ù…â€ŒØ´Ø¯Ù‡', 'Ú©Ø§Ø±Ù‡Ø§ÛŒ Ù†ÛŒÙ…Ù‡â€ŒØªÙ…Ø§Ù…', 'Ù…Ø´Ú©Ù„Ø§Øª', 'Ø¨Ø±Ù†Ø§Ù…Ù‡ ÙØ±Ø¯Ø§', 'Ù†ÛŒØ§Ø²Ù…Ù†Ø¯ ØªÙˆØ¬Ù‡ Ù…Ø¯ÛŒØ±', 'ÙˆØ¶Ø¹ÛŒØª', 'Ù¾Ø§Ø³Ø® Ù…Ø¯ÛŒØ±', 'ØªÙˆØ¶ÛŒØ­ ØªÚ©Ù…ÛŒÙ„ÛŒ ÙØ±ÙˆØ´', 'Ø¢Ù…Ø§Ø± CRMØŒ Ø¨Ù‡ ØµÙˆØ±Øª Ø®Ù„Ø§ØµÙ‡ Ù…ØªÙ†ÛŒ', 'ØªØ§Ø±ÛŒØ® Ø«Ø¨Øª', 'ØªØ§Ø±ÛŒØ® Ø¨Ø±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ' )
+			: ( 'staff_requests' === $type
+				? array( 'ØªØ§Ø±ÛŒØ® Ø«Ø¨Øª', 'Ù†Ø§Ù… Ú©Ø§Ø±Ù…Ù†Ø¯', 'Ø¯Ø³ØªÙ‡â€ŒØ¨Ù†Ø¯ÛŒ', 'Ø¹Ù†ÙˆØ§Ù†', 'ØªÙˆØ¶ÛŒØ­Ø§Øª', 'Ø§ÙˆÙ„ÙˆÛŒØª', 'ÙˆØ¶Ø¹ÛŒØª', 'Ù¾Ø§Ø³Ø® Ù…Ø¯ÛŒØ±', 'ØªØ§Ø±ÛŒØ® Ø¨Ø±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ' )
+				: array( 'ØªØ§Ø±ÛŒØ® Ø«Ø¨Øª', 'Ù†Ø§Ù… Ú©Ø§Ø±Ù…Ù†Ø¯', 'Ø¹Ù†ÙˆØ§Ù†', 'ÙˆØ§Ø­Ø¯ Ù…Ø±ØªØ¨Ø·', 'Ø´Ø¯Øª', 'ØªÙˆØ¶ÛŒØ­Ø§Øª', 'Ù¾ÛŒØ´Ù†Ù‡Ø§Ø¯ Ø±Ø§Ù‡â€ŒØ­Ù„', 'Ù†ÛŒØ§Ø²Ù…Ù†Ø¯ ØªØµÙ…ÛŒÙ… Ù…Ø¯ÛŒØ±', 'ÙˆØ¶Ø¹ÛŒØª', 'Ù¾Ø§Ø³Ø® Ù…Ø¯ÛŒØ±', 'ØªØ§Ø±ÛŒØ® Ø¨Ø±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ' ) );
+		$filename   = 'daily_reports' === $type ? 'daily-reports-export-' : ( 'staff_requests' === $type ? 'staff-requests-export-' : 'staff-issues-export-' );
+		$handle     = $this->csv->start_output( $filename . CRPCRM_Helpers::current_date() . '.csv', $headers );
+		$chunk_size = 500;
+		$offset     = 0;
+		$count      = 0;
+
+		do {
+			$query_vals = array_merge( $vals, array( $chunk_size, $offset ) );
+			$rows       = $wpdb->get_results( $wpdb->prepare( $stream_sql . ' LIMIT %d OFFSET %d', $query_vals ), ARRAY_A );
+
+			foreach ( $rows as $r ) {
+				if ( 'daily_reports' === $type ) {
+					$this->csv->write_row( $handle, array( CRPCRM_Helpers::format_jalali_date( $r['report_date'] ), $r['employee_name'], $r['completed_work'], $r['unfinished_work'], $r['problems'], $r['tomorrow_plan'], $this->csv->format_boolean( $r['needs_manager_attention'] ), CRPCRM_Labels::get_staff_status_label( $r['status'] ), $r['manager_response'], $r['sales_comment'], $this->csv->flatten_snapshot( $r['sales_crm_snapshot'] ), $this->csv->format_datetime( $r['created_at'] ), $this->csv->format_datetime( $r['updated_at'] ) ) );
+				} elseif ( 'staff_requests' === $type ) {
+					$this->csv->write_row( $handle, array( $this->csv->format_datetime( $r['created_at'] ), $r['employee_name'], $r['category'], $r['title'], $r['description'], CRPCRM_Labels::get_priority_label( $r['priority'] ), CRPCRM_Labels::get_staff_status_label( $r['status'] ), $r['manager_response'], $this->csv->format_datetime( $r['updated_at'] ) ) );
+				} else {
+					$this->csv->write_row( $handle, array( $this->csv->format_datetime( $r['created_at'] ), $r['employee_name'], $r['title'], $r['related_department'], CRPCRM_Labels::get_severity_label( $r['severity'] ), $r['description'], $r['suggested_solution'], $this->csv->format_boolean( $r['needs_manager_decision'] ), CRPCRM_Labels::get_staff_status_label( $r['status'] ), $r['manager_response'], $this->csv->format_datetime( $r['updated_at'] ) ) );
+				}
+
+				++$count;
+			}
+
+			$offset += $chunk_size;
+		} while ( count( $rows ) === $chunk_size );
+
+		$log_map = array( 'daily_reports' => 'csv_export_daily_reports', 'staff_requests' => 'csv_export_staff_requests', 'staff_issues' => 'csv_export_staff_issues' );
+		CRPCRM_Logger::info( $log_map[ $type ], $log_map[ $type ], array( 'user_id' => get_current_user_id(), 'filters' => $f, 'count' => $count ) );
+		$this->csv->finish_output( $handle );
 		$sql = "SELECT t.*, u.display_name AS employee_name FROM {$table} t LEFT JOIN {$wpdb->users} u ON u.ID = t.user_id WHERE " . implode( ' AND ', $where ) . ' ORDER BY ' . ( 'daily_reports' === $type ? 't.report_date DESC, t.created_at DESC' : 't.created_at DESC' );
 		$rows = $vals ? $wpdb->get_results( $wpdb->prepare( $sql, $vals ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
 		$out = array();

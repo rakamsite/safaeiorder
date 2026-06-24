@@ -175,9 +175,25 @@ class CRPCRM_Request_Repository {
 
 		$request_id       = absint( $request_id );
 		$activities_table = CRPCRM_DB::table( 'request_activities' );
+		$request          = $request_id ? $this->get( $request_id ) : null;
 
-		if ( ! $request_id || ! $this->get( $request_id ) ) {
+		if ( ! $request_id || ! $request ) {
 			return new WP_Error( 'request_not_found', 'درخواست موردنظر یافت نشد.' );
+		}
+
+		$cleanup = new CRPCRM_Request_File_Cleanup_Service();
+		$files   = $cleanup->cleanup_request_files( $request );
+		if ( ! empty( $files['failed'] ) ) {
+			CRPCRM_Logger::warning(
+				'request_file_cleanup_partial',
+				'request',
+				array(
+					'request_id' => $request_id,
+					'deleted'    => absint( $files['deleted'] ?? 0 ),
+					'missing'    => absint( $files['missing'] ?? 0 ),
+					'failed'     => absint( $files['failed'] ?? 0 ),
+				)
+			);
 		}
 
 		$wpdb->query( 'START TRANSACTION' );

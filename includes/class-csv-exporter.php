@@ -11,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_CSV_Exporter {
 	public function output_csv( $filename, $headers, $rows ) {
+		$handle = $this->start_output( $filename, $headers );
+		$this->write_rows( $handle, $rows );
+		$this->finish_output( $handle );
+	}
+
+	public function start_output( $filename, $headers ) {
 		if ( headers_sent() ) {
 			wp_die( esc_html__( 'امکان ارسال فایل CSV وجود ندارد؛ خروجی قبلاً ارسال شده است.', 'customer-request-portal-crm' ) );
 		}
@@ -28,11 +34,25 @@ class CRPCRM_CSV_Exporter {
 
 		$this->add_utf8_bom();
 		$handle = fopen( 'php://output', 'w' );
-		fputcsv( $handle, array_map( array( $this, 'sanitize_csv_cell' ), $headers ) );
+		$this->write_row( $handle, $headers );
+
+		return $handle;
+	}
+
+	public function write_rows( $handle, $rows ) {
 		foreach ( $rows as $row ) {
-			fputcsv( $handle, array_map( array( $this, 'sanitize_csv_cell' ), $row ) );
+			$this->write_row( $handle, $row );
 		}
-		fclose( $handle );
+	}
+
+	public function write_row( $handle, $row ) {
+		fputcsv( $handle, array_map( array( $this, 'sanitize_csv_cell' ), $row ) );
+	}
+
+	public function finish_output( $handle ) {
+		if ( is_resource( $handle ) ) {
+			fclose( $handle );
+		}
 		exit;
 	}
 

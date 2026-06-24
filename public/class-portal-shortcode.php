@@ -524,7 +524,7 @@ class CRPCRM_Portal_Shortcode {
 	public function handle_logout() {
 		check_admin_referer( 'crpcrm_portal_logout' );
 		$user_id     = get_current_user_id();
-		$redirect_to = isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : $this->get_base_portal_url();
+		$redirect_to = isset( $_GET['redirect_to'] ) ? $this->sanitize_portal_redirect_url( wp_unslash( $_GET['redirect_to'] ) ) : $this->get_base_portal_url();
 
 		CRPCRM_Logger::info( 'customer_logout_from_portal', 'customer', array( 'user_id' => $user_id ) );
 		wp_logout();
@@ -921,19 +921,60 @@ class CRPCRM_Portal_Shortcode {
 				'crpcrm_portal_notice'  => sanitize_key( $type ),
 				'crpcrm_portal_message'  => $message,
 			),
-			$url
+			$this->sanitize_portal_redirect_url( $url )
 		);
 		wp_safe_redirect( $url );
 		exit;
 	}
 
 	private function posted_redirect_url() {
-		$redirect_to = isset( $_POST['crpcrm_redirect_to'] ) ? esc_url_raw( wp_unslash( $_POST['crpcrm_redirect_to'] ) ) : $this->clean_portal_url();
+		$redirect_to = isset( $_POST['crpcrm_redirect_to'] ) ? $this->sanitize_portal_redirect_url( wp_unslash( $_POST['crpcrm_redirect_to'] ) ) : $this->sanitize_portal_redirect_url( $this->clean_portal_url() );
 		return $redirect_to ? $redirect_to : home_url( '/' );
 	}
 
 	private function clean_portal_url() {
 		return remove_query_arg( array( 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ), $this->current_url() );
+	}
+
+	private function sanitize_portal_redirect_url( $url ) {
+		$url      = is_string( $url ) ? trim( $url ) : '';
+		$fallback = $this->get_base_portal_url();
+
+		if ( '' === $url ) {
+			return $fallback;
+		}
+
+		$url_parts      = wp_parse_url( $url );
+		$fallback_parts = wp_parse_url( $fallback );
+		if ( empty( $url_parts['host'] ) || empty( $fallback_parts['host'] ) || ! isset( $url_parts['path'], $fallback_parts['path'] ) ) {
+			return $fallback;
+		}
+
+		$url_host      = strtolower( sanitize_text_field( $url_parts['host'] ) );
+		$fallback_host = strtolower( sanitize_text_field( $fallback_parts['host'] ) );
+		$url_path      = untrailingslashit( sanitize_text_field( $url_parts['path'] ) );
+		$fallback_path = untrailingslashit( sanitize_text_field( $fallback_parts['path'] ) );
+
+		if ( $url_host !== $fallback_host || $url_path !== $fallback_path ) {
+			return $fallback;
+		}
+
+		$allowed_query = array_flip( array( 'crpcrm_page', 'form_id', 'request_id', 'request_code', 'created', 'crpcrm_otp_state', 'crpcrm_portal_notice', 'crpcrm_portal_message' ) );
+		$parsed_query  = array();
+		if ( ! empty( $url_parts['query'] ) ) {
+			parse_str( $url_parts['query'], $parsed_query );
+		}
+
+		$clean_query = array();
+		foreach ( $parsed_query as $key => $value ) {
+			$key = sanitize_key( $key );
+			if ( ! isset( $allowed_query[ $key ] ) ) {
+				continue;
+			}
+			$clean_query[ $key ] = is_scalar( $value ) ? sanitize_text_field( (string) $value ) : '';
+		}
+
+		return add_query_arg( $clean_query, $fallback );
 	}
 
 	private function get_query_value( $key, $default = '' ) {

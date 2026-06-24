@@ -1060,6 +1060,10 @@
 	margin-top: 12px;
 }
 
+.crpcrm-staff-form p {
+	margin: 0;
+}
+
 .crpcrm-staff-form label,
 .crpcrm-staff-form input,
 .crpcrm-staff-form select,
@@ -1083,6 +1087,7 @@
 
 .crpcrm-staff-form .crpcrm-staff-inline-fields {
 	display: grid;
+	grid-column: 1 / -1;
 	grid-template-columns: repeat(2, minmax(160px, 1fr));
 	gap: 12px;
 	margin: 0;
