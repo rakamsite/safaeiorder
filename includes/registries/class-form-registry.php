@@ -34,8 +34,9 @@ class CRPCRM_Form_Registry {
 			return $a['sort_order'] <=> $b['sort_order'];
 		} );
 
-		$form_id = sanitize_key( $form['form_id'] ?? '' );
-		$request_type = $form_id;
+		$form_id      = sanitize_key( $form['form_id'] ?? '' );
+		$request_type = sanitize_key( $form['request_type'] ?? '' );
+		$request_type = $request_type ? $request_type : $form_id;
 		return array(
 			'id'               => $form_id,
 			'form_id'          => $form_id,

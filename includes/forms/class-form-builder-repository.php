@@ -98,8 +98,46 @@ class CRPCRM_Form_Builder_Repository {
 		if ( ! isset( $forms[ $form_id ] ) ) {
 			return false;
 		}
+
+		if ( count( $forms ) <= 1 ) {
+			return new WP_Error( 'last_form', 'حداقل یک فرم باید در سیستم باقی بماند.' );
+		}
+
+		if ( ! empty( $forms[ $form_id ]['enabled'] ) && count( $this->get_enabled_forms() ) <= 1 ) {
+			return new WP_Error( 'last_enabled_form', 'حداقل یک فرم فعال باید باقی بماند.' );
+		}
+
+		if ( $this->is_default_form_id( $form_id ) ) {
+			$forms[ $form_id ]['enabled'] = false;
+			return update_option( self::OPTION_NAME, $forms );
+		}
+
 		unset( $forms[ $form_id ] );
 		return update_option( self::OPTION_NAME, $forms );
+	}
+
+	public function restore_default_forms() {
+		$forms    = $this->get_forms();
+		$restored = 0;
+
+		foreach ( CRPCRM_Default_Form_Definitions::get_forms() as $default_form_id => $default_form ) {
+			$default_form['form_id'] = sanitize_key( $default_form['form_id'] ?? $default_form['id'] ?? $default_form_id );
+			$default_form['version'] = sanitize_text_field( $default_form['version'] ?? '1.0.0' );
+			$normalized              = $this->normalize_form( $default_form );
+			if ( empty( $normalized['form_id'] ) ) {
+				continue;
+			}
+
+			$forms[ $normalized['form_id'] ] = $normalized;
+			$restored++;
+		}
+
+		if ( $restored > 0 ) {
+			update_option( self::SEED_OPTION_NAME, 'yes' );
+			update_option( self::OPTION_NAME, $forms );
+		}
+
+		return $restored;
 	}
 
 	public function generate_form_id( $title ) {
@@ -154,13 +192,14 @@ class CRPCRM_Form_Builder_Repository {
 		$title     = sanitize_text_field( $form['title'] ?? '' );
 		$form_id   = sanitize_key( $form['form_id'] ?? $form['id'] ?? '' );
 		$form_id   = $form_id ? $form_id : $this->generate_form_id( $title );
-		$request_type = $form_id;
+		$request_type = sanitize_key( $form['request_type'] ?? '' );
+		$request_type = $request_type ? $request_type : $form_id;
 		$fields    = array();
 		$icon_key  = CRPCRM_Form_Icon_Pack::sanitize_icon_key( $form['icon'] ?? '' );
 
 		foreach ( isset( $form['fields'] ) && is_array( $form['fields'] ) ? $form['fields'] : array() as $index => $field ) {
 			$field = $this->normalize_field( $field, $index );
-			if ( '' === $field['key'] && '' === $field['label'] && '' === trim( wp_strip_all_tags( $field['content'] ?? '' ) ) ) {
+			if ( '' === $field['key'] && '' === $field['label'] && ! $this->has_renderable_display_content( $field['content'] ?? '' ) ) {
 				continue;
 			}
 			$fields[] = $field;
@@ -206,7 +245,7 @@ class CRPCRM_Form_Builder_Repository {
 		$enabled_field_count = 0;
 		foreach ( $form['fields'] as $field ) {
 			if ( 'display_html' === $field['type'] ) {
-				if ( empty( $field['key'] ) || empty( trim( wp_strip_all_tags( $field['content'] ) ) ) ) {
+				if ( empty( $field['key'] ) || ! $this->has_renderable_display_content( $field['content'] ?? '' ) ) {
 					$errors[] = 'فیلد نمایشی باید کلید و محتوا داشته باشد.';
 					continue;
 				}
@@ -250,5 +289,26 @@ class CRPCRM_Form_Builder_Repository {
 			return false;
 		}
 		return true;
+	}
+
+	private function is_default_form_id( $form_id ) {
+		$form_id = sanitize_key( $form_id );
+		return '' !== $form_id && isset( CRPCRM_Default_Form_Definitions::get_forms()[ $form_id ] );
+	}
+
+	private function has_renderable_display_content( $content ) {
+		$content = wp_kses_post( $content );
+		if ( '' === trim( $content ) ) {
+			return false;
+		}
+
+		if ( '' !== trim( wp_strip_all_tags( $content ) ) ) {
+			return true;
+		}
+
+		$normalized = preg_replace( '/(?:&nbsp;|&#160;|\s)+/u', '', $content );
+		$normalized = preg_replace( '/<([a-z0-9]+)(?:\s[^>]*)?>\s*<\/\1>/iu', '', $normalized );
+
+		return (bool) preg_match( '/<(img|hr|br|svg|path|use|circle|rect|line|polyline|polygon|ellipse)\b/i', $normalized );
 	}
 }

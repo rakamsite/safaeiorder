@@ -500,8 +500,16 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 							<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['created_at'] ) ); ?></td>
 							<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['updated_at'] ) ); ?></td>
 							<td class="crpcrm-actions">
-								<a class="button button-small" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'request_id' => absint( $item['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده' ); ?></a>
-								<?php if ( empty( $item['owner_id'] ) && CRPCRM_Request_Access_Service::can_claim_request( $item ) ) : ?><?php crpcrm_admin_claim_form( $item['id'] ); ?><?php endif; ?>
+								<?php
+								$can_claim_unassigned  = empty( $item['owner_id'] ) && CRPCRM_Request_Access_Service::can_claim_request( $item );
+								$hide_view_until_claim = $can_claim_unassigned && ! $can_manage;
+								?>
+								<?php if ( ! $hide_view_until_claim ) : ?>
+									<a class="button button-small" href="<?php echo esc_url( crpcrm_admin_requests_url( array( 'request_id' => absint( $item['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده' ); ?></a>
+								<?php elseif ( $can_claim_unassigned ) : ?>
+									<span class="description"><?php echo esc_html( 'ابتدا شروع پیگیری را بزنید.' ); ?></span>
+								<?php endif; ?>
+								<?php if ( $can_claim_unassigned ) : ?><?php crpcrm_admin_claim_form( $item['id'] ); ?><?php endif; ?>
 								<?php if ( $can_manage && CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
 									<?php crpcrm_admin_owner_form( $item['id'], $item['owner_id'], $assignable_users ); ?>
 									<?php if ( ! empty( $item['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $item['id'] ); ?><?php endif; ?>

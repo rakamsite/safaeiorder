@@ -1110,18 +1110,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 				continue;
 			}
 
-			/*
-			if ( empty( $file['upload_token'] ) ) {
-				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست. لطفاً فایل را دوباره بارگذاری کنید.' );
-			}
-
-			if ( ! self::is_valid_uploaded_file_meta( $file ) ) {
-				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
-			}
-
-			$file['field_key'] = sanitize_key( $field_key );
-			$normalized[] = self::normalize_single_uploaded_file_meta( $file );
-			*/
+			return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست. لطفاً فایل را دوباره بارگذاری کنید.' );
 		}
 
 		return $normalized;
