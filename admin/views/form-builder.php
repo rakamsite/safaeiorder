@@ -68,6 +68,8 @@ if ( empty( $fields ) ) {
 	<p class="description"><?php echo esc_html( 'فرم‌ها از اینجا مدیریت می‌شوند و هر فرم می‌تواند فیلدهای پویا، آیکن و چیدمان اختصاصی خودش را داشته باشد.' ); ?></p>
 	<?php if ( isset( $_GET['form-saved'] ) ) : ?><div class="notice notice-success"><p><?php echo esc_html( 'فرم ذخیره شد.' ); ?></p></div><?php endif; ?>
 	<?php if ( isset( $_GET['form-deleted'] ) ) : ?><div class="notice notice-success"><p><?php echo esc_html( 'فرم حذف شد.' ); ?></p></div><?php endif; ?>
+	<?php if ( isset( $_GET['form-disabled'] ) ) : ?><div class="notice notice-success"><p><?php echo esc_html( 'فرم پیش‌فرض غیرفعال شد و هر زمان خواستید می‌توانید آن را بازگردانید.' ); ?></p></div><?php endif; ?>
+	<?php if ( isset( $_GET['form-defaults-restored'] ) ) : ?><div class="notice notice-success"><p><?php echo esc_html( 'فرم‌های پیش‌فرض بازگردانی شدند.' ); ?></p></div><?php endif; ?>
 	<?php if ( isset( $_GET['form-error'] ) ) : ?>
 		<?php $form_error_message = isset( $_GET['form-error-message'] ) ? sanitize_text_field( wp_unslash( $_GET['form-error-message'] ) ) : ( 'invalid-form-id' === sanitize_key( wp_unslash( $_GET['form-error'] ) ) ? 'شناسه فرم الزامی است و فقط می‌تواند شامل حروف انگلیسی، عدد، خط تیره و آندرلاین باشد.' : 'ذخیره فرم انجام نشد. تنظیمات فرم را بررسی کنید.' ); ?>
 		<div class="notice notice-error"><p><?php echo esc_html( $form_error_message ); ?></p></div>
@@ -76,6 +78,11 @@ if ( empty( $fields ) ) {
 	<div class="crpcrm-card">
 		<h2><?php echo esc_html( 'فرم‌های سفارشی' ); ?></h2>
 		<p><a class="button button-primary" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-form-builder' ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'افزودن فرم جدید' ); ?></a></p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0 0 12px;">
+			<input type="hidden" name="action" value="crpcrm_restore_default_forms">
+			<?php wp_nonce_field( 'crpcrm_restore_default_forms', 'crpcrm_form_builder_nonce' ); ?>
+			<button class="button" type="submit"><?php echo esc_html( 'بازگردانی فرم‌های پیش‌فرض' ); ?></button>
+		</form>
 		<table class="widefat striped">
 			<thead>
 				<tr>
@@ -95,7 +102,7 @@ if ( empty( $fields ) ) {
 					<tr>
 						<td><?php echo esc_html( $item['title'] ); ?></td>
 						<td><span class="crpcrm-form-icon-preview" title="<?php echo esc_attr( CRPCRM_Form_Icon_Pack::get_icon_label( $item['icon'] ?? '' ) ); ?>"><?php echo CRPCRM_Form_Icon_Pack::get_icon_markup( $item['icon'] ?? '' ); ?></span></td>
-						<td><code><?php echo esc_html( $item['form_id'] ); ?></code></td>
+						<td><code><?php echo esc_html( $item['form_id'] ); ?></code><div class="description"><?php echo esc_html( 'نوع: ' . ( $item['request_type'] ?? $item['form_id'] ) ); ?></div></td>
 						<td><?php echo esc_html( number_format_i18n( count( $item['fields'] ?? array() ) ) ); ?></td>
 						<td><?php echo esc_html( ! empty( $item['enabled'] ) ? 'فعال' : 'غیرفعال' ); ?></td>
 						<td><a class="button button-small" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-form-builder', 'form_id' => $item['form_id'] ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( 'ویرایش' ); ?></a> <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_attr( 'این فرم حذف شود؟' ); ?>');"><input type="hidden" name="action" value="crpcrm_delete_custom_form"><input type="hidden" name="form_id" value="<?php echo esc_attr( $item['form_id'] ); ?>"><?php wp_nonce_field( 'crpcrm_delete_custom_form', 'crpcrm_form_builder_nonce' ); ?><button class="button button-small" type="submit"><?php echo esc_html( 'حذف' ); ?></button></form></td>
@@ -115,6 +122,7 @@ if ( empty( $fields ) ) {
 			<table class="form-table">
 				<tbody>
 					<tr><th><label for="crpcrm-form-id"><?php echo esc_html( 'شناسه فرم' ); ?></label></th><td><input id="crpcrm-form-id" class="regular-text" name="crpcrm_form[form_id]" required pattern="[A-Za-z0-9_-]+" value="<?php echo esc_attr( $form['form_id'] ); ?>" <?php echo $editing ? 'readonly' : ''; ?>><p class="description"><?php echo esc_html( 'فقط حروف انگلیسی، عدد، خط تیره و آندرلاین.' ); ?></p></td></tr>
+					<tr><th><label for="crpcrm-request-type"><?php echo esc_html( 'request_type' ); ?></label></th><td><input id="crpcrm-request-type" class="regular-text" name="crpcrm_form[request_type]" value="<?php echo esc_attr( $form['request_type'] ?? $form['form_id'] ); ?>"><p class="description"><?php echo esc_html( 'اگر خالی بماند، همان شناسه فرم به‌عنوان نوع درخواست استفاده می‌شود.' ); ?></p></td></tr>
 					<tr><th><label for="crpcrm-form-title"><?php echo esc_html( 'عنوان' ); ?></label></th><td><input id="crpcrm-form-title" class="regular-text" name="crpcrm_form[title]" required value="<?php echo esc_attr( $form['title'] ); ?>"></td></tr>
 					<tr><th><?php echo esc_html( 'توضیح' ); ?></th><td><textarea class="large-text" rows="3" name="crpcrm_form[description]"><?php echo esc_textarea( $form['description'] ); ?></textarea></td></tr>
 					<tr><th><?php echo esc_html( 'متن دکمه ثبت' ); ?></th><td><input class="regular-text" name="crpcrm_form[submit_label]" value="<?php echo esc_attr( $form['submit_label'] ); ?>"></td></tr>

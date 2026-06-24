@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_OTP_Repository {
 	private $table;
-	private $countable_statuses = array( 'created', 'sent', 'verified', 'blocked', 'expired' );
+	private $countable_statuses = array( 'created', 'sent', 'send_failed', 'verified', 'blocked', 'expired' );
 
 	public function __construct() {
 		$this->table = CRPCRM_DB::table( 'otp_logs' );

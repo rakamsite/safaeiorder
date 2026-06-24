@@ -67,6 +67,12 @@ class CRPCRM_Reports_Repository {
 		}
 
 		$filters = array_merge( $filters, $this->resolve_date_range( $filters ) );
+		if ( ! empty( $filters['start_date'] ) && ! empty( $filters['end_date'] ) && $filters['start_date'] > $filters['end_date'] ) {
+			$start                  = $filters['start_date'];
+			$filters['start_date']  = $filters['end_date'];
+			$filters['end_date']    = $start;
+			$filters['range_notice'] = 'بازه زمانی اصلاح شد.';
+		}
 		return $filters;
 	}
 

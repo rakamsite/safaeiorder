@@ -15,7 +15,7 @@ class CRPCRM_OTP_Service {
 	const DEFAULT_IP_WINDOW_LIMIT    = 50;
 	const DEFAULT_WINDOW_MINUTES     = 15;
 	const DEFAULT_RESEND_SECONDS     = 60;
-	const RATE_LIMIT_STATUSES        = array( 'created', 'sent', 'verified', 'blocked', 'expired' );
+	const RATE_LIMIT_STATUSES        = array( 'created', 'sent', 'send_failed', 'verified', 'blocked', 'expired' );
 
 	private $repository;
 	private $customer_repository;
@@ -354,10 +354,6 @@ class CRPCRM_OTP_Service {
 			return new WP_Error( 'otp_phone_rate_limited', sprintf( 'برای این شماره تعداد درخواست‌ها به سقف رسیده است. %s دیگر دوباره تلاش کنید.', $this->format_wait_time( $remaining ) ) );
 		}
 
-		if ( $phone_requests >= $this->get_phone_rate_limit() ) {
-			return new WP_Error( 'otp_phone_rate_limited', 'برای این شماره فعلاً درخواست‌های زیادی ثبت شده است. کمی بعد دوباره تلاش کنید.' );
-		}
-
 		$ip_hash = $this->current_ip_hash();
 		$ip_requests = '' !== $ip_hash ? $this->repository->count_recent_by_ip_hash( $ip_hash, $since, self::RATE_LIMIT_STATUSES ) : 0;
 		if ( '' !== $ip_hash && $ip_requests >= $this->get_ip_rate_limit() ) {
@@ -365,10 +361,6 @@ class CRPCRM_OTP_Service {
 			$remaining = $this->get_rate_limit_window_remaining_seconds( $oldest_ip['created_at'] ?? '', $window_seconds, $now );
 			return new WP_Error( 'otp_ip_rate_limited', sprintf( 'از این اتصال در بازه کوتاه درخواست‌های زیادی ثبت شده است. %s دیگر دوباره تلاش کنید.', $this->format_wait_time( $remaining ) ) );
 		}
-		if ( '' !== $ip_hash && $ip_requests >= $this->get_ip_rate_limit() ) {
-			return new WP_Error( 'otp_ip_rate_limited', 'از این اتصال درخواست‌های زیادی ثبت شده است. کمی بعد دوباره تلاش کنید.' );
-		}
-
 		return true;
 	}
 

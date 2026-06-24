@@ -21,6 +21,7 @@ class CRPCRM_Form_Builder_Admin {
 		add_action( 'admin_init', array( $this, 'guard_page' ) );
 		add_action( 'admin_post_crpcrm_save_custom_form', array( $this, 'handle_save' ) );
 		add_action( 'admin_post_crpcrm_delete_custom_form', array( $this, 'handle_delete' ) );
+		add_action( 'admin_post_crpcrm_restore_default_forms', array( $this, 'handle_restore_defaults' ) );
 	}
 
 	public function register_menu() {
@@ -75,9 +76,19 @@ class CRPCRM_Form_Builder_Admin {
 
 	public function handle_delete() {
 		$this->verify_action( 'crpcrm_delete_custom_form', 'crpcrm_form_builder_nonce' );
-		$form_id = isset( $_POST['form_id'] ) ? sanitize_key( wp_unslash( $_POST['form_id'] ) ) : '';
-		$this->repository->delete_form( $form_id );
-		$this->redirect( array( 'form-deleted' => '1' ) );
+		$form_id     = isset( $_POST['form_id'] ) ? sanitize_key( wp_unslash( $_POST['form_id'] ) ) : '';
+		$was_default = isset( CRPCRM_Default_Form_Definitions::get_forms()[ $form_id ] );
+		$result      = $this->repository->delete_form( $form_id );
+		if ( is_wp_error( $result ) ) {
+			$this->redirect( array( 'form-error' => 'delete-failed', 'form-error-message' => $result->get_error_message() ) );
+		}
+		$this->redirect( array( $was_default ? 'form-disabled' : 'form-deleted' => '1' ) );
+	}
+
+	public function handle_restore_defaults() {
+		$this->verify_action( 'crpcrm_restore_default_forms', 'crpcrm_form_builder_nonce' );
+		$restored = $this->repository->restore_default_forms();
+		$this->redirect( array( 'form-defaults-restored' => $restored > 0 ? '1' : '0' ) );
 	}
 
 	private function verify_action( $action, $nonce_name ) {

@@ -33,7 +33,7 @@ class CRPCRM_Request_Type_Registry {
 	public static function get_form_id_for_request_type( $request_type ) {
 		$request_type = sanitize_key( $request_type );
 		foreach ( CRPCRM_Form_Registry::get_enabled_forms() as $form ) {
-			$form_request_type = sanitize_key( $form['id'] ?? '' );
+			$form_request_type = sanitize_key( $form['request_type'] ?? '' );
 			if ( $request_type === $form_request_type ) {
 				return sanitize_key( $form['id'] ?? '' );
 			}
@@ -67,7 +67,7 @@ class CRPCRM_Request_Type_Registry {
 	}
 
 	private static function add_form_type( &$types, $form ) {
-		$request_type = sanitize_key( $form['id'] ?? '' );
+		$request_type = sanitize_key( $form['request_type'] ?? '' );
 		if ( $request_type ) {
 			$types[ $request_type ] = sanitize_text_field( ! empty( $form['title'] ) ? $form['title'] : ( ! empty( $form['label'] ) ? $form['label'] : $request_type ) );
 		}

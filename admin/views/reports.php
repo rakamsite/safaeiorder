@@ -186,6 +186,9 @@ $csv_args = array_filter(
 $selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_ranges[ $filters['date_range'] ] : $date_ranges['last_30_days'];
 ?>
 <div class="wrap crpcrm-admin-wrap crpcrm-reports-admin" dir="rtl">
+	<?php if ( ! empty( $filters['range_notice'] ) ) : ?>
+		<div class="notice notice-warning"><p><?php echo esc_html( $filters['range_notice'] ); ?></p></div>
+	<?php endif; ?>
 	<div class="crpcrm-page-header">
 		<div class="crpcrm-page-header__content">
 			<h1><?php echo esc_html( 'گزارشات' ); ?></h1>
@@ -292,6 +295,9 @@ $selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_
 				<p><?php echo esc_html( 'تعداد درخواست‌های ثبت‌شده در بازه انتخاب‌شده' ); ?></p>
 			</div>
 			<?php if ( crpcrm_reports_chart_has_data( $charts['requestsTrend'] ?? array() ) ) : ?>
+				<?php if ( ! empty( $charts['requestsTrend']['grouping_note'] ) ) : ?>
+					<p class="description"><?php echo esc_html( $charts['requestsTrend']['grouping_note'] ); ?></p>
+				<?php endif; ?>
 				<div class="crpcrm-chart-shell">
 					<canvas class="crpcrm-chart" data-chart="requestsTrend"></canvas>
 				</div>

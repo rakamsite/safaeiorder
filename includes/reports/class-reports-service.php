@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CRPCRM_Reports_Service {
+	const CACHE_TTL = 300;
+
 	private $reports_repository;
 	private $request_repository;
 	private $landing_manager;
@@ -43,6 +45,12 @@ class CRPCRM_Reports_Service {
 			)
 		);
 
+		$cache_key = 'crpcrm_reports_' . md5( wp_json_encode( array( $filters, $pagination, $options ) ) );
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
 		$status_breakdown  = $this->get_status_breakdown( $filters );
 		$overview          = $this->get_overview_stats( $filters, $status_breakdown );
 		$requests_trend    = $this->get_requests_trend( $filters );
@@ -53,7 +61,7 @@ class CRPCRM_Reports_Service {
 		$request_details    = $this->reports_repository->get_request_details( $filters, $pagination );
 		$request_total      = $this->reports_repository->count_request_details( $filters );
 
-		return array(
+		$data = array(
 			'filters'            => $filters,
 			'overview'           => $overview,
 			'charts'             => array(
@@ -69,6 +77,10 @@ class CRPCRM_Reports_Service {
 			'request_details'    => $request_details,
 			'request_total'      => $request_total,
 		);
+
+		set_transient( $cache_key, $data, self::CACHE_TTL );
+
+		return $data;
 	}
 
 	public function get_overview_stats( $filters, $status_breakdown = null ) {
@@ -103,19 +115,11 @@ class CRPCRM_Reports_Service {
 	public function get_requests_trend( $filters ) {
 		global $wpdb;
 
-		$filters = $this->normalize_filters( $filters );
-		$where   = $this->reports_repository->build_request_filters_where( $filters );
+		$filters        = $this->normalize_filters( $filters );
+		$where          = $this->reports_repository->build_request_filters_where( $filters );
 		$requests_table = CRPCRM_DB::table( 'requests' );
-		$sql     = "SELECT DATE(r.created_at) AS day, COUNT(*) AS total FROM {$requests_table} r {$where['sql']} GROUP BY DATE(r.created_at) ORDER BY day ASC";
-		$rows    = $wpdb->get_results( empty( $where['values'] ) ? $sql : $wpdb->prepare( $sql, $where['values'] ), ARRAY_A );
-
-		$series   = array();
-		$start    = $this->parse_datetime( $filters['start_date'] ?? '' );
-		$end      = $this->parse_datetime( $filters['end_date'] ?? '' );
-		$map      = array();
-		foreach ( $rows as $row ) {
-			$map[ sanitize_text_field( $row['day'] ) ] = absint( $row['total'] );
-		}
+		$start          = $this->parse_datetime( $filters['start_date'] ?? '' );
+		$end            = $this->parse_datetime( $filters['end_date'] ?? '' );
 
 		if ( ! $start ) {
 			$start = new DateTimeImmutable( 'today', wp_timezone() );
@@ -123,23 +127,38 @@ class CRPCRM_Reports_Service {
 		if ( ! $end ) {
 			$end = $start;
 		}
+
+		$days        = max( 1, (int) $start->diff( $end )->days + 1 );
+		$granularity = $this->get_trend_granularity( $days );
+		$group_sql   = $this->get_trend_group_expression( $granularity );
+		$sql         = "SELECT {$group_sql} AS bucket, COUNT(*) AS total FROM {$requests_table} r {$where['sql']} GROUP BY bucket ORDER BY bucket ASC";
+		$rows        = $wpdb->get_results( empty( $where['values'] ) ? $sql : $wpdb->prepare( $sql, $where['values'] ), ARRAY_A );
+
+		$series   = array();
+		$map      = array();
+		foreach ( $rows as $row ) {
+			$map[ sanitize_text_field( $row['bucket'] ) ] = absint( $row['total'] );
+		}
 		$end = $end->setTime( 23, 59, 59 );
-		$current = $start->setTime( 0, 0, 0 );
-		$guard = 0;
-		while ( $current <= $end && $guard < 400 ) {
-			$key = $current->format( 'Y-m-d' );
+		$current = $this->get_trend_start_cursor( $start, $granularity );
+		$guard   = 0;
+		while ( $current <= $end && $guard < 240 ) {
+			$key = $this->format_trend_bucket( $current, $granularity );
 			$series[] = array(
 				'date'  => $key,
-				'label' => CRPCRM_Helpers::format_jalali_date( $key ),
+				'label' => $this->format_trend_label( $current, $granularity ),
 				'total' => absint( $map[ $key ] ?? 0 ),
 			);
-			$current = $current->modify( '+1 day' );
+			$current = $this->advance_trend_cursor( $current, $granularity );
 			$guard++;
 		}
 
 		return array(
-			'type'   => 'line',
-			'labels' => wp_list_pluck( $series, 'label' ),
+			'type'              => 'line',
+			'labels'            => wp_list_pluck( $series, 'label' ),
+			'granularity'       => $granularity,
+			'granularity_label' => $this->get_trend_granularity_label( $granularity ),
+			'grouping_note'     => sprintf( 'گروه‌بندی نمودار: %s', $this->get_trend_granularity_label( $granularity ) ),
 			'datasets' => array(
 				array(
 					'label' => 'درخواست‌ها',
@@ -500,5 +519,85 @@ class CRPCRM_Reports_Service {
 		} catch ( Exception $exception ) {
 			return null;
 		}
+	}
+
+	private function get_trend_granularity( $days ) {
+		$days = max( 1, absint( $days ) );
+		if ( $days <= 90 ) {
+			return 'day';
+		}
+		if ( $days <= 730 ) {
+			return 'month';
+		}
+
+		return 'year';
+	}
+
+	private function get_trend_group_expression( $granularity ) {
+		if ( 'month' === $granularity ) {
+			return "DATE_FORMAT(r.created_at, '%Y-%m')";
+		}
+		if ( 'year' === $granularity ) {
+			return "DATE_FORMAT(r.created_at, '%Y')";
+		}
+
+		return 'DATE(r.created_at)';
+	}
+
+	private function get_trend_start_cursor( DateTimeImmutable $start, $granularity ) {
+		if ( 'month' === $granularity ) {
+			return $start->modify( 'first day of this month' )->setTime( 0, 0, 0 );
+		}
+		if ( 'year' === $granularity ) {
+			return $start->setDate( (int) $start->format( 'Y' ), 1, 1 )->setTime( 0, 0, 0 );
+		}
+
+		return $start->setTime( 0, 0, 0 );
+	}
+
+	private function advance_trend_cursor( DateTimeImmutable $current, $granularity ) {
+		if ( 'month' === $granularity ) {
+			return $current->modify( '+1 month' );
+		}
+		if ( 'year' === $granularity ) {
+			return $current->modify( '+1 year' );
+		}
+
+		return $current->modify( '+1 day' );
+	}
+
+	private function format_trend_bucket( DateTimeImmutable $current, $granularity ) {
+		if ( 'month' === $granularity ) {
+			return $current->format( 'Y-m' );
+		}
+		if ( 'year' === $granularity ) {
+			return $current->format( 'Y' );
+		}
+
+		return $current->format( 'Y-m-d' );
+	}
+
+	private function format_trend_label( DateTimeImmutable $current, $granularity ) {
+		if ( 'month' === $granularity ) {
+			$jalali = CRPCRM_Helpers::gregorian_to_jalali( (int) $current->format( 'Y' ), (int) $current->format( 'n' ), 1 );
+			return CRPCRM_Helpers::to_persian_digits( sprintf( '%04d/%02d', $jalali[0], $jalali[1] ) );
+		}
+		if ( 'year' === $granularity ) {
+			$jalali = CRPCRM_Helpers::gregorian_to_jalali( (int) $current->format( 'Y' ), 1, 1 );
+			return CRPCRM_Helpers::to_persian_digits( sprintf( '%04d', $jalali[0] ) );
+		}
+
+		return CRPCRM_Helpers::format_jalali_date( $current->format( 'Y-m-d' ) );
+	}
+
+	private function get_trend_granularity_label( $granularity ) {
+		if ( 'month' === $granularity ) {
+			return 'ماهانه';
+		}
+		if ( 'year' === $granularity ) {
+			return 'سالانه';
+		}
+
+		return 'روزانه';
 	}
 }
