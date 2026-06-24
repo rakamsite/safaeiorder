@@ -22,6 +22,7 @@ class CRPCRM_Public {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_crpcrm_search_products', array( $this, 'handle_search_products' ) );
 		add_action( 'wp_ajax_crpcrm_upload_request_file', array( $this, 'handle_upload_request_file' ) );
+		add_action( 'wp_ajax_crpcrm_delete_pending_request_file', array( $this, 'handle_delete_pending_request_file' ) );
 		$this->portal_shortcode->register_hooks();
 		$this->landing_tracking_service->register_hooks();
 	}
@@ -46,6 +47,9 @@ class CRPCRM_Public {
 				'ajaxUrl'              => admin_url( 'admin-ajax.php' ),
 				'productSearchNonce'   => wp_create_nonce( 'crpcrm_search_products' ),
 				'fileUploadNonce'      => wp_create_nonce( 'crpcrm_upload_request_file' ),
+				'fileDeletePendingNonce' => wp_create_nonce( 'crpcrm_delete_pending_request_file' ),
+				'fileDeletePendingError' => 'حذف فایل انجام نشد.',
+				'fileDeletePendingFallback' => 'حذف این فایل در این مرورگر انجام نمی‌شود.',
 				'productSearchMin'     => 2,
 				'productSearchEmpty'   => 'محصولی پیدا نشد.',
 				'productSearchLoading' => 'در حال جستجو...',
@@ -132,6 +136,24 @@ class CRPCRM_Public {
 		}
 
 		wp_send_json_success( $file );
+	}
+
+	public function handle_delete_pending_request_file() {
+		check_ajax_referer( 'crpcrm_delete_pending_request_file', 'nonce' );
+
+		if ( ! is_user_logged_in() || ! $this->current_user_can_upload_request_files() ) {
+			wp_send_json_error( array( 'message' => 'unauthorized' ), 403 );
+		}
+
+		$token     = isset( $_POST['upload_token'] ) ? sanitize_text_field( wp_unslash( $_POST['upload_token'] ) ) : '';
+		$field_key = isset( $_POST['field_key'] ) ? sanitize_key( wp_unslash( $_POST['field_key'] ) ) : '';
+
+		$deleted = CRPCRM_Dynamic_Form_Renderer::delete_pending_upload( $token, $field_key, get_current_user_id() );
+		if ( is_wp_error( $deleted ) ) {
+			wp_send_json_error( array( 'message' => $deleted->get_error_message() ), 400 );
+		}
+
+		wp_send_json_success( array( 'deleted' => true ) );
 	}
 
 	private function current_user_can_upload_request_files() {
