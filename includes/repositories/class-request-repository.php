@@ -181,6 +181,17 @@ class CRPCRM_Request_Repository {
 			return new WP_Error( 'request_not_found', 'درخواست موردنظر یافت نشد.' );
 		}
 
+		$wpdb->query( 'START TRANSACTION' );
+		$activities_deleted = $wpdb->delete( $activities_table, array( 'request_id' => $request_id ), array( '%d' ) );
+		$request_deleted    = $wpdb->delete( $this->table, array( 'id' => $request_id ), array( '%d' ) );
+
+		if ( false === $activities_deleted || 1 !== $request_deleted ) {
+			$wpdb->query( 'ROLLBACK' );
+			return new WP_Error( 'request_delete_failed', 'حذف کامل درخواست انجام نشد.' );
+		}
+
+		$wpdb->query( 'COMMIT' );
+
 		$cleanup = new CRPCRM_Request_File_Cleanup_Service();
 		$files   = $cleanup->cleanup_request_files( $request );
 		if ( ! empty( $files['failed'] ) ) {
@@ -196,16 +207,6 @@ class CRPCRM_Request_Repository {
 			);
 		}
 
-		$wpdb->query( 'START TRANSACTION' );
-		$activities_deleted = $wpdb->delete( $activities_table, array( 'request_id' => $request_id ), array( '%d' ) );
-		$request_deleted    = $wpdb->delete( $this->table, array( 'id' => $request_id ), array( '%d' ) );
-
-		if ( false === $activities_deleted || 1 !== $request_deleted ) {
-			$wpdb->query( 'ROLLBACK' );
-			return new WP_Error( 'request_delete_failed', 'حذف کامل درخواست انجام نشد.' );
-		}
-
-		$wpdb->query( 'COMMIT' );
 		return true;
 	}
 

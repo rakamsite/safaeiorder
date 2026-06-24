@@ -13,8 +13,18 @@ class CRPCRM_Health_Check_Service {
 	public function get_status() {
 		return array_merge(
 			array(
-				array( 'key' => 'plugin_version', 'label' => 'نسخه افزونه', 'status' => 'ok', 'message' => defined( 'CRPCRM_VERSION' ) ? CRPCRM_VERSION : 'نامشخص' ),
-				array( 'key' => 'db_version', 'label' => 'نسخه دیتابیس افزونه', 'status' => get_option( 'crpcrm_db_version' ) === CRPCRM_DB_VERSION ? 'ok' : 'warning', 'message' => get_option( 'crpcrm_db_version', 'ثبت نشده' ) ),
+				array(
+					'key'     => 'plugin_version',
+					'label'   => 'نسخه افزونه',
+					'status'  => 'ok',
+					'message' => defined( 'CRPCRM_VERSION' ) ? CRPCRM_VERSION : 'نامشخص',
+				),
+				array(
+					'key'     => 'db_version',
+					'label'   => 'نسخه دیتابیس افزونه',
+					'status'  => get_option( 'crpcrm_db_version' ) === CRPCRM_DB_VERSION ? 'ok' : 'warning',
+					'message' => get_option( 'crpcrm_db_version', 'ثبت نشده' ),
+				),
 			),
 			$this->check_tables(),
 			$this->check_counts(),
@@ -30,6 +40,7 @@ class CRPCRM_Health_Check_Service {
 
 	public function check_tables() {
 		global $wpdb;
+
 		$checks = array();
 		foreach ( CRPCRM_DB::table_names() as $key => $table ) {
 			$exists   = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
@@ -40,14 +51,17 @@ class CRPCRM_Health_Check_Service {
 				'message' => $exists ? 'سالم' : 'خطا: جدول پیدا نشد.',
 			);
 		}
+
 		return $checks;
 	}
 
 	public function check_roles() {
 		$checks = array();
+
 		foreach ( CRPCRM_Roles::get_roles() as $role_key => $config ) {
 			$role    = get_role( $role_key );
 			$missing = array();
+
 			if ( $role ) {
 				foreach ( $config['caps'] as $cap ) {
 					if ( ! $role->has_cap( $cap ) ) {
@@ -55,6 +69,7 @@ class CRPCRM_Health_Check_Service {
 					}
 				}
 			}
+
 			$checks[] = array(
 				'key'     => 'role_' . $role_key,
 				'label'   => 'نقش ' . $config['label'],
@@ -62,12 +77,14 @@ class CRPCRM_Health_Check_Service {
 				'message' => $role ? ( empty( $missing ) ? 'سالم' : 'نیازمند بررسی: برخی دسترسی‌ها وجود ندارند: ' . implode( '، ', $missing ) ) : 'نیازمند بررسی: نقش پیدا نشد.',
 			);
 		}
+
 		return $checks;
 	}
 
 	public function check_portal_page() {
 		$checks         = array();
 		$portal_page_id = absint( CRPCRM_Settings::get( 'portal_page_id', 0 ) );
+
 		if ( ! $portal_page_id ) {
 			return array(
 				array( 'key' => 'portal_page', 'label' => 'وضعیت صفحه پرتال', 'status' => 'warning', 'message' => 'نیازمند بررسی: صفحه پرتال انتخاب نشده است.' ),
@@ -84,7 +101,13 @@ class CRPCRM_Health_Check_Service {
 		}
 
 		$checks[] = array( 'key' => 'portal_page', 'label' => 'وضعیت صفحه پرتال', 'status' => 'ok', 'message' => 'سالم' );
-		$checks[] = array( 'key' => 'portal_shortcode', 'label' => 'وجود shortcode پرتال', 'status' => has_shortcode( $post->post_content, 'crpcrm_portal' ) ? 'ok' : 'warning', 'message' => has_shortcode( $post->post_content, 'crpcrm_portal' ) ? 'سالم' : 'نیازمند بررسی: shortcode پرتال در صفحه انتخاب‌شده پیدا نشد.' );
+		$checks[] = array(
+			'key'     => 'portal_shortcode',
+			'label'   => 'وجود shortcode پرتال',
+			'status'  => has_shortcode( $post->post_content, 'crpcrm_portal' ) ? 'ok' : 'warning',
+			'message' => has_shortcode( $post->post_content, 'crpcrm_portal' ) ? 'سالم' : 'نیازمند بررسی: shortcode پرتال در صفحه انتخاب‌شده پیدا نشد.',
+		);
+
 		return $checks;
 	}
 
@@ -105,14 +128,21 @@ class CRPCRM_Health_Check_Service {
 		}
 
 		$validation = $provider->validate_settings( CRPCRM_Settings::get() );
-		$message    = 'ارائه‌دهنده فعال: ' . $provider->get_label() . ' — تنظیمات کامل است.';
+		$message    = 'ارائه‌دهنده فعال: ' . $provider->get_label() . ' - تنظیمات کامل است.';
+
 		if ( is_wp_error( $validation ) ) {
 			$error_data = $validation->get_error_data();
 			$missing    = is_array( $error_data ) && isset( $error_data['missing'] ) ? (array) $error_data['missing'] : array();
-			$schema  = $provider->get_settings_schema();
-			$labels  = array_map( function ( $key ) use ( $schema ) { return isset( $schema[ $key ]['label'] ) ? $schema[ $key ]['label'] : $key; }, $missing );
+			$schema     = $provider->get_settings_schema();
+			$labels     = array_map(
+				function ( $key ) use ( $schema ) {
+					return isset( $schema[ $key ]['label'] ) ? $schema[ $key ]['label'] : $key;
+				},
+				$missing
+			);
 			$message = 'نیازمند بررسی: تنظیمات ارائه‌دهنده فعال کامل نیست.' . ( $labels ? ' فیلدهای ناقص: ' . implode( '، ', $labels ) : '' );
 		}
+
 		return array(
 			array(
 				'key'     => 'sms_settings',
@@ -125,14 +155,16 @@ class CRPCRM_Health_Check_Service {
 
 	public function check_counts() {
 		global $wpdb;
+
 		$items = array(
-			'customers'             => array( 'table' => CRPCRM_DB::table( 'customers' ), 'label' => 'تعداد مشتریان' ),
-			'requests'              => array( 'table' => CRPCRM_DB::table( 'requests' ), 'label' => 'تعداد درخواست‌ها' ),
-			'request_activities'    => array( 'table' => CRPCRM_DB::table( 'request_activities' ), 'label' => 'تعداد فعالیت‌های درخواست' ),
-			'plugin_logs'           => array( 'table' => CRPCRM_DB::table( 'plugin_logs' ), 'label' => 'تعداد لاگ‌های افزونه' ),
-			'staff_daily_reports'   => array( 'table' => CRPCRM_DB::table( 'staff_daily_reports' ), 'label' => 'تعداد گزارش‌های روزانه کارکنان' ),
+			'customers'           => array( 'table' => CRPCRM_DB::table( 'customers' ), 'label' => 'تعداد مشتریان' ),
+			'requests'            => array( 'table' => CRPCRM_DB::table( 'requests' ), 'label' => 'تعداد درخواست‌ها' ),
+			'request_activities'  => array( 'table' => CRPCRM_DB::table( 'request_activities' ), 'label' => 'تعداد فعالیت‌های درخواست' ),
+			'plugin_logs'         => array( 'table' => CRPCRM_DB::table( 'plugin_logs' ), 'label' => 'تعداد لاگ‌های افزونه' ),
+			'staff_daily_reports' => array( 'table' => CRPCRM_DB::table( 'staff_daily_reports' ), 'label' => 'تعداد گزارش‌های روزانه کارکنان' ),
 		);
 		$checks = array();
+
 		foreach ( $items as $key => $item ) {
 			$exists   = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $item['table'] ) );
 			$checks[] = array(
@@ -142,6 +174,7 @@ class CRPCRM_Health_Check_Service {
 				'message' => $exists ? number_format_i18n( (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$item['table']}" ) ) : 'خطا: جدول پیدا نشد.',
 			);
 		}
+
 		return $checks;
 	}
 
@@ -157,30 +190,30 @@ class CRPCRM_Health_Check_Service {
 		$checks = array(
 			array(
 				'key'     => 'upload_root',
-				'label'   => 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…Ø­Ø§ÙØ¸Øªâ€ŒØ´Ø¯Ù‡',
+				'label'   => 'مسیر فایل‌های محافظت‌شده',
 				'status'  => $can_build ? 'ok' : 'error',
-				'message' => $can_build ? 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ø¯Ø± Ø¯Ø³ØªØ±Ø³ Ø§Ø³Øª.' : 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…Ø­Ø§ÙØ¸Øªâ€ŒØ´Ø¯Ù‡ Ø³Ø§Ø®ØªÙ‡ Ù†Ø´Ø¯ ÛŒØ§ Ø¯Ø± Ø¯Ø³ØªØ±Ø³ Ù†ÛŒØ³Øª.',
+				'message' => $can_build ? 'مسیر فایل‌ها در دسترس است.' : 'مسیر فایل‌های محافظت‌شده ساخته نشد یا در دسترس نیست.',
 			),
 			array(
 				'key'     => 'upload_root_writable',
-				'label'   => 'Ù‚Ø§Ø¨Ù„ÛŒØª Ù†ÙˆØ´ØªÙ† Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§',
+				'label'   => 'قابلیت نوشتن مسیر فایل‌ها',
 				'status'  => $writable ? 'ok' : 'error',
-				'message' => $writable ? 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ù‚Ø§Ø¨Ù„ Ù†ÙˆØ´ØªÙ† Ø§Ø³Øª.' : 'Ù…Ø³ÛŒØ± ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ù‚Ø§Ø¨Ù„ Ù†ÙˆØ´ØªÙ† Ù†ÛŒØ³Øª.',
+				'message' => $writable ? 'مسیر فایل‌ها قابل نوشتن است.' : 'مسیر فایل‌ها قابل نوشتن نیست.',
 			),
 			array(
 				'key'     => 'upload_root_protection',
-				'label'   => 'ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…Ø­Ø§ÙØªÛŒ Ù…Ø³ÛŒØ± Ø¢Ù¾Ù„ÙˆØ¯',
+				'label'   => 'فایل‌های محافظتی مسیر آپلود',
 				'status'  => ( $index && $htaccess ) ? 'ok' : 'warning',
-				'message' => ( $index && $htaccess ) ? 'index.php Ùˆ .htaccess Ù…ÙˆØ¬ÙˆØ¯ Ø§Ø³Øª.' : 'ÛŒÚ©ÛŒ Ø§Ø² ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…Ø­Ø§ÙØªÛŒ Ø¯Ø± Ù…Ø³ÛŒØ± Ø¢Ù¾Ù„ÙˆØ¯ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯.',
+				'message' => ( $index && $htaccess ) ? 'index.php و .htaccess موجود است.' : 'یکی از فایل‌های محافظتی در مسیر آپلود پیدا نشد.',
 			),
 		);
 
 		if ( false !== strpos( $software, 'nginx' ) ) {
 			$checks[] = array(
 				'key'     => 'upload_root_nginx_notice',
-				'label'   => 'Ù‡Ø´Ø¯Ø§Ø± Ø³Ø±ÙˆØ± Nginx',
+				'label'   => 'هشدار سرور Nginx',
 				'status'  => 'warning',
-				'message' => '.htaccess Ø¯Ø± Nginx Ú©Ø§ÙÛŒ Ù†ÛŒØ³Øª. Ø¨Ø³ØªÙ† Ø¯Ø³ØªØ±Ø³ÛŒ Ù…Ø³ØªÙ‚ÛŒÙ… Ø¨Ù‡ Ù…Ø³ÛŒØ± Ø¢Ù¾Ù„ÙˆØ¯ Ø§Ø² Ø³Ù…Øª Ø³Ø±ÙˆØ± Ø±Ø§ Ù‡Ù… Ø¨Ø±Ø±Ø³ÛŒ Ú©Ù†ÛŒØ¯.',
+				'message' => '.htaccess در Nginx کافی نیست. بستن دسترسی مستقیم به مسیر آپلود از سمت سرور را هم بررسی کنید.',
 			);
 		}
 
@@ -189,9 +222,9 @@ class CRPCRM_Health_Check_Service {
 
 	public function check_background_jobs() {
 		$jobs = array(
-			array( 'key' => 'pending_upload_cleanup_cron', 'label' => 'Ú©Ø±ÙˆÙ† Ù¾Ø§Ú©Ø³Ø§Ø²ÛŒ ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…ÙˆÙ‚Øª', 'hook' => 'crpcrm_pending_upload_cleanup' ),
-			array( 'key' => 'lead_follow_up_cron', 'label' => 'Ú©Ø±ÙˆÙ† Ù¾ÛŒÚ¯ÛŒØ±ÛŒ Ù„ÛŒØ¯', 'hook' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CRON ),
-			array( 'key' => 'daily_log_cleanup_cron', 'label' => 'Ú©Ø±ÙˆÙ† Ù¾Ø§Ú©Ø³Ø§Ø²ÛŒ Ù„Ø§Ú¯â€ŒÙ‡Ø§', 'hook' => 'crpcrm_daily_log_cleanup' ),
+			array( 'key' => 'pending_upload_cleanup_cron', 'label' => 'کرون پاکسازی فایل‌های موقت', 'hook' => 'crpcrm_pending_upload_cleanup' ),
+			array( 'key' => 'lead_follow_up_cron', 'label' => 'کرون پیگیری لید', 'hook' => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CRON ),
+			array( 'key' => 'daily_log_cleanup_cron', 'label' => 'کرون پاکسازی لاگ‌ها', 'hook' => 'crpcrm_daily_log_cleanup' ),
 		);
 		$checks = array();
 
@@ -201,7 +234,7 @@ class CRPCRM_Health_Check_Service {
 				'key'     => $job['key'],
 				'label'   => $job['label'],
 				'status'  => $scheduled ? 'ok' : 'warning',
-				'message' => $scheduled ? 'Ø²Ù…Ø§Ù†â€ŒØ¨Ù†Ø¯ÛŒ Ø´Ø¯Ù‡ Ø§Ø³Øª.' : 'Ø¨Ø±Ø§ÛŒ Ø§ÛŒÙ† Ú©Ø±ÙˆÙ† Ø²Ù…Ø§Ù†â€ŒØ¨Ù†Ø¯ÛŒ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯.',
+				'message' => $scheduled ? 'زمان‌بندی شده است.' : 'برای این کرون زمان‌بندی پیدا نشد.',
 			);
 		}
 
@@ -214,15 +247,15 @@ class CRPCRM_Health_Check_Service {
 		return array(
 			array(
 				'key'     => 'pending_uploads',
-				'label'   => 'ÙˆØ¶Ø¹ÛŒØª ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ Ù…ÙˆÙ‚Øª',
+				'label'   => 'وضعیت فایل‌های موقت',
 				'status'  => empty( $stats['expired_pending'] ) ? 'ok' : 'warning',
-				'message' => sprintf( 'Ù…Ø¬Ù…ÙˆØ¹: %dØŒ Ù…Ù†Ù‚Ø¶ÛŒâ€ŒØ´Ø¯Ù‡: %d', absint( $stats['pending_total'] ?? 0 ), absint( $stats['expired_pending'] ?? 0 ) ),
+				'message' => sprintf( 'مجموع: %d، منقضی‌شده: %d', absint( $stats['pending_total'] ?? 0 ), absint( $stats['expired_pending'] ?? 0 ) ),
 			),
 			array(
 				'key'     => 'daily_upload_usage',
-				'label'   => 'Ø§Ù†Ø¯Ø§Ø²Ù‡ Ø°Ø®ÛŒØ±Ù‡ Ø¢Ù…Ø§Ø± Ø¢Ù¾Ù„ÙˆØ¯',
+				'label'   => 'اندازه ذخیره آمار آپلود',
 				'status'  => absint( $stats['daily_usage_entries'] ?? 0 ) > 50000 ? 'warning' : 'ok',
-				'message' => sprintf( 'ØªØ¹Ø¯Ø§Ø¯ Ø±ÙˆØ²Ù‡Ø§: %dØŒ Ø§Ù†Ø¯Ø§Ø²Ù‡ ØªÙ‚Ø±ÛŒØ¨ÛŒ: %d Ø¨Ø§ÛŒØª', absint( $stats['daily_usage_days'] ?? 0 ), absint( $stats['daily_usage_entries'] ?? 0 ) ),
+				'message' => sprintf( 'تعداد روزها: %d، اندازه تقریبی: %d بایت', absint( $stats['daily_usage_days'] ?? 0 ), absint( $stats['daily_usage_entries'] ?? 0 ) ),
 			),
 		);
 	}
@@ -230,24 +263,33 @@ class CRPCRM_Health_Check_Service {
 	public function check_file_link_signing() {
 		$url = CRPCRM_Request_File_Access_Service::build_file_url(
 			array(
-				'relative_path' => 'crpcrm-protected/request-files/health-check/sample.pdf',
-				'original_name' => 'sample.pdf',
-				'mime_type'     => 'application/pdf',
+				'upload_token' => 'health-check-token',
+				'field_key'    => 'health_check',
 			),
 			array(
-				'source_type' => 'health_check',
-				'source_id'   => 0,
-				'source_field'=> 'sample',
+				'source_type'  => 'pending',
+				'source_field' => 'health_check',
 			),
 			'download'
 		);
 
+		if ( ! $url ) {
+			return array(
+				array(
+					'key'     => 'file_link_signing',
+					'label'   => 'ایجاد لینک امن فایل',
+					'status'  => 'warning',
+					'message' => 'اطلاعات کافی برای تست لینک فایل وجود ندارد.',
+				),
+			);
+		}
+
 		return array(
 			array(
 				'key'     => 'file_link_signing',
-				'label'   => 'Ø§ÛŒØ¬Ø§Ø¯ Ù„ÛŒÙ†Ú© Ø§Ù…Ù† ÙØ§ÛŒÙ„',
-				'status'  => $url ? 'ok' : 'error',
-				'message' => $url ? 'Ø§ÛŒØ¬Ø§Ø¯ Ù„ÛŒÙ†Ú© Ø§Ù…Ù† Ø¨Ø¯ÙˆÙ† Ø®Ø·Ø§ Ø§Ù†Ø¬Ø§Ù… Ø´Ø¯.' : 'Ø§ÛŒØ¬Ø§Ø¯ Ù„ÛŒÙ†Ú© Ø§Ù…Ù† ÙØ§ÛŒÙ„ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.',
+				'label'   => 'ایجاد لینک امن فایل',
+				'status'  => 'ok',
+				'message' => 'تولید امضای لینک فایل بدون خطا انجام شد.',
 			),
 		);
 	}

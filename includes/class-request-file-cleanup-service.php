@@ -166,15 +166,15 @@ class CRPCRM_Request_File_Cleanup_Service {
 	private function get_allowed_roots() {
 		$uploads = wp_get_upload_dir();
 		$roots   = array(
-			realpath( CRPCRM_Dynamic_Form_Renderer::get_protected_upload_root_dir() ),
-			realpath( trailingslashit( $uploads['basedir'] ) . 'crpcrm-request-files' ),
+			$this->normalize_root_path( CRPCRM_Dynamic_Form_Renderer::get_protected_upload_root_dir() ),
+			$this->normalize_root_path( trailingslashit( $uploads['basedir'] ) . 'crpcrm-request-files' ),
 		);
 
 		return array_values( array_filter( array_unique( $roots ) ) );
 	}
 
 	private function resolve_allowed_root( $path ) {
-		$path = realpath( $path );
+		$path = $this->normalize_real_path( $path );
 		if ( ! $path ) {
 			return '';
 		}
@@ -189,10 +189,10 @@ class CRPCRM_Request_File_Cleanup_Service {
 	}
 
 	private function remove_empty_directories( $dir, $root ) {
-		$dir  = realpath( $dir );
-		$root = realpath( $root );
+		$dir  = $this->normalize_real_path( $dir );
+		$root = $this->normalize_root_path( $root );
 
-		while ( $dir && $root && $dir !== $root && 0 === strpos( $dir, $root ) ) {
+		while ( $dir && $root && $dir !== untrailingslashit( $root ) && 0 === strpos( trailingslashit( $dir ), $root ) ) {
 			$items = array_diff( scandir( $dir ), array( '.', '..' ) );
 			if ( ! empty( $items ) ) {
 				break;
@@ -204,10 +204,10 @@ class CRPCRM_Request_File_Cleanup_Service {
 	}
 
 	private function delete_directory_tree( $path, $root ) {
-		$path = realpath( $path );
-		$root = realpath( $root );
+		$path = $this->normalize_real_path( $path );
+		$root = $this->normalize_root_path( $root );
 
-		if ( ! $path || ! $root || 0 !== strpos( $path, $root ) || ! is_dir( $path ) ) {
+		if ( ! $path || ! $root || 0 !== strpos( trailingslashit( $path ), $root ) || ! is_dir( $path ) ) {
 			return;
 		}
 
@@ -231,6 +231,18 @@ class CRPCRM_Request_File_Cleanup_Service {
 		}
 
 		@rmdir( $path );
+	}
+
+	private function normalize_root_path( $path ) {
+		$path = $this->normalize_real_path( $path );
+
+		return $path ? trailingslashit( $path ) : '';
+	}
+
+	private function normalize_real_path( $path ) {
+		$real = is_string( $path ) && '' !== $path ? realpath( $path ) : false;
+
+		return $real ? wp_normalize_path( $real ) : '';
 	}
 
 	private function debug_log( $event, array $context ) {
