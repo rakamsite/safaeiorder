@@ -688,8 +688,24 @@ class CRPCRM_Dynamic_Form_Renderer {
 		if ( '' === $url && ! empty( $file['url'] ) ) {
 			$url = esc_url_raw( (string) $file['url'] );
 		}
+		$stored_name = '';
+		if ( ! empty( $file['stored_filename'] ) ) {
+			$stored_name = sanitize_file_name( $file['stored_filename'] );
+		} elseif ( ! empty( $file['stored_name'] ) ) {
+			$stored_name = sanitize_file_name( $file['stored_name'] );
+		}
+
+		$original_name = '';
+		if ( ! empty( $file['original_name'] ) ) {
+			$original_name = sanitize_file_name( $file['original_name'] );
+		} elseif ( ! empty( $file['display_name'] ) ) {
+			$original_name = sanitize_file_name( $file['display_name'] );
+		}
+
 		$name = '';
-		if ( ! empty( $file['filename'] ) ) {
+		if ( $original_name ) {
+			$name = $original_name;
+		} elseif ( ! empty( $file['filename'] ) ) {
 			$name = sanitize_file_name( $file['filename'] );
 		} elseif ( ! empty( $file['name'] ) ) {
 			$name = sanitize_file_name( $file['name'] );
@@ -743,6 +759,10 @@ class CRPCRM_Dynamic_Form_Renderer {
 			'download_url'  => $url,
 			'filename'      => $name,
 			'name'          => $name,
+			'original_name' => $name,
+			'display_name'  => $name,
+			'stored_name'   => $stored_name,
+			'stored_filename' => $stored_name,
 			'mime_type'     => $mime_type,
 			'type'          => $mime_type,
 			'file_type'     => $file_type,
@@ -956,19 +976,27 @@ class CRPCRM_Dynamic_Form_Renderer {
 			return new WP_Error( 'crpcrm_upload_failed', sanitize_text_field( $result['error'] ) );
 		}
 
-		$base = wp_get_upload_dir();
-		$path = str_replace( trailingslashit( $base['basedir'] ), '', $result['file'] );
-		$year  = CRPCRM_Helpers::now()->format( 'Y' );
-		$month = CRPCRM_Helpers::now()->format( 'm' );
-		$mime  = sanitize_text_field( $result['type'] ?? '' );
-		$name  = sanitize_file_name( wp_basename( $result['file'] ) );
-		$file_type = self::is_pdf_mime_type( $mime, $name ) ? 'pdf' : ( self::is_image_mime_type( $mime, $name ) ? 'image' : 'file' );
+		$base          = wp_get_upload_dir();
+		$path          = str_replace( trailingslashit( $base['basedir'] ), '', $result['file'] );
+		$year          = CRPCRM_Helpers::now()->format( 'Y' );
+		$month         = CRPCRM_Helpers::now()->format( 'm' );
+		$mime          = sanitize_text_field( $result['type'] ?? '' );
+		$stored_name   = sanitize_file_name( wp_basename( $result['file'] ) );
+		$original_name = sanitize_file_name( wp_basename( (string) ( $file['name'] ?? '' ) ) );
+		if ( '' === $original_name ) {
+			$original_name = $stored_name;
+		}
+		$file_type = self::is_pdf_mime_type( $mime, $original_name ) ? 'pdf' : ( self::is_image_mime_type( $mime, $original_name ) ? 'image' : 'file' );
 
 		$stored_file = self::register_pending_upload(
 			array(
 			'attachment_id' => 0,
-			'name'          => $name,
-			'filename'      => $name,
+			'name'          => $original_name,
+			'filename'      => $original_name,
+			'original_name' => $original_name,
+			'display_name'  => $original_name,
+			'stored_name'   => $stored_name,
+			'stored_filename' => $stored_name,
 			'relative_path' => sanitize_text_field( $path ),
 			'upload_year'   => $year,
 			'upload_month'  => $month,
@@ -1072,6 +1100,9 @@ class CRPCRM_Dynamic_Form_Renderer {
 			}
 
 			$token = ! empty( $file['upload_token'] ) ? sanitize_text_field( $file['upload_token'] ) : '';
+			if ( '' === $token ) {
+				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست. لطفاً فایل را دوباره بارگذاری کنید.' );
+			}
 			if ( $token ) {
 				$pending = self::get_pending_upload( $token );
 				if ( ! $pending ) {
@@ -1198,6 +1229,42 @@ class CRPCRM_Dynamic_Form_Renderer {
 			unset( $index[ $token ] );
 			update_option( self::PENDING_UPLOAD_OPTION, $index, false );
 		}
+	}
+
+	public static function delete_pending_upload( $token, $field_key = '', $user_id = 0 ) {
+		$token   = sanitize_text_field( $token );
+		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
+
+		if ( '' === $token ) {
+			return new WP_Error( 'crpcrm_pending_upload_invalid', __( 'فایل موقت معتبر نیست.', 'customer-request-portal-crm' ) );
+		}
+
+		$pending = self::get_pending_upload( $token );
+		if ( ! $pending ) {
+			self::finalize_pending_upload( $token );
+			return new WP_Error( 'crpcrm_pending_upload_missing', __( 'فایل موقت پیدا نشد یا منقضی شده است.', 'customer-request-portal-crm' ) );
+		}
+
+		if ( ! self::pending_upload_belongs_to_actor( $pending, $field_key, $user_id ) ) {
+			return new WP_Error( 'crpcrm_pending_upload_forbidden', __( 'اجازه حذف این فایل را ندارید.', 'customer-request-portal-crm' ) );
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+
+		$path = self::resolve_uploaded_file_path( $pending );
+		if ( $path && file_exists( $path ) ) {
+			$deleted = false !== wp_delete_file( $path );
+			if ( ! $deleted && file_exists( $path ) ) {
+				$deleted = @unlink( $path );
+			}
+			if ( ! $deleted && file_exists( $path ) ) {
+				return new WP_Error( 'crpcrm_pending_upload_delete_failed', __( 'حذف فایل موقت انجام نشد.', 'customer-request-portal-crm' ) );
+			}
+		}
+
+		self::finalize_pending_upload( $token );
+
+		return true;
 	}
 
 	private static function pending_upload_transient_key( $token ) {

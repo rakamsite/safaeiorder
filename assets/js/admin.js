@@ -652,8 +652,109 @@
 
 		var label = document.createElement('span');
 		label.className = 'crpcrm-file-upload-name';
-		label.textContent = file.name || getUploadConfigLabel(config, 'fileUploadedLabel', 'Uploaded');
+		label.textContent = getFileDisplayName(file, getUploadConfigLabel(config, 'fileUploadedLabel', 'Uploaded'));
 		preview.appendChild(label);
+	}
+
+	function getFileDisplayName(file, fallback) {
+		if (!file) {
+			return fallback || '';
+		}
+
+		return file.display_name || file.original_name || file.name || file.filename || fallback || '';
+	}
+
+	function isPdfUpload(file) {
+		var type = String((file && (file.type || file.mime_type || '')) || '').toLowerCase();
+		var name = String(getFileDisplayName(file, '')).toLowerCase();
+		return type === 'application/pdf' || /\.pdf$/i.test(name) || !!file.is_pdf;
+	}
+
+	function getUploadedRowData(row) {
+		if (!row || !row.hasAttribute('data-uploaded')) {
+			return null;
+		}
+
+		try {
+			return JSON.parse(row.getAttribute('data-uploaded'));
+		} catch (error) {
+			return null;
+		}
+	}
+
+	function showUploadRowMessage(row, message) {
+		var preview = row ? row.querySelector('.crpcrm-file-upload-preview') : null;
+		if (!preview) {
+			return;
+		}
+
+		preview.innerHTML = '';
+		var notice = document.createElement('span');
+		notice.className = 'crpcrm-file-upload-name';
+		notice.textContent = message;
+		preview.appendChild(notice);
+	}
+
+	function replaceOrRemoveUploadRow(row, list, name, wrapper, config) {
+		if (!row || !list) {
+			return;
+		}
+
+		if (list.children.length > 1) {
+			row.remove();
+		} else {
+			row.replaceWith(createUploadRow(name, isUploadFieldRequired(wrapper), wrapper, config));
+		}
+
+		syncUploadedStore(wrapper);
+		refreshUploadRequirements(wrapper);
+	}
+
+	function deletePendingUploadRow(row, list, name, wrapper, config) {
+		var uploaded = getUploadedRowData(row);
+		if (!uploaded || !uploaded.upload_token) {
+			replaceOrRemoveUploadRow(row, list, name, wrapper, config);
+			return;
+		}
+
+		if (row.dataset.pendingDelete === '1') {
+			return;
+		}
+
+		if (!window.fetch || !config || !config.ajaxUrl || !config.fileDeletePendingNonce) {
+			showUploadRowMessage(row, getUploadConfigLabel(config, 'fileDeletePendingFallback', 'Unable to remove this file in this browser.'));
+			return;
+		}
+
+		row.dataset.pendingDelete = '1';
+		row.classList.add('is-uploading');
+
+		var formData = new FormData();
+		formData.append('action', 'crpcrm_delete_pending_request_file');
+		formData.append('nonce', config.fileDeletePendingNonce);
+		formData.append('upload_token', String(uploaded.upload_token || ''));
+		formData.append('field_key', (wrapper && wrapper.dataset && wrapper.dataset.fieldName) ? wrapper.dataset.fieldName : '');
+
+		fetch(config.ajaxUrl, {
+			method: 'POST',
+			body: formData,
+			credentials: 'same-origin'
+		})
+			.then(function (response) {
+				return response.json();
+			})
+			.then(function (payload) {
+				if (!payload || !payload.success) {
+					throw new Error((payload && payload.data && payload.data.message) || getUploadConfigLabel(config, 'fileDeletePendingError', 'Delete failed.'));
+				}
+
+				replaceOrRemoveUploadRow(row, list, name, wrapper, config);
+			})
+			.catch(function (error) {
+				showUploadRowMessage(row, (error && error.message) || getUploadConfigLabel(config, 'fileDeletePendingError', 'Delete failed.'));
+				row.classList.remove('is-uploading');
+				delete row.dataset.pendingDelete;
+			});
 	}
 
 	function setPreviewContent(preview, file, config) {
@@ -661,6 +762,8 @@
 		if (!file) {
 			return;
 		}
+
+		var fileName = getFileDisplayName(file, '');
 
 		if (String(file.type || '').indexOf('image/') === 0) {
 			var button = document.createElement('button');
@@ -670,7 +773,7 @@
 			button.setAttribute('title', getUploadConfigLabel(config, 'filePreviewLabel', 'View file'));
 			var image = document.createElement('img');
 			image.src = file.url || file.previewUrl || '';
-			image.alt = file.name || '';
+			image.alt = fileName;
 			button.appendChild(image);
 			button.addEventListener('click', function () {
 				var modal = ensureFilePreviewModal();
@@ -678,12 +781,12 @@
 				var modalName = modal.querySelector('.crpcrm-file-preview-name');
 				var modalDownload = modal.querySelector('.crpcrm-file-preview-download');
 				modalImage.src = image.src;
-				modalImage.alt = file.name || '';
-				modalName.textContent = file.name || '';
+				modalImage.alt = fileName;
+				modalName.textContent = fileName;
 				modalDownload.href = file.download_url || file.url || image.src;
 				modalDownload.textContent = getUploadConfigLabel(config, 'fileDownloadLabel', 'Download file');
-				if (file.name) {
-					modalDownload.setAttribute('download', file.name);
+				if (fileName) {
+					modalDownload.setAttribute('download', fileName);
 				} else {
 					modalDownload.removeAttribute('download');
 				}
@@ -692,18 +795,40 @@
 				modal.querySelector('.crpcrm-file-preview-close').focus();
 			});
 			preview.appendChild(button);
+		} else if (isPdfUpload(file)) {
+			var pdfCard = document.createElement('div');
+			pdfCard.className = 'crpcrm-file-upload-card crpcrm-file-upload-card-pdf';
+			var pdfIcon = document.createElement('span');
+			pdfIcon.className = 'crpcrm-file-upload-card-icon';
+			pdfIcon.textContent = 'PDF';
+			var pdfLabel = document.createElement('span');
+			pdfLabel.className = 'crpcrm-file-upload-name';
+			pdfLabel.textContent = fileName;
+			pdfCard.appendChild(pdfIcon);
+			pdfCard.appendChild(pdfLabel);
+			preview.appendChild(pdfCard);
+			if (file.download_url) {
+				var pdfDownload = document.createElement('a');
+				pdfDownload.className = 'crpcrm-file-download-link';
+				pdfDownload.href = file.download_url;
+				pdfDownload.textContent = getUploadConfigLabel(config, 'fileDownloadLabel', 'Download file');
+				if (fileName) {
+					pdfDownload.setAttribute('download', fileName);
+				}
+				preview.appendChild(pdfDownload);
+			}
 		} else {
 			var label = document.createElement('span');
 			label.className = 'crpcrm-file-upload-name';
-			label.textContent = file.name || '';
+			label.textContent = fileName;
 			preview.appendChild(label);
 			if (file.download_url) {
 				var download = document.createElement('a');
 				download.className = 'crpcrm-file-download-link';
 				download.href = file.download_url;
 				download.textContent = getUploadConfigLabel(config, 'fileDownloadLabel', 'Download file');
-				if (file.name) {
-					download.setAttribute('download', file.name);
+				if (fileName) {
+					download.setAttribute('download', fileName);
 				}
 				preview.appendChild(download);
 			}
@@ -876,23 +1001,15 @@
 		preview.className = 'crpcrm-file-upload-preview';
 		row.appendChild(preview);
 
-		input.addEventListener('change', function () {
-			uploadSelectedFile(input, preview, wrapper, config);
-		});
-
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-file-upload-remove';
 		remove.setAttribute('aria-label', 'حذف فایل');
 		remove.setAttribute('title', 'حذف فایل');
 		remove.textContent = '×';
-		remove.addEventListener('click', function () {
-			row.remove();
-			syncUploadedStore(wrapper);
-			refreshUploadRequirements(wrapper);
-		});
 		row.appendChild(remove);
 
+		bindUploadRow(row, wrapper, config);
 		return row;
 	}
 
@@ -988,13 +1105,7 @@
 					return;
 				}
 
-				if (list.children.length > 1) {
-					row.remove();
-				} else {
-					row.replaceWith(createUploadRow(name, isUploadFieldRequired(wrapper), wrapper, config));
-				}
-				syncUploadedStore(wrapper);
-				refreshUploadRequirements(wrapper);
+				deletePendingUploadRow(row, list, name, wrapper, config);
 			});
 		});
 	}
