@@ -1,6 +1,31 @@
 (function () {
 	'use strict';
 
+	if (window.NodeList && !NodeList.prototype.forEach) {
+		NodeList.prototype.forEach = Array.prototype.forEach;
+	}
+
+	if (window.HTMLCollection && !HTMLCollection.prototype.forEach) {
+		HTMLCollection.prototype.forEach = Array.prototype.forEach;
+	}
+
+	if (window.Element && !Element.prototype.matches) {
+		Element.prototype.matches = Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
+	}
+
+	if (window.Element && !Element.prototype.closest) {
+		Element.prototype.closest = function (selector) {
+			var node = this;
+			while (node && node.nodeType === 1) {
+				if (node.matches && node.matches(selector)) {
+					return node;
+				}
+				node = node.parentElement || node.parentNode;
+			}
+			return null;
+		};
+	}
+
 	var persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
 	var monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 	var weekDays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
@@ -279,10 +304,10 @@
 		var existing = form.querySelector('.crpcrm-existing-customer-fields');
 		var create = form.querySelector('.crpcrm-new-customer-fields');
 		if (existing) { existing.style.display = isNew ? 'none' : ''; }
-		if (create) { create.style.display = isNew ? '' : 'none'; }
-		form.querySelectorAll('[name="new_customer_name"], [name="new_customer_phone"], [name="new_customer_province"], [name="new_customer_city"]').forEach(function (field) { field.required = isNew; });
+		if (create) { create.style.display = isNew ? 'block' : 'none'; }
+		form.querySelectorAll('[name="new_customer_name"], [name="new_customer_phone"], [name="new_customer_province"], [name="new_customer_city"], [name="new_customer_source"]').forEach(function (field) { field.required = isNew; field.disabled = !isNew; });
 		var customer = form.querySelector('[name="customer_id"]');
-		if (customer) { customer.required = !isNew; }
+		if (customer) { customer.required = !isNew; customer.disabled = isNew; }
 	}
 
 	function updateSalesActionFields(form) {
@@ -433,13 +458,21 @@
 					return;
 				}
 
+				if (!labels.ajaxUrl || !window.fetch || !window.URLSearchParams) {
+					results.hidden = true;
+					results.innerHTML = '';
+					return;
+				}
+
 				results.hidden = false;
 				results.innerHTML = '<div class="crpcrm-product-search-empty">' + (labels.productSearchLoading || 'در حال جستجو...') + '</div>';
 
-				if (abortController) {
-					abortController.abort();
+				if (window.AbortController) {
+					if (abortController) {
+						abortController.abort();
+					}
+					abortController = new AbortController();
 				}
-				abortController = new AbortController();
 
 				var params = new URLSearchParams({
 					action: 'crpcrm_search_products',
@@ -447,10 +480,14 @@
 					term: term
 				});
 
-				fetch((labels.ajaxUrl || '') + '?' + params.toString(), {
-					credentials: 'same-origin',
-					signal: abortController.signal
-				})
+				var requestOptions = {
+					credentials: 'same-origin'
+				};
+				if (abortController) {
+					requestOptions.signal = abortController.signal;
+				}
+
+				fetch((labels.ajaxUrl || '') + '?' + params.toString(), requestOptions)
 					.then(function (response) { return response.json(); })
 					.then(function (payload) {
 						renderResults(payload && payload.success && Array.isArray(payload.data) ? payload.data : []);
@@ -490,7 +527,101 @@
 		store.value = JSON.stringify(files);
 	}
 
-	function setPreviewContent(preview, file) {
+	function isAsyncUploadSupported() {
+		return !!(window.fetch && window.FormData && window.Promise && window.JSON);
+	}
+
+	function getUploadConfigLabel(config, key, fallback) {
+		return config && config[key] ? config[key] : fallback;
+	}
+
+	function getFileExtension(file) {
+		var parts = String(file && file.name ? file.name : '').toLowerCase().split('.');
+		return parts.length > 1 ? parts.pop() : '';
+	}
+
+	function isAllowedUploadFile(file) {
+		var extension = getFileExtension(file);
+		var type = String(file && file.type ? file.type : '').toLowerCase();
+		return /^(image\/(jpeg|png|gif|webp)|application\/pdf)$/i.test(type) || /^(jpg|jpeg|png|gif|webp|pdf)$/.test(extension);
+	}
+
+	function isUploadFieldRequired(wrapper) {
+		return !!(wrapper && wrapper.dataset && '1' === wrapper.dataset.fieldRequired);
+	}
+
+	function getUploadRows(wrapper) {
+		var list = wrapper ? wrapper.querySelector('.crpcrm-file-upload-list') : null;
+		return list ? list.querySelectorAll('.crpcrm-file-upload-row') : [];
+	}
+
+	function refreshUploadRequirements(wrapper) {
+		if (!wrapper) {
+			return;
+		}
+
+		var rows = getUploadRows(wrapper);
+		var requireOne = isUploadFieldRequired(wrapper);
+		var hasUploaded = !!wrapper.querySelector('.crpcrm-file-upload-row[data-uploaded]');
+		var markRequired = requireOne && !hasUploaded;
+		var assigned = false;
+		var requiredInput = null;
+
+		Array.prototype.forEach.call(rows, function (row) {
+			var input = row.querySelector('input[type="file"]');
+			if (!input) {
+				return;
+			}
+
+			if (row.hasAttribute('data-uploaded') || !markRequired) {
+				input.required = false;
+				input.removeAttribute('required');
+				input.removeAttribute('data-required');
+				if ('function' === typeof input.setCustomValidity) {
+					input.setCustomValidity('');
+				}
+				return;
+			}
+
+			if (!assigned) {
+				input.required = true;
+				input.setAttribute('data-required', '1');
+				assigned = true;
+				requiredInput = input;
+			} else {
+				input.required = false;
+				input.removeAttribute('required');
+				input.removeAttribute('data-required');
+				if ('function' === typeof input.setCustomValidity) {
+					input.setCustomValidity('');
+				}
+				return;
+			}
+
+			if ('function' === typeof input.setCustomValidity) {
+				input.setCustomValidity(input.files && input.files.length ? '' : 'حداقل یک فایل انتخاب کنید.');
+				return;
+			}
+		});
+
+		if (requiredInput && 'function' === typeof requiredInput.setCustomValidity && requiredInput.files && requiredInput.files.length) {
+			requiredInput.setCustomValidity('');
+		}
+	}
+
+	function renderFallbackFilePreview(preview, file, config) {
+		preview.innerHTML = '';
+		if (!file) {
+			return;
+		}
+
+		var label = document.createElement('span');
+		label.className = 'crpcrm-file-upload-name';
+		label.textContent = file.name || getUploadConfigLabel(config, 'fileUploadedLabel', 'Uploaded');
+		preview.appendChild(label);
+	}
+
+	function setPreviewContent(preview, file, config) {
 		preview.innerHTML = '';
 		if (!file) {
 			return;
@@ -500,15 +631,30 @@
 			var button = document.createElement('button');
 			button.type = 'button';
 			button.className = 'crpcrm-file-thumb';
+			button.setAttribute('aria-label', getUploadConfigLabel(config, 'filePreviewLabel', 'View file'));
+			button.setAttribute('title', getUploadConfigLabel(config, 'filePreviewLabel', 'View file'));
 			var image = document.createElement('img');
 			image.src = file.url || file.previewUrl || '';
 			image.alt = file.name || '';
 			button.appendChild(image);
 			button.addEventListener('click', function () {
 				var modal = ensureFilePreviewModal();
-				modal.querySelector('img').src = image.src;
-				modal.querySelector('.crpcrm-file-preview-name').textContent = file.name || '';
+				var modalImage = modal.querySelector('img');
+				var modalName = modal.querySelector('.crpcrm-file-preview-name');
+				var modalDownload = modal.querySelector('.crpcrm-file-preview-download');
+				modalImage.src = image.src;
+				modalImage.alt = file.name || '';
+				modalName.textContent = file.name || '';
+				modalDownload.href = file.download_url || file.url || image.src;
+				modalDownload.textContent = getUploadConfigLabel(config, 'fileDownloadLabel', 'Download file');
+				if (file.name) {
+					modalDownload.setAttribute('download', file.name);
+				} else {
+					modalDownload.removeAttribute('download');
+				}
 				modal.classList.add('is-open');
+				modal.setAttribute('aria-hidden', 'false');
+				modal.querySelector('.crpcrm-file-preview-close').focus();
 			});
 			preview.appendChild(button);
 		} else {
@@ -516,16 +662,59 @@
 			label.className = 'crpcrm-file-upload-name';
 			label.textContent = file.name || '';
 			preview.appendChild(label);
+			if (file.download_url) {
+				var download = document.createElement('a');
+				download.className = 'crpcrm-file-download-link';
+				download.href = file.download_url;
+				download.textContent = getUploadConfigLabel(config, 'fileDownloadLabel', 'Download file');
+				if (file.name) {
+					download.setAttribute('download', file.name);
+				}
+				preview.appendChild(download);
+			}
 		}
 	}
 
 	function uploadSelectedFile(input, preview, wrapper, config) {
-		if (!input.files || !input.files[0] || !config || !config.ajaxUrl || !config.fileUploadNonce) {
+		if (!input.files || !input.files[0] || !config) {
 			return;
 		}
 
 		var row = input.closest('.crpcrm-file-upload-row');
+		if (!row) {
+			return;
+		}
 		var file = input.files[0];
+		var fallbackMessage = getUploadConfigLabel(config, 'fileUploadFallback', 'This browser does not support automatic uploads.');
+
+		if (!isAllowedUploadFile(file)) {
+			preview.innerHTML = '';
+			var invalid = document.createElement('span');
+			invalid.className = 'crpcrm-file-upload-name';
+			invalid.textContent = getUploadConfigLabel(config, 'fileUploadInvalid', 'Invalid file type.');
+			preview.appendChild(invalid);
+			input.value = '';
+			refreshUploadRequirements(wrapper);
+			return;
+		}
+
+		if (file.size && config.fileUploadMaxSize && file.size > parseInt(config.fileUploadMaxSize, 10)) {
+			preview.innerHTML = '';
+			var tooLarge = document.createElement('span');
+			tooLarge.className = 'crpcrm-file-upload-name';
+			tooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTooLarge', 'File is too large.');
+			preview.appendChild(tooLarge);
+			input.value = '';
+			refreshUploadRequirements(wrapper);
+			return;
+		}
+
+		if (!isAsyncUploadSupported() || !config.ajaxUrl || !config.fileUploadNonce) {
+			renderFallbackFilePreview(preview, file, config);
+			refreshUploadRequirements(wrapper);
+			return;
+		}
+
 		var formData = new FormData();
 		formData.append('action', 'crpcrm_upload_request_file');
 		formData.append('nonce', config.fileUploadNonce);
@@ -550,7 +739,7 @@
 
 				var uploaded = payload.data;
 				if (String(uploaded.type || '').indexOf('image/') === 0 && !uploaded.previewUrl) {
-					uploaded.previewUrl = URL.createObjectURL(file);
+					uploaded.previewUrl = window.URL && URL.createObjectURL ? URL.createObjectURL(file) : uploaded.previewUrl;
 				}
 
 				row.setAttribute('data-uploaded', JSON.stringify(uploaded));
@@ -558,13 +747,25 @@
 				input.removeAttribute('name');
 				input.disabled = true;
 				input.removeAttribute('data-required');
-				setPreviewContent(preview, uploaded);
+				setPreviewContent(preview, uploaded, config);
 				syncUploadedStore(wrapper);
+				refreshUploadRequirements(wrapper);
 			})
 			.catch(function (error) {
-				preview.innerHTML = '<span class="crpcrm-file-upload-name">' + ((error && error.message) || config.fileUploadError || 'Upload failed') + '</span>';
+				var message = (error && error.message) || config.fileUploadError || 'Upload failed';
+				if (!window.fetch) {
+					message = fallbackMessage;
+				} else if (error && ('TypeError' === error.name || /failed to fetch/i.test(message))) {
+					message = getUploadConfigLabel(config, 'fileUploadNetwork', message);
+				}
+				preview.innerHTML = '';
+				var notice = document.createElement('span');
+				notice.className = 'crpcrm-file-upload-name';
+				notice.textContent = message;
+				preview.appendChild(notice);
 				row.removeAttribute('data-uploaded');
 				syncUploadedStore(wrapper);
+				refreshUploadRequirements(wrapper);
 			})
 			.finally(function () {
 				row.classList.remove('is-uploading');
@@ -590,6 +791,7 @@
 		row.dataset.boundUpload = '1';
 
 		if (input) {
+			input.setAttribute('aria-label', input.getAttribute('aria-label') || 'انتخاب فایل');
 			input.addEventListener('change', function () {
 				uploadSelectedFile(input, preview, wrapper, config);
 			});
@@ -604,7 +806,9 @@
 		input.type = 'file';
 		input.name = name + '[]';
 		input.accept = '.jpg,.jpeg,.png,.webp,.gif,.pdf';
+		input.setAttribute('aria-label', 'انتخاب فایل');
 		if (required) {
+			input.required = true;
 			input.setAttribute('data-required', '1');
 		}
 		row.appendChild(input);
@@ -620,9 +824,13 @@
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-file-upload-remove';
+		remove.setAttribute('aria-label', 'حذف فایل');
+		remove.setAttribute('title', 'حذف فایل');
 		remove.textContent = '×';
 		remove.addEventListener('click', function () {
 			row.remove();
+			syncUploadedStore(wrapper);
+			refreshUploadRequirements(wrapper);
 		});
 		row.appendChild(remove);
 
@@ -637,14 +845,49 @@
 
 		modal = document.createElement('div');
 		modal.className = 'crpcrm-file-preview-modal';
-		modal.innerHTML = '<button type="button" class="crpcrm-file-preview-close">×</button><img alt=""><div class="crpcrm-file-preview-name"></div>';
+		modal.setAttribute('role', 'dialog');
+		modal.setAttribute('aria-modal', 'true');
+		modal.setAttribute('aria-label', 'پیش‌نمایش فایل');
+		modal.setAttribute('aria-hidden', 'true');
+		modal.innerHTML = '<button type="button" class="crpcrm-file-preview-close" aria-label="بستن" title="بستن">×</button><img alt=""><div class="crpcrm-file-preview-name"></div><a class="crpcrm-file-preview-download button button-primary" href="#" download>دانلود فایل</a>';
 		document.body.appendChild(modal);
 		modal.addEventListener('click', function (event) {
 			if (event.target === modal || event.target.classList.contains('crpcrm-file-preview-close')) {
 				modal.classList.remove('is-open');
+				modal.setAttribute('aria-hidden', 'true');
+			}
+		});
+		document.addEventListener('keydown', function (event) {
+			if ('Escape' === event.key && modal.classList.contains('is-open')) {
+				modal.classList.remove('is-open');
+				modal.setAttribute('aria-hidden', 'true');
 			}
 		});
 		return modal;
+	}
+
+	function bindSubmitGuard(form) {
+		if (!form || form.dataset.submitGuardBound === '1') {
+			return;
+		}
+
+		form.dataset.submitGuardBound = '1';
+		form.addEventListener('submit', function () {
+			var buttons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
+			Array.prototype.forEach.call(buttons, function (button) {
+				if (!button.disabled) {
+					button.disabled = true;
+					button.setAttribute('data-crpcrm-temporarily-disabled', '1');
+				}
+			});
+
+			window.setTimeout(function () {
+				Array.prototype.forEach.call(form.querySelectorAll('[data-crpcrm-temporarily-disabled="1"]'), function (button) {
+					button.disabled = false;
+					button.removeAttribute('data-crpcrm-temporarily-disabled');
+				});
+			}, 30000);
+		});
 	}
 
 	function initFileUploads(scope, config) {
@@ -665,10 +908,11 @@
 				bindUploadRow(row, wrapper, config);
 			});
 			syncUploadedStore(wrapper);
+			refreshUploadRequirements(wrapper);
 
 			add.addEventListener('click', function () {
-				var required = !!list.querySelector('[data-required="1"]');
-				list.appendChild(createUploadRow(name, required, wrapper, config));
+				list.appendChild(createUploadRow(name, false, wrapper, config));
+				refreshUploadRequirements(wrapper);
 			});
 
 			list.addEventListener('click', function (event) {
@@ -685,9 +929,10 @@
 				if (list.children.length > 1) {
 					row.remove();
 				} else {
-					row.replaceWith(createUploadRow(name, !!list.querySelector('[data-required="1"]'), wrapper, config));
+					row.replaceWith(createUploadRow(name, isUploadFieldRequired(wrapper), wrapper, config));
 				}
 				syncUploadedStore(wrapper);
+				refreshUploadRequirements(wrapper);
 			});
 		});
 	}
@@ -799,6 +1044,7 @@
 		initRegistrationFieldSorting();
 		initFormBuilder();
 		cleanupRequestList();
+		document.querySelectorAll('.crpcrm-manual-request-form, .crpcrm-sales-action-form').forEach(bindSubmitGuard);
 		document.querySelectorAll('.crpcrm-manual-request-form').forEach(function (form) {
 			updateManualCustomerFields(form);
 			initProductSearch(form, config);

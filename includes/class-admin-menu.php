@@ -64,6 +64,9 @@ class CRPCRM_Admin_Menu {
 			if ( 'otp' === $tab && ! CRPCRM_Feature_Manager::is_enabled( 'otp' ) && ! CRPCRM_Feature_Manager::is_enabled( 'sms' ) ) {
 				wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
 			}
+			if ( 'otp' === $tab ) {
+				return;
+			}
 			if ( isset( $tab_features[ $tab ] ) && ! CRPCRM_Feature_Manager::is_enabled( $tab_features[ $tab ] ) ) {
 				wp_die( esc_html( CRPCRM_Feature_Manager::disabled_message() ) );
 			}
@@ -151,8 +154,15 @@ class CRPCRM_Admin_Menu {
 				'unreadNotifications'  => CRPCRM_Notification_Service::is_enabled() && is_user_logged_in() ? $this->notification_service->get_unread_count( get_current_user_id() ) : 0,
 				'notificationsPageUrl' => admin_url( 'admin.php?page=crpcrm-notifications' ),
 				'fileUploadLoading'    => 'در حال بارگذاری...',
+				'fileUploadFallback'   => 'بارگذاری خودکار در این مرورگر پشتیبانی نمی‌شود. فایل را همراه فرم ارسال کنید.',
+				'fileUploadInvalid'    => 'نوع فایل مجاز نیست.',
+				'fileUploadTooLarge'   => 'حجم فایل بیش از حد مجاز است.',
+				'fileUploadNetwork'    => 'ارتباط با سرور برقرار نشد.',
+				'fileUploadMaxSize'    => CRPCRM_Dynamic_Form_Renderer::MAX_FILE_SIZE,
 				'fileUploadError'      => 'بارگذاری فایل انجام نشد.',
 				'fileUploadedLabel'    => 'بارگذاری شده',
+				'filePreviewLabel'     => 'مشاهده فایل',
+				'fileDownloadLabel'    => 'دانلود فایل',
 				'notificationsToast'   => CRPCRM_Notification_Service::is_enabled() && 'yes' === CRPCRM_Settings::get( 'notifications_toast_enabled', 'yes' ),
 			)
 		);

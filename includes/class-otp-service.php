@@ -11,9 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CRPCRM_OTP_Service {
 	const STATE_TRANSIENT_PREFIX = 'crpcrm_otp_state_';
-	const PHONE_WINDOW_LIMIT     = 5;
-	const IP_WINDOW_LIMIT        = 10;
-	const WINDOW_MINUTES         = 15;
+	const DEFAULT_PHONE_WINDOW_LIMIT = 6;
+	const DEFAULT_IP_WINDOW_LIMIT    = 50;
+	const DEFAULT_WINDOW_MINUTES     = 15;
+	const DEFAULT_RESEND_SECONDS     = 60;
+	const RATE_LIMIT_STATUSES        = array( 'created', 'sent', 'verified', 'blocked', 'expired' );
 
 	private $repository;
 	private $customer_repository;
@@ -331,28 +333,39 @@ class CRPCRM_OTP_Service {
 
 	private function check_rate_limit( $phone_normalized ) {
 		$now            = CRPCRM_Helpers::current_timestamp();
-		$resend_seconds = max( 1, absint( CRPCRM_Settings::get( 'otp_resend_seconds', 60 ) ) );
-		$latest         = $this->repository->find_latest_active_by_phone( $phone_normalized );
+		$resend_seconds = $this->get_resend_seconds();
+		$window_minutes  = $this->get_rate_limit_window_minutes();
+		$since           = CRPCRM_Helpers::subtract_seconds_from_now( $window_minutes * MINUTE_IN_SECONDS );
+		$latest         = $this->repository->find_latest_active_by_phone( $phone_normalized, self::RATE_LIMIT_STATUSES );
 
-		if ( $latest && ! empty( $latest['created_at'] ) && ( $now - CRPCRM_Helpers::datetime_to_timestamp( $latest['created_at'] ) ) < $resend_seconds ) {
-			return new WP_Error( 'rate_limited', 'تعداد درخواست‌های کد تأیید زیاد است. لطفاً کمی بعد دوباره تلاش کنید.' );
+		if ( $latest && ! empty( $latest['created_at'] ) ) {
+			$elapsed = $now - CRPCRM_Helpers::datetime_to_timestamp( $latest['created_at'] );
+			if ( $elapsed < $resend_seconds ) {
+				$remaining = max( 1, $resend_seconds - $elapsed );
+				return new WP_Error( 'otp_resend_too_soon', sprintf( 'برای این شماره %d ثانیه دیگر دوباره تلاش کنید.', $remaining ) );
+			}
 		}
 
-		$since = CRPCRM_Helpers::subtract_seconds_from_now( self::WINDOW_MINUTES * MINUTE_IN_SECONDS );
-		if ( $this->repository->count_recent_by_phone( $phone_normalized, $since ) >= self::PHONE_WINDOW_LIMIT ) {
-			return new WP_Error( 'rate_limited', 'تعداد درخواست‌های کد تأیید زیاد است. لطفاً کمی بعد دوباره تلاش کنید.' );
+		if ( $this->repository->count_recent_by_phone( $phone_normalized, $since, self::RATE_LIMIT_STATUSES ) >= $this->get_phone_rate_limit() ) {
+			return new WP_Error( 'otp_phone_rate_limited', 'برای این شماره فعلاً درخواست‌های زیادی ثبت شده است. کمی بعد دوباره تلاش کنید.' );
 		}
 
-		if ( $this->repository->count_recent_by_ip_hash( $this->current_ip_hash(), $since ) >= self::IP_WINDOW_LIMIT ) {
-			return new WP_Error( 'rate_limited', 'تعداد درخواست‌های کد تأیید زیاد است. لطفاً کمی بعد دوباره تلاش کنید.' );
+		$ip_hash = $this->current_ip_hash();
+		if ( '' !== $ip_hash && $this->repository->count_recent_by_ip_hash( $ip_hash, $since, self::RATE_LIMIT_STATUSES ) >= $this->get_ip_rate_limit() ) {
+			return new WP_Error( 'otp_ip_rate_limited', 'از این اتصال درخواست‌های زیادی ثبت شده است. کمی بعد دوباره تلاش کنید.' );
 		}
 
 		return true;
 	}
 
 	private function current_ip_hash() {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		return $this->hash_value( $ip );
+		$ip = $this->current_ip_address();
+		return '' === $ip ? '' : $this->hash_value( $ip );
+	}
+
+	private function current_ip_address() {
+		// REMOTE_ADDR is the only trusted IP source for now; proxy/CDN support can be added later behind an allowlist.
+		return isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 	}
 
 	private function current_user_agent_hash() {
@@ -366,5 +379,21 @@ class CRPCRM_OTP_Service {
 
 	private function state_transient_key( $state_token ) {
 		return self::STATE_TRANSIENT_PREFIX . hash_hmac( 'sha256', sanitize_text_field( $state_token ), wp_salt( 'nonce' ) );
+	}
+
+	private function get_phone_rate_limit() {
+		return min( 20, max( 1, absint( CRPCRM_Settings::get( 'otp_rate_limit_phone_limit', self::DEFAULT_PHONE_WINDOW_LIMIT ) ) ) );
+	}
+
+	private function get_ip_rate_limit() {
+		return min( 200, max( 1, absint( CRPCRM_Settings::get( 'otp_rate_limit_ip_limit', self::DEFAULT_IP_WINDOW_LIMIT ) ) ) );
+	}
+
+	private function get_rate_limit_window_minutes() {
+		return min( 1440, max( 1, absint( CRPCRM_Settings::get( 'otp_rate_limit_window_minutes', self::DEFAULT_WINDOW_MINUTES ) ) ) );
+	}
+
+	private function get_resend_seconds() {
+		return min( 600, max( 10, absint( CRPCRM_Settings::get( 'otp_resend_seconds', self::DEFAULT_RESEND_SECONDS ) ) ) );
 	}
 }

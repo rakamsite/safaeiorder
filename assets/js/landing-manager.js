@@ -1,6 +1,23 @@
 (function () {
 	'use strict';
 
+	if (window.Element && !Element.prototype.matches) {
+		Element.prototype.matches = Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
+	}
+
+	if (window.Element && !Element.prototype.closest) {
+		Element.prototype.closest = function (selector) {
+			var node = this;
+			while (node && node.nodeType === 1) {
+				if (node.matches && node.matches(selector)) {
+					return node;
+				}
+				node = node.parentElement || node.parentNode;
+			}
+			return null;
+		};
+	}
+
 	const config = window.crpcrmLandings || {};
 	const debug = !!config.debug;
 
@@ -41,6 +58,10 @@
 	}
 
 	async function searchTargets(term) {
+		if (!window.fetch || !window.URLSearchParams) {
+			return [];
+		}
+
 		const params = new URLSearchParams();
 		params.set('action', 'crpcrm_search_landing_targets');
 		params.set('nonce', config.nonce || '');

@@ -43,10 +43,10 @@ class CRPCRM_Reports_Service {
 			)
 		);
 
-		$overview          = $this->get_overview_stats( $filters );
+		$status_breakdown  = $this->get_status_breakdown( $filters );
+		$overview          = $this->get_overview_stats( $filters, $status_breakdown );
 		$requests_trend    = $this->get_requests_trend( $filters );
 		$source_breakdown   = $this->get_source_breakdown( $filters );
-		$status_breakdown   = $this->get_status_breakdown( $filters );
 		$staff_performance  = ! empty( $options['include_staff'] ) ? $this->get_staff_performance( $filters ) : array();
 		$landing_performance = ! empty( $options['include_landings'] ) ? $this->get_landing_performance( $filters ) : array();
 		$campaign_summary   = $this->get_campaign_summary( $filters, ! empty( $options['include_landings'] ) );
@@ -71,10 +71,10 @@ class CRPCRM_Reports_Service {
 		);
 	}
 
-	public function get_overview_stats( $filters ) {
+	public function get_overview_stats( $filters, $status_breakdown = null ) {
 		$filters = $this->normalize_filters( $filters );
 		$kpis    = $this->reports_repository->get_kpis( $filters );
-		$status  = $this->get_status_breakdown( $filters );
+		$status  = is_array( $status_breakdown ) ? $status_breakdown : $this->get_status_breakdown( $filters );
 		$status_map = array();
 		foreach ( $status['rows'] as $row ) {
 			$status_map[ $row['status'] ] = absint( $row['total'] );
@@ -126,7 +126,7 @@ class CRPCRM_Reports_Service {
 		$end = $end->setTime( 23, 59, 59 );
 		$current = $start->setTime( 0, 0, 0 );
 		$guard = 0;
-		while ( $current <= $end && $guard < 120 ) {
+		while ( $current <= $end && $guard < 400 ) {
 			$key = $current->format( 'Y-m-d' );
 			$series[] = array(
 				'date'  => $key,
@@ -263,7 +263,7 @@ class CRPCRM_Reports_Service {
 		global $wpdb;
 
 		$filters = $this->normalize_filters( $filters );
-		if ( ! $this->landing_manager || ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
+		if ( ! $this->landing_manager || ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) || ! CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ) {
 			return array();
 		}
 

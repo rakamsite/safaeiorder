@@ -45,6 +45,7 @@ class CRPCRM_Reports_Repository {
 		);
 
 		$allowed_ranges = array( 'today', 'yesterday', 'last_7_days', 'last_30_days', 'current_month', 'last_month', 'custom' );
+		$allowed_ranges[] = 'current_year';
 		if ( ! in_array( $filters['date_range'], $allowed_ranges, true ) ) {
 			$filters['date_range'] = 'last_30_days';
 		}
@@ -179,11 +180,6 @@ class CRPCRM_Reports_Repository {
 			$where['values']
 		);
 
-		foreach ( $rows as &$row ) {
-			$row['top_source'] = $this->get_top_group_value( 'request_source', $filters, 'request_content', $row['request_content'] );
-			$row['top_type']   = $this->get_top_group_value( 'request_type', $filters, 'request_content', $row['request_content'] );
-		}
-		unset( $row );
 		return $rows;
 	}
 
@@ -201,11 +197,6 @@ class CRPCRM_Reports_Repository {
 			ORDER BY total DESC",
 			$where['values']
 		);
-		foreach ( $rows as &$row ) {
-			$row['top_source']   = $this->get_top_group_value( 'request_source', $filters, 'request_type', $row['request_type'] );
-			$row['top_campaign'] = $this->get_top_group_value( 'request_campaign', $filters, 'request_type', $row['request_type'] );
-		}
-		unset( $row );
 		return $rows;
 	}
 
@@ -484,25 +475,6 @@ class CRPCRM_Reports_Repository {
 				", $columns ) : '',
 			'values' => $values,
 		);
-	}
-
-	private function get_top_group_value( $field, $filters, $match_field, $match_value ) {
-		$allowed_fields = array( 'request_source', 'request_type', 'request_campaign', 'request_content' );
-		if ( ! in_array( $field, $allowed_fields, true ) || ! in_array( $match_field, $allowed_fields, true ) ) {
-			return '';
-		}
-		$item_filters = $filters;
-		if ( '' === $match_value || null === $match_value ) {
-			$extra_sql    = " AND (r.$match_field IS NULL OR r.$match_field = '')";
-			$extra_values = array();
-		} else {
-			$extra_sql    = " AND r.$match_field = %s";
-			$extra_values = array( sanitize_text_field( $match_value ) );
-		}
-		$where = $this->build_request_filters_where( $item_filters );
-		$sql   = "SELECT COALESCE(NULLIF(r.$field, ''), '') AS item_value, COUNT(*) AS total FROM {$this->requests_table} r {$where['sql']} {$extra_sql} GROUP BY COALESCE(NULLIF(r.$field, ''), '') ORDER BY total DESC LIMIT 1";
-		$row   = $this->get_row( $sql, array_merge( $where['values'], $extra_values ) );
-		return $row ? $row['item_value'] : '';
 	}
 
 	private function resolve_date_range( $filters ) {

@@ -1,6 +1,23 @@
 (function () {
 	'use strict';
 
+	if (window.Element && !Element.prototype.matches) {
+		Element.prototype.matches = Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
+	}
+
+	if (window.Element && !Element.prototype.closest) {
+		Element.prototype.closest = function (selector) {
+			var node = this;
+			while (node && node.nodeType === 1) {
+				if (node.matches && node.matches(selector)) {
+					return node;
+				}
+				node = node.parentElement || node.parentNode;
+			}
+			return null;
+		};
+	}
+
 	var modal = null;
 	var modalImage = null;
 	var modalTitle = null;
@@ -58,6 +75,7 @@
 		modalImage.alt = alt;
 		modalTitle.textContent = filename || '';
 		modalDownload.href = downloadUrl || fullUrl;
+		modalDownload.textContent = 'دانلود فایل';
 		if (filename) {
 			modalDownload.setAttribute('download', filename);
 		} else {
@@ -67,6 +85,7 @@
 		node.classList.add('is-open');
 		node.setAttribute('aria-hidden', 'false');
 		body.classList.add('crpcrm-file-modal-open');
+		node.querySelector('.crpcrm-file-modal-close').focus();
 	}
 
 	function closeModal() {

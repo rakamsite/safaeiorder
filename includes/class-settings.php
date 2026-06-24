@@ -28,6 +28,9 @@ class CRPCRM_Settings {
 			'otp_provider'                         => 'melipayamak',
 			'otp_expiration_minutes'               => 2,
 			'otp_resend_seconds'                   => 60,
+			'otp_rate_limit_phone_limit'           => 6,
+			'otp_rate_limit_ip_limit'              => 50,
+			'otp_rate_limit_window_minutes'        => 15,
 			'otp_max_attempts'                     => 5,
 			'otp_debug_mode'                       => 'no',
 			'melipayamak_username'                 => '',
@@ -187,9 +190,12 @@ class CRPCRM_Settings {
 			}
 			$settings['request_success_message'] = isset( $input['request_success_message'] ) && '' !== trim( (string) $input['request_success_message'] ) ? sanitize_textarea_field( $input['request_success_message'] ) : $defaults['request_success_message'];
 		} elseif ( 'otp' === $active_tab ) {
+			$settings['otp_rate_limit_phone_limit']    = $this->bounded_absint( $input, 'otp_rate_limit_phone_limit', 1, 20, $defaults['otp_rate_limit_phone_limit'] );
+			$settings['otp_rate_limit_ip_limit']       = $this->bounded_absint( $input, 'otp_rate_limit_ip_limit', 1, 200, $defaults['otp_rate_limit_ip_limit'] );
+			$settings['otp_rate_limit_window_minutes'] = $this->bounded_absint( $input, 'otp_rate_limit_window_minutes', 1, 1440, $defaults['otp_rate_limit_window_minutes'] );
+			$settings['otp_resend_seconds']            = $this->bounded_absint( $input, 'otp_resend_seconds', 10, 600, $defaults['otp_resend_seconds'] );
 			if ( CRPCRM_Feature_Manager::is_enabled( 'otp' ) ) {
 				$settings['otp_expiration_minutes'] = $this->bounded_absint( $input, 'otp_expiration_minutes', 1, 60, $defaults['otp_expiration_minutes'] );
-				$settings['otp_resend_seconds']     = $this->bounded_absint( $input, 'otp_resend_seconds', 10, 600, $defaults['otp_resend_seconds'] );
 				$settings['otp_max_attempts']       = $this->bounded_absint( $input, 'otp_max_attempts', 1, 20, $defaults['otp_max_attempts'] );
 				$settings['otp_debug_mode']         = $this->checkbox( $input, 'otp_debug_mode' );
 			}
