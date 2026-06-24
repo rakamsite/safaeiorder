@@ -555,6 +555,41 @@
 		return list ? list.querySelectorAll('.crpcrm-file-upload-row') : [];
 	}
 
+	function getUploadedFiles(wrapper) {
+		var store = wrapper ? wrapper.querySelector('.crpcrm-uploaded-files-store') : null;
+		if (!store || !store.value) {
+			return [];
+		}
+
+		try {
+			return JSON.parse(store.value) || [];
+		} catch (error) {
+			return [];
+		}
+	}
+
+	function getUploadedFilesCount(wrapper) {
+		return getUploadedFiles(wrapper).length;
+	}
+
+	function getUploadedFilesTotalSize(wrapper) {
+		return getUploadedFiles(wrapper).reduce(function (total, file) {
+			return total + parseInt((file && file.size) ? file.size : 0, 10);
+		}, 0);
+	}
+
+	function getWrapperMaxFiles(wrapper, config) {
+		var local = wrapper && wrapper.dataset ? parseInt(wrapper.dataset.maxFiles || '', 10) : 0;
+		var globalValue = config ? parseInt(config.fileUploadMaxFiles || '', 10) : 0;
+		return local || globalValue || 5;
+	}
+
+	function getWrapperMaxTotalSize(wrapper, config) {
+		var local = wrapper && wrapper.dataset ? parseInt(wrapper.dataset.maxTotalSize || '', 10) : 0;
+		var globalValue = config ? parseInt(config.fileUploadMaxTotalSize || '', 10) : 0;
+		return local || globalValue || 26214400;
+	}
+
 	function refreshUploadRequirements(wrapper) {
 		if (!wrapper) {
 			return;
@@ -709,6 +744,28 @@
 			return;
 		}
 
+		if ((getUploadedFilesCount(wrapper) + 1) > getWrapperMaxFiles(wrapper, config)) {
+			preview.innerHTML = '';
+			var tooMany = document.createElement('span');
+			tooMany.className = 'crpcrm-file-upload-name';
+			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'حداکثر 5 فایل مجاز است.');
+			preview.appendChild(tooMany);
+			input.value = '';
+			refreshUploadRequirements(wrapper);
+			return;
+		}
+
+		if ((getUploadedFilesTotalSize(wrapper) + (file.size || 0)) > getWrapperMaxTotalSize(wrapper, config)) {
+			preview.innerHTML = '';
+			var totalTooLarge = document.createElement('span');
+			totalTooLarge.className = 'crpcrm-file-upload-name';
+			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'مجموع حجم فایل‌ها بیش از حد مجاز است.');
+			preview.appendChild(totalTooLarge);
+			input.value = '';
+			refreshUploadRequirements(wrapper);
+			return;
+		}
+
 		if (!isAsyncUploadSupported() || !config.ajaxUrl || !config.fileUploadNonce) {
 			renderFallbackFilePreview(preview, file, config);
 			refreshUploadRequirements(wrapper);
@@ -719,6 +776,8 @@
 		formData.append('action', 'crpcrm_upload_request_file');
 		formData.append('nonce', config.fileUploadNonce);
 		formData.append('field_key', (wrapper && wrapper.dataset && wrapper.dataset.fieldName) ? wrapper.dataset.fieldName : '');
+		formData.append('current_file_count', String(getUploadedFilesCount(wrapper)));
+		formData.append('current_total_size', String(getUploadedFilesTotalSize(wrapper)));
 		formData.append('file', file);
 
 		preview.innerHTML = '<span class="crpcrm-file-upload-name">' + (config.fileUploadLoading || 'Uploading...') + '</span>';
@@ -911,6 +970,9 @@
 			refreshUploadRequirements(wrapper);
 
 			add.addEventListener('click', function () {
+				if (getUploadRows(wrapper).length >= getWrapperMaxFiles(wrapper, config)) {
+					return;
+				}
 				list.appendChild(createUploadRow(name, false, wrapper, config));
 				refreshUploadRequirements(wrapper);
 			});

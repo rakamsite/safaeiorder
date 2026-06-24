@@ -55,7 +55,7 @@ Form Builder ماژول فعلی مدیریت فرم‌های درخواست ا�
 - کاربرد: ضمیمه‌کردن تصویر یا PDF به فرم.
 - ذخیره در `request_data`: بله، به‌صورت metadata نرمال‌شده.
 - نمایش در خلاصه درخواست: نه به‌صورت URL خام؛ فقط از renderer فایل.
-- نکته امنیتی: آپلود فقط از helper مرکزی و مسیر `uploads/crpcrm-request-files/YYYY/MM/` انجام می‌شود. اگر phase hardening فعال باشد، token/pending upload نیز باید verify شود.
+- نکته امنیتی: آپلود فقط از helper مرکزی و مسیر `uploads/crpcrm-protected/request-files/YYYY/MM/` انجام می‌شود. اگر phase hardening فعال باشد، token/pending upload نیز باید verify شود.
 - فایل‌های legacy که فقط URL دارند باید برای نمایش پشتیبانی شوند.
 
 ### `display_html`

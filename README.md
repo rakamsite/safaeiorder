@@ -12,7 +12,7 @@
 - `request_type` اکنون با `form_id` فرم‌ها هماهنگ است.
 - UI افزونه باید از کلاس‌های prefix‌دار `crpcrm` استفاده کند و CSS عمومی بدون scope ممنوع است.
 - سیستم اعلانات مرکزی و گفت‌وگوی درخواست‌ها در افزونه فعال است.
-- آپلودهای `file_upload` در مسیر اختصاصی `uploads/crpcrm-request-files/YYYY/MM/` ذخیره می‌شوند.
+- آپلودهای `file_upload` در مسیر اختصاصی `uploads/crpcrm-protected/request-files/YYYY/MM/` ذخیره می‌شوند.
 
 ## معرفی افزونه
 

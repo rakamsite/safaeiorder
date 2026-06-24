@@ -56,6 +56,8 @@ class CRPCRM_Public {
 				'fileUploadTooLarge'   => 'حجم فایل بیش از حد مجاز است.',
 				'fileUploadNetwork'    => 'ارتباط با سرور برقرار نشد.',
 				'fileUploadMaxSize'    => CRPCRM_Dynamic_Form_Renderer::MAX_FILE_SIZE,
+				'fileUploadMaxFiles'   => CRPCRM_Dynamic_Form_Renderer::MAX_FILES_PER_FIELD,
+				'fileUploadMaxTotalSize' => CRPCRM_Dynamic_Form_Renderer::MAX_TOTAL_REQUEST_SIZE,
 				'fileUploadError'      => 'بارگذاری فایل انجام نشد.',
 				'fileUploadedLabel'    => 'بارگذاری شده',
 				'filePreviewLabel'     => 'مشاهده فایل',
@@ -117,7 +119,14 @@ class CRPCRM_Public {
 		}
 
 		$field_key = isset( $_POST['field_key'] ) ? sanitize_key( wp_unslash( $_POST['field_key'] ) ) : '';
-		$file      = CRPCRM_Dynamic_Form_Renderer::handle_async_upload( $_FILES['file'], $field_key );
+		$file      = CRPCRM_Dynamic_Form_Renderer::handle_async_upload(
+			$_FILES['file'],
+			$field_key,
+			array(
+				'current_file_count' => isset( $_POST['current_file_count'] ) ? absint( $_POST['current_file_count'] ) : 0,
+				'current_total_size' => isset( $_POST['current_total_size'] ) ? absint( $_POST['current_total_size'] ) : 0,
+			)
+		);
 		if ( is_wp_error( $file ) ) {
 			wp_send_json_error( array( 'message' => $file->get_error_message() ), 400 );
 		}

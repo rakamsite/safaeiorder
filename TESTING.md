@@ -167,7 +167,7 @@
 
 ## File Upload
 
-- [ ] فایل جدید `file_upload` در `uploads/crpcrm-request-files/YYYY/MM/` ذخیره می‌شود.
+- [ ] فایل جدید `file_upload` در `uploads/crpcrm-protected/request-files/YYYY/MM/` ذخیره می‌شود.
 - [ ] `upload_dir` فقط هنگام آپلود همین فیلد اعمال می‌شود.
 - [ ] تصویر در جزئیات درخواست به‌صورت thumbnail نمایش داده می‌شود.
 - [ ] کلیک روی thumbnail تصویر modal را باز می‌کند.
@@ -257,7 +257,7 @@
 - [ ] صفحه اعلانات روی کاربر دیگر دسترسی نمی‌دهد.
 
 ### File Upload
-- [ ] فایل جدید در `uploads/crpcrm-request-files/YYYY/MM/` ذخیره می‌شود.
+- [ ] فایل جدید در `uploads/crpcrm-protected/request-files/YYYY/MM/` ذخیره می‌شود.
 - [ ] `upload_dir` فقط در زمان آپلود همین فیلد اعمال می‌شود.
 - [ ] token/pending upload برای فایل جدید verify می‌شود.
 - [ ] فایل orphan منقضی‌شده توسط cleanup حذف می‌شود.
