@@ -495,13 +495,16 @@ class CRPCRM_Portal_Shortcode {
 			CRPCRM_Logger::error( 'customer_request_reply_failed', 'request', array( 'user_id' => $user_id, 'request_id' => $request_id, 'reason' => 'activity_insert_failed' ) );
 			$this->redirect_with_notice( $this->get_portal_url( 'request_detail', array( 'request_id' => $request_id ) ), 'error', 'ارسال پاسخ انجام نشد. لطفاً دوباره تلاش کنید.' );
 		}
-		$this->request_repository->update(
+		$activity_update = $this->request_repository->update(
 			$request_id,
 			array(
 				'last_action'      => 'customer_reply',
 				'last_activity_at' => $now,
 			)
 		);
+		if ( ! $activity_update ) {
+			CRPCRM_Logger::error( 'customer_request_reply_last_activity_update_failed', 'request', array( 'user_id' => $user_id, 'request_id' => $request_id ) );
+		}
 
 		$this->notification_service->notify_reply_added(
 			$request,
