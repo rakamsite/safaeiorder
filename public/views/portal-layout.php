@@ -73,7 +73,7 @@ $form_error            = ! empty( $portal_data['form_error'] ) ? $portal_data['f
 					<p><?php echo esc_html( 'هنوز درخواستی ثبت نکرده‌اید.' ); ?></p>
 				<?php else : ?>
 					<div class="crpcrm-table-wrap">
-						<table class="crpcrm-requests-table">
+						<table class="crpcrm-requests-table crpcrm-customer-requests-table">
 							<thead>
 								<tr>
 									<th><?php echo esc_html( 'کد پیگیری' ); ?></th>

@@ -1040,15 +1040,6 @@
 	gap: 12px;
 }
 
-.crpcrm-requests-table th:nth-child(3),
-.crpcrm-requests-table td:nth-child(3),
-.crpcrm-requests-table th:nth-child(5),
-.crpcrm-requests-table td:nth-child(5),
-.crpcrm-requests-table th:nth-child(8),
-.crpcrm-requests-table td:nth-child(8) {
-	display: none;
-}
-
 .crpcrm-table-scroll { overflow-x: auto; }
 .crpcrm-staff-list td { vertical-align: middle; }
 .crpcrm-staff-detail { margin-top: 20px; }

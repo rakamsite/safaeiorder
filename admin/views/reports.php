@@ -473,7 +473,7 @@ $selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_
 			</p>
 		</div>
 		<div class="crpcrm-table-wrap">
-			<table class="crpcrm-table crpcrm-requests-table">
+			<table class="crpcrm-table crpcrm-requests-table crpcrm-report-requests-table">
 				<thead>
 					<tr>
 						<th><?php echo esc_html( 'کد پیگیری' ); ?></th>

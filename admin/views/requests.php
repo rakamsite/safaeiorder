@@ -459,7 +459,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		</form>
 
 		<div class="crpcrm-table-wrap">
-			<table class="widefat fixed striped crpcrm-requests-table">
+			<table class="widefat fixed striped crpcrm-requests-table crpcrm-admin-requests-table">
 				<thead><tr>
 					<th><?php echo esc_html( 'کد پیگیری' ); ?></th><th><?php echo esc_html( 'مشتری' ); ?></th><th><?php echo esc_html( 'موبایل' ); ?></th><th><?php echo esc_html( 'نوع درخواست' ); ?></th><th><?php echo esc_html( 'خلاصه درخواست' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'منبع' ); ?></th><th><?php echo esc_html( 'منبع ورودی' ); ?></th><th><?php echo esc_html( 'کمپین' ); ?></th><th><?php echo esc_html( 'مسئول' ); ?></th><th><?php echo esc_html( 'پیگیری بعدی' ); ?></th><th><?php echo esc_html( 'تاریخ ثبت' ); ?></th><th><?php echo esc_html( 'آخرین بروزرسانی' ); ?></th><th><?php echo esc_html( 'عملیات' ); ?></th>
 				</tr></thead>

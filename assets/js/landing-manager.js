@@ -39,10 +39,34 @@
 		};
 	}
 
+	function clearElement(element) {
+		while (element && element.firstChild) {
+			element.removeChild(element.firstChild);
+		}
+	}
+
+	function setMessage(element, className, text) {
+		if (!element) {
+			return;
+		}
+
+		clearElement(element);
+		if (!text) {
+			return;
+		}
+
+		const node = document.createElement(className === 'span' ? 'span' : 'div');
+		if ('span' !== className) {
+			node.className = className;
+		}
+		node.textContent = text;
+		element.appendChild(node);
+	}
+
 	function setSelectedDestination(result, input, hidden, box) {
 		if (!result) {
 			hidden.value = '';
-			box.innerHTML = '<span>' + (config.emptyLabel || '') + '</span>';
+			setMessage(box, 'span', config.emptyLabel || '');
 			return;
 		}
 
@@ -52,7 +76,7 @@
 		const meta = document.createElement('span');
 		meta.textContent = result.url || '';
 
-		box.innerHTML = '';
+		clearElement(box);
 		box.appendChild(title);
 		box.appendChild(meta);
 	}
@@ -77,7 +101,7 @@
 	}
 
 	function renderResults(container, results, input, hidden, box) {
-		container.innerHTML = '';
+		clearElement(container);
 		if (!results.length) {
 			const empty = document.createElement('div');
 			empty.className = 'crpcrm-landing-search-empty';
@@ -98,7 +122,7 @@
 			button.textContent = (result.label || '') + (result.type ? ' (' + result.type + ')' : '');
 			button.addEventListener('click', function () {
 				setSelectedDestination(result, input, hidden, box);
-				container.innerHTML = '';
+				clearElement(container);
 				input.value = '';
 			});
 			list.appendChild(button);
@@ -116,17 +140,17 @@
 			const runSearch = debounce(async function () {
 				const term = searchInput.value.trim();
 				if (term.length < 2) {
-					resultsBox.innerHTML = '';
+					clearElement(resultsBox);
 					return;
 				}
 
-				resultsBox.innerHTML = '<div class="crpcrm-landing-search-loading">' + (config.searchingLabel || '') + '</div>';
+				setMessage(resultsBox, 'crpcrm-landing-search-loading', config.searchingLabel || '');
 				try {
 					const results = await searchTargets(term);
 					renderResults(resultsBox, results, searchInput, hiddenInput, selectedBox);
 				} catch (error) {
 					log('landing search failed', error);
-					resultsBox.innerHTML = '<div class="crpcrm-landing-search-empty">' + (config.emptyLabel || '') + '</div>';
+					setMessage(resultsBox, 'crpcrm-landing-search-empty', config.emptyLabel || '');
 				}
 			}, 250);
 
