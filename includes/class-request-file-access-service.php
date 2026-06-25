@@ -47,7 +47,7 @@ class CRPCRM_Request_File_Access_Service {
 		}
 
 		$path = CRPCRM_Dynamic_Form_Renderer::resolve_uploaded_file_real_path( $file );
-		if ( '' === $path || ! file_exists( $path ) || ! is_readable( $path ) ) {
+		if ( '' === $path || ! CRPCRM_Request_File_Cleanup_Service::is_allowed_uploaded_path( $path ) || ! file_exists( $path ) || ! is_readable( $path ) ) {
 			wp_die( esc_html__( 'فایل موردنظر یافت نشد.', 'customer-request-portal-crm' ), '', array( 'response' => 404 ) );
 		}
 

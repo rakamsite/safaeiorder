@@ -144,6 +144,12 @@ class CRPCRM_Request_File_Cleanup_Service {
 		return $service->delete_file_by_path( $path, $relative_path );
 	}
 
+	public static function is_allowed_uploaded_path( $path ) {
+		$service = new self();
+
+		return '' !== $service->resolve_allowed_root( $path );
+	}
+
 	private function delete_file_by_path( $path, $relative_path = '' ) {
 		$path = $this->normalize_real_path( $path );
 		if ( ! $path ) {

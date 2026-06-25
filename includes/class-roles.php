@@ -48,8 +48,8 @@ class CRPCRM_Roles {
 		}
 
 		// Some sites redirect every user without this core capability away from wp-admin.
-		// It is granted only during normal admin requests; non-CRM admin screens are blocked below.
-		if ( is_admin() && ! wp_doing_ajax() ) {
+		// Keep it available only for CRM pages and CRM-owned admin-post actions.
+		if ( is_admin() && ! wp_doing_ajax() && ( self::is_crm_admin_page() || self::is_crm_admin_post_action() ) ) {
 			$allcaps['edit_posts'] = true;
 		}
 
@@ -62,7 +62,11 @@ class CRPCRM_Roles {
 		}
 
 		global $pagenow;
-		if ( 'admin-post.php' === $pagenow || self::is_crm_admin_page() ) {
+		if ( self::is_crm_admin_page() ) {
+			return;
+		}
+
+		if ( 'admin-post.php' === $pagenow && self::is_crm_admin_post_action() ) {
 			return;
 		}
 
@@ -104,6 +108,17 @@ class CRPCRM_Roles {
 
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 		return 0 === strpos( $page, 'crpcrm-' );
+	}
+
+	private static function is_crm_admin_post_action() {
+		global $pagenow;
+		if ( 'admin-post.php' !== $pagenow ) {
+			return false;
+		}
+
+		$action = isset( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : '';
+
+		return '' !== $action && 0 === strpos( $action, 'crpcrm_' );
 	}
 
 	public static function get_capabilities() {

@@ -85,7 +85,7 @@
 		toastContainer = document.createElement('div');
 		toastContainer.className = 'crpcrm-toast-container';
 		toastContainer.setAttribute('aria-live', 'polite');
-		toastContainer.setAttribute('aria-label', 'Ø§Ø¹Ù„Ø§Ù†â€ŒÙ‡Ø§ÛŒ Ø¬Ø¯ÛŒØ¯');
+		toastContainer.setAttribute('aria-label', 'اعلان‌های جدید');
 		document.body.appendChild(toastContainer);
 		return toastContainer;
 	}
@@ -196,7 +196,7 @@
 		var close = document.createElement('button');
 		close.type = 'button';
 		close.className = 'crpcrm-toast-close';
-		close.setAttribute('aria-label', 'Ø¨Ø³ØªÙ† Ø§Ø¹Ù„Ø§Ù†');
+		close.setAttribute('aria-label', 'بستن اعلان');
 		close.textContent = '×';
 		close.addEventListener('click', function (event) {
 			event.preventDefault();
@@ -206,7 +206,7 @@
 
 		var title = document.createElement('div');
 		title.className = 'crpcrm-toast-title';
-		title.textContent = notification.title || 'Ø§Ø¹Ù„Ø§Ù† Ø¬Ø¯ÛŒØ¯';
+		title.textContent = notification.title || 'اعلان جدید';
 
 		var message = document.createElement('div');
 		message.className = 'crpcrm-toast-message';

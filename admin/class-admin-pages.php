@@ -1274,8 +1274,21 @@ class CRPCRM_Admin_Pages {
 		if ( in_array( $status, array( 'won', 'lost', 'invalid' ), true ) ) {
 			$request_args['closed_at'] = $now;
 		}
-		$request_id = $this->request_repository->create( $request_args );
-		if ( ! $request_id ) {
+		$request_id = $this->request_repository->create(
+			$request_args,
+			array(
+				'type' => 'manual_request_created',
+				'args' => array(
+					'customer_id'   => absint( $customer['id'] ),
+					'actor_user_id' => get_current_user_id(),
+					'actor_type'    => CRPCRM_Request_Access_Service::can_manage_request() ? 'sales_manager' : 'sales_agent',
+					'new_status'    => $status,
+					'note'          => 'درخواست به صورت دستی توسط کارشناس فروش ثبت شد.',
+					'is_internal'   => 1,
+				),
+			)
+		);
+		if ( is_wp_error( $request_id ) || ! $request_id ) {
 			$this->rollback_manual_request_customer( $customer, $created_customer, $created_user );
 			$this->redirect_to_manual_request_form( 'manual_request_failed', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
 		}
