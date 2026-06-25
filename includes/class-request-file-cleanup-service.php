@@ -184,13 +184,11 @@ class CRPCRM_Request_File_Cleanup_Service {
 	}
 
 	private function get_allowed_roots() {
-		$uploads = wp_get_upload_dir();
-		$roots   = array(
-			$this->normalize_root_path( CRPCRM_Dynamic_Form_Renderer::get_protected_upload_root_dir() ),
-			$this->normalize_root_path( trailingslashit( $uploads['basedir'] ) . 'crpcrm-request-files' ),
-		);
+		if ( method_exists( 'CRPCRM_Dynamic_Form_Renderer', 'get_allowed_upload_root_dirs' ) ) {
+			return CRPCRM_Dynamic_Form_Renderer::get_allowed_upload_root_dirs();
+		}
 
-		return array_values( array_filter( array_unique( $roots ) ) );
+		return array_values( array_filter( array( $this->normalize_root_path( CRPCRM_Dynamic_Form_Renderer::get_protected_upload_root_dir() ) ) ) );
 	}
 
 	private function resolve_allowed_root( $path ) {
@@ -200,7 +198,7 @@ class CRPCRM_Request_File_Cleanup_Service {
 		}
 
 		foreach ( $this->get_allowed_roots() as $root ) {
-			if ( $root && 0 === strpos( $path, $root ) ) {
+			if ( $root && 0 === strpos( trailingslashit( $path ), $root ) ) {
 				return $root;
 			}
 		}
