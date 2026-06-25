@@ -97,7 +97,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		if ( $total_uploaded_size > self::MAX_TOTAL_REQUEST_SIZE ) {
 			$errors[] = sprintf(
-				__( "\u{0645}\u{062C}\u{0645}\u{0648}\u{0639} \u{062D}\u{062C}\u{0645} \u{0641}\u{0627}\u{06CC}\u{0644}\u{200C}\u{0647}\u{0627}\u{06CC} \u{0627}\u{0631}\u{0633}\u{0627}\u{0644}\u{06CC} \u{0646}\u{0628}\u{0627}\u{06CC}\u{062F} \u{0628}\u{06CC}\u{0634}\u{062A}\u{0631} \u{0627}\u{0632} %s \u{0628}\u{0627}\u{0634}\u{062F}.", 'customer-request-portal-crm' ),
+				__( 'مجموع حجم فایل‌های ارسالی نباید بیشتر از %s باشد.', 'customer-request-portal-crm' ),
 				size_format( self::MAX_TOTAL_REQUEST_SIZE, 0 )
 			);
 		}
@@ -1253,7 +1253,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		$request_id   = absint( $request_id );
 
 		if ( ! $request_id ) {
-			return $request_data;
+			return new WP_Error( 'crpcrm_request_id_missing', __( 'ثبت فایل‌های درخواست کامل نشد. لطفاً دوباره تلاش کنید.', 'customer-request-portal-crm' ) );
 		}
 
 		return self::finalize_request_data_uploads_recursive( $request_data, $request_id );
@@ -1317,25 +1317,38 @@ class CRPCRM_Dynamic_Form_Renderer {
 		}
 
 		foreach ( $value as $key => $item ) {
-			$value[ $key ] = self::finalize_request_data_uploads_recursive( $item, $request_id );
+			$finalized = self::finalize_request_data_uploads_recursive( $item, $request_id );
+			if ( is_wp_error( $finalized ) ) {
+				return $finalized;
+			}
+			$value[ $key ] = $finalized;
 		}
 
 		return $value;
 	}
 
 	private static function finalize_uploaded_file_payload( $value, $request_id ) {
-		$files = self::normalize_uploaded_file_payload( $value );
-		$final = array();
+		$files           = self::normalize_uploaded_file_payload( $value );
+		$final           = array();
+		$finalize_tokens = array();
 
 		foreach ( $files as $file ) {
 			$file  = is_array( $file ) ? $file : array();
 			$token = ! empty( $file['upload_token'] ) ? sanitize_text_field( $file['upload_token'] ) : '';
 			if ( $token ) {
 				$pending = self::get_pending_upload( $token );
-				if ( $pending && self::pending_upload_belongs_to_actor( $pending ) ) {
-					$file = self::normalize_single_uploaded_file_meta( $pending );
-					self::finalize_pending_upload( $token );
+				if ( ! $pending ) {
+					return new WP_Error( 'crpcrm_pending_upload_missing', __( 'فایل انتخاب‌شده پیدا نشد یا منقضی شده است. لطفاً دوباره فایل را بارگذاری کنید.', 'customer-request-portal-crm' ) );
 				}
+				if ( ! self::pending_upload_belongs_to_actor( $pending, sanitize_key( $file['field_key'] ?? '' ) ) ) {
+					return new WP_Error( 'crpcrm_pending_upload_forbidden', __( 'اجازه استفاده از این فایل موقت را ندارید.', 'customer-request-portal-crm' ) );
+				}
+				$path = self::resolve_uploaded_file_path( $pending );
+				if ( '' === $path || ! file_exists( $path ) || ! is_readable( $path ) ) {
+					return new WP_Error( 'crpcrm_pending_upload_file_missing', __( 'فایل انتخاب‌شده در دسترس نیست. لطفاً دوباره فایل را بارگذاری کنید.', 'customer-request-portal-crm' ) );
+				}
+				$file = self::normalize_single_uploaded_file_meta( $pending );
+				$finalize_tokens[] = $token;
 			}
 
 			$file['request_id'] = absint( $request_id );
@@ -1346,6 +1359,10 @@ class CRPCRM_Dynamic_Form_Renderer {
 			$normalized = self::normalize_single_uploaded_file_meta( $file );
 			$normalized['request_id'] = absint( $request_id );
 			$final[] = $normalized;
+		}
+
+		foreach ( $finalize_tokens as $token ) {
+			self::finalize_pending_upload( $token );
 		}
 
 		return $final;
@@ -1665,7 +1682,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 	}
 
 	/**
-	 * Keep a tiny fallback for upstream upload errors that may arrive empty.
+	 * Keep this defensive fallback for empty or non-string upload errors; primary messages are direct UTF-8 Persian.
 	 */
 	private static function normalize_upload_error_message( $message ) {
 		$message = is_string( $message ) ? trim( $message ) : '';
