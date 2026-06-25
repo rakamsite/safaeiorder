@@ -37,9 +37,6 @@ class CRPCRM_Request_Repository {
 		$request_data  = is_array( $request_data ) ? $request_data : array();
 		$cleanup_data  = $request_data;
 		$activity_type = sanitize_key( $initial_activity['type'] ?? '' );
-		if ( in_array( $activity_type, array( 'request_created', 'manual_request_created' ), true ) ) {
-			$activity_type = '';
-		}
 		$activity_args = isset( $initial_activity['args'] ) && is_array( $initial_activity['args'] ) ? $initial_activity['args'] : array();
 
 		$wpdb->query( 'START TRANSACTION' );
@@ -59,7 +56,12 @@ class CRPCRM_Request_Repository {
 		}
 
 		if ( class_exists( 'CRPCRM_Dynamic_Form_Renderer' ) ) {
-			$finalized    = CRPCRM_Dynamic_Form_Renderer::finalize_request_data_uploads( $request_data, $id );
+			$finalized = CRPCRM_Dynamic_Form_Renderer::finalize_request_data_uploads( $request_data, $id );
+			if ( is_wp_error( $finalized ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				$this->log_create_failure( 'request_file_finalize_failed', array( 'request_id' => $id, 'reason' => $finalized->get_error_code() ) );
+				return new WP_Error( 'request_file_finalize_failed', __( 'ثبت فایل‌های درخواست کامل نشد. لطفاً فایل را دوباره بارگذاری کنید.', 'customer-request-portal-crm' ) );
+			}
 			if ( $finalized !== $request_data ) {
 				$cleanup_data = $finalized;
 				if ( ! $this->update( $id, array( 'request_data' => $finalized ) ) ) {
@@ -73,6 +75,8 @@ class CRPCRM_Request_Repository {
 
 		if ( '' !== $activity_type ) {
 			$activity_args['customer_id'] = isset( $activity_args['customer_id'] ) ? $activity_args['customer_id'] : absint( $data['customer_id'] ?? 0 );
+			$activity_args['meta']        = isset( $activity_args['meta'] ) && is_array( $activity_args['meta'] ) ? $activity_args['meta'] : array();
+			$activity_args['meta']['request_code'] = $request_code;
 			$activity_result              = CRPCRM_Activity::add_required( $id, $activity_type, $activity_args, 'request_create_activity' );
 			if ( is_wp_error( $activity_result ) ) {
 				$wpdb->query( 'ROLLBACK' );

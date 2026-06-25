@@ -470,6 +470,7 @@ $selected_range_label = isset( $date_ranges[ $filters['date_range'] ] ) ? $date_
 			</div>
 			<p>
 				<a class="crpcrm-btn crpcrm-btn-secondary" href="<?php echo esc_url( wp_nonce_url( add_query_arg( $csv_args, admin_url( 'admin-post.php' ) ), 'crpcrm_reports_csv' ) ); ?>"><?php echo esc_html( 'خروجی CSV' ); ?></a>
+				<span class="description"><?php echo esc_html( 'خروجی جزئیات گزارش حداکثر شامل ۱۰۰۰ ردیف است.' ); ?></span>
 			</p>
 		</div>
 		<div class="crpcrm-table-wrap">

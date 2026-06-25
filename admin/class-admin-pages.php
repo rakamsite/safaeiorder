@@ -953,6 +953,7 @@ class CRPCRM_Admin_Pages {
 				CRPCRM_Helpers::get_persian_status_label( $request['status'] ),
 				$owner ? $owner->display_name : 'بدون مسئول',
 				$request['last_activity_at'],
+				'خروجی جزئیات گزارش حداکثر شامل ۱۰۰۰ ردیف است.',
 			);
 		}
 
@@ -961,7 +962,7 @@ class CRPCRM_Admin_Pages {
 		$csv = new CRPCRM_CSV_Exporter();
 		$csv->output_csv(
 			'crpcrm-report-' . CRPCRM_Helpers::now()->format( 'Ymd-His' ) . '.csv',
-			array( 'کد پیگیری', 'تاریخ ثبت', 'نام مشتری', 'موبایل', 'نوع درخواست', 'خلاصه درخواست', 'منبع', 'کمپین', 'محتوا', 'وضعیت', 'مسئول', 'آخرین فعالیت' ),
+			array( 'کد پیگیری', 'تاریخ ثبت', 'نام مشتری', 'موبایل', 'نوع درخواست', 'خلاصه درخواست', 'منبع', 'کمپین', 'محتوا', 'وضعیت', 'مسئول', 'آخرین فعالیت', 'توضیح محدودیت' ),
 			$rows
 		);
 	}
@@ -1294,7 +1295,6 @@ class CRPCRM_Admin_Pages {
 		}
 
 		$request = $this->request_repository->get( $request_id );
-		CRPCRM_Activity::add( $request_id, 'manual_request_created', array( 'customer_id' => absint( $customer['id'] ), 'actor_user_id' => get_current_user_id(), 'actor_type' => CRPCRM_Request_Access_Service::can_manage_request() ? 'sales_manager' : 'sales_agent', 'new_status' => $status, 'note' => 'درخواست به صورت دستی توسط کارشناس فروش ثبت شد.', 'is_internal' => 1 ) );
 		CRPCRM_Logger::info( 'manual_request_created', 'request', array( 'request_id' => $request_id, 'customer_id' => absint( $customer['id'] ), 'actor_user_id' => get_current_user_id() ) );
 		$this->notify_sales_team_about_request( $request_id, $request_args['request_title'] );
 		if ( $owner_id && $owner_id !== get_current_user_id() && $request ) {

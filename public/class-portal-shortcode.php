@@ -409,9 +409,12 @@ class CRPCRM_Portal_Shortcode {
 		}
 
 		if ( ! empty( $landing_attribution ) ) {
-			$this->request_repository->save_landing_attribution( $request_id, $landing_attribution );
+			$landing_saved = $this->request_repository->save_landing_attribution( $request_id, $landing_attribution );
+			if ( false === $landing_saved ) {
+				CRPCRM_Logger::warning( 'request_landing_attribution_save_failed', 'attribution', array( 'request_id' => absint( $request_id ), 'customer_id' => absint( $customer_id ) ) );
+			}
 			if ( class_exists( 'CRPCRM_Landing_Manager' ) ) {
-				( new CRPCRM_Landing_Manager() )->record_conversion_for_request(
+				$conversion_saved = ( new CRPCRM_Landing_Manager() )->record_conversion_for_request(
 					$request_id,
 					array(
 						'click_id'     => absint( $landing_attribution['last_touch']['click_id'] ?? 0 ),
@@ -421,30 +424,14 @@ class CRPCRM_Portal_Shortcode {
 						'converted_at' => $landing_attribution['converted_at'] ?? $now,
 					)
 				);
+				if ( false === $conversion_saved ) {
+					CRPCRM_Logger::warning( 'request_landing_conversion_save_failed', 'attribution', array( 'request_id' => absint( $request_id ), 'customer_id' => absint( $customer_id ) ) );
+				}
 			}
 		}
 
 		$request      = $this->request_repository->get( $request_id );
 		$request_code = $request && ! empty( $request['request_code'] ) ? $request['request_code'] : $this->request_repository->generate_request_code( $request_id );
-
-		$this->activity_repository->add_activity(
-			$request_id,
-			'request_created',
-			array(
-				'customer_id'   => $customer_id,
-				'actor_user_id' => $user_id,
-				'actor_type'    => 'customer',
-				'new_status'    => 'new',
-				'note'          => 'درخواست توسط مشتری ثبت شد.',
-				'is_internal'   => 0,
-				'meta'          => array(
-					'request_type' => $request_type,
-					'request_code' => $request_code,
-					'source'       => $effective_attribution['source'],
-					'campaign'     => $effective_attribution['campaign'],
-				),
-			)
-		);
 
 		CRPCRM_Logger::info( 'customer_request_created', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'request_id' => $request_id, 'request_code' => $request_code, 'request_type' => $request_type, 'source' => $effective_attribution['source'], 'campaign' => $effective_attribution['campaign'] ) );
 		$this->notify_sales_team_about_request( $request_id, $form['title'] );

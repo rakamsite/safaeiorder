@@ -107,7 +107,7 @@ class CRPCRM_Roles {
 		}
 
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-		return 0 === strpos( $page, 'crpcrm-' );
+		return in_array( $page, self::get_allowed_crm_admin_pages(), true );
 	}
 
 	private static function is_crm_admin_post_action() {
@@ -118,8 +118,56 @@ class CRPCRM_Roles {
 
 		$action = isset( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : '';
 
-		return '' !== $action && 0 === strpos( $action, 'crpcrm_' );
+		return in_array( $action, self::get_allowed_crm_admin_post_actions(), true );
 	}
+
+
+	private static function get_allowed_crm_admin_pages() {
+		return array(
+			'crpcrm-dashboard',
+			'crpcrm-requests',
+			'crpcrm-customers',
+			'crpcrm-reports',
+			'crpcrm-staff',
+			'crpcrm-notifications',
+			'crpcrm-settings',
+			'crpcrm-landings',
+			'crpcrm-form-builder',
+		);
+	}
+
+	private static function get_allowed_crm_admin_post_actions() {
+		return array(
+			'crpcrm_claim_request',
+			'crpcrm_change_owner',
+			'crpcrm_release_owner',
+			'crpcrm_delete_request',
+			'crpcrm_delete_customer',
+			'crpcrm_add_sales_action',
+			'crpcrm_create_manual_request',
+			'crpcrm_reports_csv',
+			'crpcrm_staff_action',
+			'crpcrm_staff_request_reply',
+			'crpcrm_save_landing_link',
+			'crpcrm_landing_action',
+			'crpcrm_save_custom_form',
+			'crpcrm_delete_custom_form',
+			'crpcrm_restore_default_forms',
+			'crpcrm_export_requests',
+			'crpcrm_export_customers',
+			'crpcrm_export_daily_reports',
+			'crpcrm_export_staff_requests',
+			'crpcrm_export_staff_issues',
+			'crpcrm_cleanup_logs',
+			'crpcrm_repair_tables',
+			'crpcrm_tools_rebuild_roles',
+			'crpcrm_fix_request_codes',
+			'crpcrm_notification_action',
+			'crpcrm_save_settings',
+			'crpcrm_rebuild_roles',
+		);
+	}
+
 
 	public static function get_capabilities() {
 		return array(
