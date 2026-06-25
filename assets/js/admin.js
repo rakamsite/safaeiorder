@@ -26,14 +26,14 @@
 		};
 	}
 
-	var persianDigits = ['Û°', 'Û±', 'Û²', 'Û³', 'Û´', 'Ûµ', 'Û¶', 'Û·', 'Û¸', 'Û¹'];
-	var monthNames = ['ÙØ±ÙˆØ±Ø¯ÛŒÙ†', 'Ø§Ø±Ø¯ÛŒØ¨Ù‡Ø´Øª', 'Ø®Ø±Ø¯Ø§Ø¯', 'ØªÛŒØ±', 'Ù…Ø±Ø¯Ø§Ø¯', 'Ø´Ù‡Ø±ÛŒÙˆØ±', 'Ù…Ù‡Ø±', 'Ø¢Ø¨Ø§Ù†', 'Ø¢Ø°Ø±', 'Ø¯ÛŒ', 'Ø¨Ù‡Ù…Ù†', 'Ø§Ø³ÙÙ†Ø¯'];
-	var weekDays = ['Ø´', 'ÛŒ', 'Ø¯', 'Ø³', 'Ú†', 'Ù¾', 'Ø¬'];
+	var persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+	var monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+	var weekDays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 	var activePicker = null;
 
 	function toLatin(value) {
-		return String(value || '').replace(/[Û°-Û¹Ù -Ù©]/g, function (digit) {
-			return 'Û°Û±Û²Û³Û´ÛµÛ¶Û·Û¸Û¹Ù Ù¡Ù¢Ù£Ù¤Ù¥Ù¦Ù§Ù¨Ù©'.indexOf(digit) % 10;
+		return String(value || '').replace(/[۰-۹٠-٩]/g, function (digit) {
+			return '۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩'.indexOf(digit) % 10;
 		});
 	}
 
@@ -168,12 +168,12 @@
 		header.className = 'crpcrm-jalali-picker-header';
 		var next = document.createElement('button');
 		next.type = 'button';
-		next.textContent = 'â€¹';
+		next.textContent = '‹';
 		var title = document.createElement('strong');
 		title.textContent = monthNames[month - 1] + ' ' + toPersian(year);
 		var prev = document.createElement('button');
 		prev.type = 'button';
-		prev.textContent = 'â€º';
+		prev.textContent = '›';
 		header.appendChild(next);
 		header.appendChild(title);
 		header.appendChild(prev);
@@ -214,7 +214,7 @@
 		tools.className = 'crpcrm-jalali-picker-tools';
 		var today = document.createElement('button');
 		today.type = 'button';
-		today.textContent = 'Ø§Ù…Ø±ÙˆØ²';
+		today.textContent = 'امروز';
 		today.addEventListener('click', function () {
 			var now = new Date();
 			input.value = displayFromIso(now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()));
@@ -223,7 +223,7 @@
 		});
 		var clear = document.createElement('button');
 		clear.type = 'button';
-		clear.textContent = 'Ù¾Ø§Ú© Ú©Ø±Ø¯Ù†';
+		clear.textContent = 'پاک کردن';
 		clear.addEventListener('click', function () {
 			input.value = '';
 			syncHidden(input);
@@ -401,8 +401,8 @@
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-product-chip-remove';
-		remove.setAttribute('aria-label', labels.productRemoveLabel || 'Ø­Ø°Ù Ù…Ø­ØµÙˆÙ„');
-		remove.textContent = 'Ã—';
+		remove.setAttribute('aria-label', labels.productRemoveLabel || 'حذف محصول');
+		remove.textContent = '×';
 		remove.addEventListener('click', function () {
 			chip.remove();
 			syncProductHiddenValue(container, hidden);
@@ -451,7 +451,7 @@
 				if (!items.length) {
 					var empty = document.createElement('div');
 					empty.className = 'crpcrm-product-search-empty';
-					empty.textContent = labels.productSearchEmpty || 'Ù…Ø­ØµÙˆÙ„ÛŒ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯.';
+					empty.textContent = labels.productSearchEmpty || 'محصولی پیدا نشد.';
 					results.appendChild(empty);
 					results.hidden = false;
 					return;
@@ -501,7 +501,7 @@
 				}
 
 				results.hidden = false;
-				renderStatusMessage(results, 'crpcrm-product-search-empty', labels.productSearchLoading || 'Ø¯Ø± Ø­Ø§Ù„ Ø¬Ø³ØªØ¬Ùˆ...');
+				renderStatusMessage(results, 'crpcrm-product-search-empty', labels.productSearchLoading || 'در حال جستجو...');
 
 				if (window.AbortController) {
 					if (abortController) {
@@ -664,7 +664,7 @@
 			}
 
 			if ('function' === typeof input.setCustomValidity) {
-				input.setCustomValidity(input.files && input.files.length ? '' : 'Ø­Ø¯Ø§Ù‚Ù„ ÛŒÚ© ÙØ§ÛŒÙ„ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ù†ÛŒØ¯.');
+				input.setCustomValidity(input.files && input.files.length ? '' : 'حداقل یک فایل انتخاب کنید.');
 				return;
 			}
 		});
@@ -903,7 +903,7 @@
 			preview.innerHTML = '';
 			var tooMany = document.createElement('span');
 			tooMany.className = 'crpcrm-file-upload-name';
-			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'Ø­Ø¯Ø§Ú©Ø«Ø± 5 ÙØ§ÛŒÙ„ Ù…Ø¬Ø§Ø² Ø§Ø³Øª.');
+			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'حداکثر 5 فایل مجاز است.');
 			preview.appendChild(tooMany);
 			input.value = '';
 			refreshUploadRequirements(wrapper);
@@ -914,7 +914,7 @@
 			preview.innerHTML = '';
 			var totalTooLarge = document.createElement('span');
 			totalTooLarge.className = 'crpcrm-file-upload-name';
-			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'Ù…Ø¬Ù…ÙˆØ¹ Ø­Ø¬Ù… ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ø¨ÛŒØ´ Ø§Ø² Ø­Ø¯ Ù…Ø¬Ø§Ø² Ø§Ø³Øª.');
+			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'مجموع حجم فایل‌ها بیش از حد مجاز است.');
 			preview.appendChild(totalTooLarge);
 			input.value = '';
 			refreshUploadRequirements(wrapper);
@@ -1009,7 +1009,7 @@
 		row.dataset.boundUpload = '1';
 
 		if (input) {
-			input.setAttribute('aria-label', input.getAttribute('aria-label') || 'Ø§Ù†ØªØ®Ø§Ø¨ ÙØ§ÛŒÙ„');
+			input.setAttribute('aria-label', input.getAttribute('aria-label') || 'انتخاب فایل');
 			input.addEventListener('change', function () {
 				uploadSelectedFile(input, preview, wrapper, config);
 			});
@@ -1024,7 +1024,7 @@
 		input.type = 'file';
 		input.name = name + '[]';
 		input.accept = '.jpg,.jpeg,.png,.webp,.gif,.pdf';
-		input.setAttribute('aria-label', 'Ø§Ù†ØªØ®Ø§Ø¨ ÙØ§ÛŒÙ„');
+		input.setAttribute('aria-label', 'انتخاب فایل');
 		if (required) {
 			input.required = true;
 			input.setAttribute('data-required', '1');
@@ -1038,9 +1038,9 @@
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-file-upload-remove';
-		remove.setAttribute('aria-label', 'Ø­Ø°Ù ÙØ§ÛŒÙ„');
-		remove.setAttribute('title', 'Ø­Ø°Ù ÙØ§ÛŒÙ„');
-		remove.textContent = 'Ã—';
+		remove.setAttribute('aria-label', 'حذف فایل');
+		remove.setAttribute('title', 'حذف فایل');
+		remove.textContent = '×';
 		row.appendChild(remove);
 
 		bindUploadRow(row, wrapper, config);
@@ -1057,14 +1057,14 @@
 		modal.className = 'crpcrm-file-preview-modal';
 		modal.setAttribute('role', 'dialog');
 		modal.setAttribute('aria-modal', 'true');
-		modal.setAttribute('aria-label', 'پیش‌نمایش فایل');
+		modal.setAttribute('aria-label', '????????? ????');
 		modal.setAttribute('aria-hidden', 'true');
 
 		var closeButton = document.createElement('button');
 		closeButton.type = 'button';
 		closeButton.className = 'crpcrm-file-preview-close';
-		closeButton.setAttribute('aria-label', 'بستن');
-		closeButton.setAttribute('title', 'بستن');
+		closeButton.setAttribute('aria-label', '????');
+		closeButton.setAttribute('title', '????');
 		closeButton.textContent = '×';
 
 		var image = document.createElement('img');
@@ -1077,7 +1077,7 @@
 		download.className = 'crpcrm-file-preview-download button button-primary';
 		download.href = '#';
 		download.setAttribute('download', '');
-		download.textContent = 'دانلود فایل';
+		download.textContent = '?????? ????';
 
 		modal.appendChild(closeButton);
 		modal.appendChild(image);

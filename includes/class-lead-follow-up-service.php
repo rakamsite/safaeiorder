@@ -97,7 +97,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 				)
 			);
 
-			if ( ! $request_id ) {
+			if ( is_wp_error( $request_id ) || ! $request_id ) {
 				continue;
 			}
 

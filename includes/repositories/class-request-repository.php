@@ -16,13 +16,13 @@ class CRPCRM_Request_Repository {
 		$this->table = CRPCRM_DB::table( 'requests' );
 	}
 
-	public function create( $data ) {
+	public function create( $data, $initial_activity = array() ) {
 		global $wpdb;
 
-		$now  = CRPCRM_Helpers::current_datetime();
-		$data = $this->with_form_metadata( $data );
-		$data = $this->sanitize_data( $data );
-		$data = wp_parse_args(
+		$now          = CRPCRM_Helpers::current_datetime();
+		$data         = $this->with_form_metadata( $data );
+		$data         = $this->sanitize_data( $data );
+		$data         = wp_parse_args(
 			$data,
 			array(
 				'request_code'     => 'TEMP-' . wp_generate_uuid4(),
@@ -33,24 +33,55 @@ class CRPCRM_Request_Repository {
 				'updated_at'       => $now,
 			)
 		);
+		$request_data  = isset( $data['request_data'] ) ? CRPCRM_Helpers::maybe_json_decode( $data['request_data'], true ) : array();
+		$request_data  = is_array( $request_data ) ? $request_data : array();
+		$cleanup_data  = $request_data;
+		$activity_type = sanitize_key( $initial_activity['type'] ?? '' );
+		if ( in_array( $activity_type, array( 'request_created', 'manual_request_created' ), true ) ) {
+			$activity_type = '';
+		}
+		$activity_args = isset( $initial_activity['args'] ) && is_array( $initial_activity['args'] ) ? $initial_activity['args'] : array();
 
+		$wpdb->query( 'START TRANSACTION' );
 		$result = $wpdb->insert( $this->table, $data );
 		if ( false === $result ) {
-			return false;
+			$wpdb->query( 'ROLLBACK' );
+			$this->log_create_failure( 'request_insert_failed', $data );
+			return new WP_Error( 'request_insert_failed', __( 'ثبت درخواست انجام نشد. لطفاً دوباره تلاش کنید.', 'customer-request-portal-crm' ) );
 		}
 
 		$id           = (int) $wpdb->insert_id;
 		$request_code = $this->generate_request_code( $id );
-		$this->update( $id, array( 'request_code' => $request_code ) );
+		if ( ! $this->update( $id, array( 'request_code' => $request_code ) ) ) {
+			$wpdb->query( 'ROLLBACK' );
+			$this->log_create_failure( 'request_code_update_failed', array( 'request_id' => $id ) );
+			return new WP_Error( 'request_code_update_failed', __( 'ثبت درخواست کامل نشد. لطفاً دوباره تلاش کنید.', 'customer-request-portal-crm' ) );
+		}
 
 		if ( class_exists( 'CRPCRM_Dynamic_Form_Renderer' ) ) {
-			$request_data = isset( $data['request_data'] ) ? CRPCRM_Helpers::maybe_json_decode( $data['request_data'], true ) : array();
-			$request_data = is_array( $request_data ) ? $request_data : array();
 			$finalized    = CRPCRM_Dynamic_Form_Renderer::finalize_request_data_uploads( $request_data, $id );
 			if ( $finalized !== $request_data ) {
-				$this->update( $id, array( 'request_data' => $finalized ) );
+				$cleanup_data = $finalized;
+				if ( ! $this->update( $id, array( 'request_data' => $finalized ) ) ) {
+					$wpdb->query( 'ROLLBACK' );
+					$this->log_create_failure( 'request_data_finalize_failed', array( 'request_id' => $id ) );
+					$this->cleanup_created_request_files( $cleanup_data );
+					return new WP_Error( 'request_data_finalize_failed', __( 'ثبت فایل‌های درخواست کامل نشد. لطفاً دوباره تلاش کنید.', 'customer-request-portal-crm' ) );
+				}
 			}
 		}
+
+		if ( '' !== $activity_type ) {
+			$activity_args['customer_id'] = isset( $activity_args['customer_id'] ) ? $activity_args['customer_id'] : absint( $data['customer_id'] ?? 0 );
+			$activity_result              = CRPCRM_Activity::add_required( $id, $activity_type, $activity_args, 'request_create_activity' );
+			if ( is_wp_error( $activity_result ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				$this->cleanup_created_request_files( $cleanup_data );
+				return $activity_result;
+			}
+		}
+
+		$wpdb->query( 'COMMIT' );
 
 		return $id;
 	}
@@ -370,12 +401,14 @@ class CRPCRM_Request_Repository {
 			$values[]    = $value;
 		}
 		$values[] = $request_id;
+		$wpdb->query( 'START TRANSACTION' );
 		$result   = $wpdb->query( $wpdb->prepare( "UPDATE {$this->table} SET " . implode( ', ', $set_parts ) . ' WHERE id = %d AND owner_id IS NULL', $values ) );
 		if ( false === $result || 0 === $result ) {
+			$wpdb->query( 'ROLLBACK' );
 			return new WP_Error( 'request_already_owned', 'این درخواست قبلاً توسط کارشناس دیگری در حال پیگیری است.' );
 		}
 
-		CRPCRM_Activity::add(
+		$activity_result = CRPCRM_Activity::add_required(
 			$request_id,
 			'request_claimed',
 			array(
@@ -386,8 +419,16 @@ class CRPCRM_Request_Repository {
 				'new_status'    => $new_status,
 				'note'          => 'درخواست توسط کارشناس شروع به پیگیری شد.',
 				'is_internal'   => 1,
-			)
+			),
+			'request_claim'
 		);
+
+		if ( is_wp_error( $activity_result ) ) {
+			$wpdb->query( 'ROLLBACK' );
+			return $activity_result;
+		}
+
+		$wpdb->query( 'COMMIT' );
 
 		return true;
 	}
@@ -416,11 +457,13 @@ class CRPCRM_Request_Repository {
 		if ( empty( $request['first_assigned_at'] ) ) {
 			$data['first_assigned_at'] = $now;
 		}
+		$wpdb->query( 'START TRANSACTION' );
 		if ( ! $this->update( $request_id, $data ) ) {
+			$wpdb->query( 'ROLLBACK' );
 			return new WP_Error( 'request_owner_change_failed', 'تغییر مسئول درخواست انجام نشد.' );
 		}
 
-		CRPCRM_Activity::add(
+		$activity_result = CRPCRM_Activity::add_required(
 			$request_id,
 			'request_owner_changed',
 			array(
@@ -432,8 +475,16 @@ class CRPCRM_Request_Repository {
 				'note'          => 'مسئول درخواست تغییر کرد.',
 				'is_internal'   => 1,
 				'meta'          => array( 'old_owner_id' => absint( $request['owner_id'] ), 'new_owner_id' => $new_owner_id ),
-			)
+			),
+			'request_owner_change'
 		);
+
+		if ( is_wp_error( $activity_result ) ) {
+			$wpdb->query( 'ROLLBACK' );
+			return $activity_result;
+		}
+
+		$wpdb->query( 'COMMIT' );
 
 		return true;
 	}
@@ -451,11 +502,13 @@ class CRPCRM_Request_Repository {
 
 		$old_status = $request['status'];
 		$new_status = ( 'in_progress' === $old_status && empty( $request['closed_at'] ) ) ? 'new' : $old_status;
+		$wpdb->query( 'START TRANSACTION' );
 		if ( ! $this->update( $request_id, array( 'owner_id' => null, 'status' => $new_status, 'last_action' => 'request_owner_released', 'last_activity_at' => CRPCRM_Helpers::current_datetime() ) ) ) {
+			$wpdb->query( 'ROLLBACK' );
 			return new WP_Error( 'request_owner_release_failed', 'آزادسازی درخواست انجام نشد.' );
 		}
 
-		CRPCRM_Activity::add(
+		$activity_result = CRPCRM_Activity::add_required(
 			$request_id,
 			'request_owner_released',
 			array(
@@ -467,8 +520,16 @@ class CRPCRM_Request_Repository {
 				'note'          => 'مسئول درخواست آزاد شد.',
 				'is_internal'   => 1,
 				'meta'          => array( 'old_owner_id' => absint( $request['owner_id'] ) ),
-			)
+			),
+			'request_owner_release'
 		);
+
+		if ( is_wp_error( $activity_result ) ) {
+			$wpdb->query( 'ROLLBACK' );
+			return $activity_result;
+		}
+
+		$wpdb->query( 'COMMIT' );
 
 		return true;
 	}
@@ -511,6 +572,38 @@ class CRPCRM_Request_Repository {
 			$data['invalid_reason'] = sanitize_key( $reason_key );
 		}
 		return $this->update( $request_id, $data );
+	}
+
+	private function cleanup_created_request_files( $request_data ) {
+		if ( empty( $request_data ) ) {
+			return;
+		}
+
+		$cleanup = new CRPCRM_Request_File_Cleanup_Service();
+		$result  = $cleanup->cleanup_request_files(
+			array(
+				'request_data' => $request_data,
+			)
+		);
+
+		if ( ! empty( $result['failed'] ) ) {
+			CRPCRM_Logger::warning(
+				'request_create_cleanup_partial',
+				'request',
+				array(
+					'deleted' => absint( $result['deleted'] ?? 0 ),
+					'missing' => absint( $result['missing'] ?? 0 ),
+					'failed'  => absint( $result['failed'] ?? 0 ),
+				)
+			);
+		}
+	}
+
+	private function log_create_failure( $event, array $context = array() ) {
+		global $wpdb;
+
+		$context['db_error'] = isset( $wpdb->last_error ) ? sanitize_text_field( $wpdb->last_error ) : '';
+		CRPCRM_Logger::error( $event, 'request', $context );
 	}
 
 	public function list_followups_today( $user_id = 0 ) {

@@ -182,6 +182,8 @@ class CRPCRM_Request_Workflow_Service {
 	}
 
 	public function apply_action_to_request( $request, $action_type, $data, $actor_user_id ) {
+		global $wpdb;
+
 		$old_status    = $request['status'];
 		$new_status    = $old_status;
 		$now           = CRPCRM_Helpers::current_datetime();
@@ -238,11 +240,13 @@ class CRPCRM_Request_Workflow_Service {
 				break;
 		}
 
+		$wpdb->query( 'START TRANSACTION' );
 		if ( ! $this->request_repository->update( $request['id'], $update ) ) {
+			$wpdb->query( 'ROLLBACK' );
 			return new WP_Error( 'sales_action_update_failed', 'ثبت اقدام انجام نشد.' );
 		}
 
-		CRPCRM_Activity::add(
+		$activity_result = CRPCRM_Activity::add_required(
 			$request['id'],
 			$activity_type,
 			array(
@@ -254,8 +258,16 @@ class CRPCRM_Request_Workflow_Service {
 				'note'          => $data['note'],
 				'is_internal'   => 1,
 				'meta'          => $meta,
-			)
+			),
+			'request_workflow_action'
 		);
+
+		if ( is_wp_error( $activity_result ) ) {
+			$wpdb->query( 'ROLLBACK' );
+			return $activity_result;
+		}
+
+		$wpdb->query( 'COMMIT' );
 
 		if ( $new_status !== $old_status ) {
 			CRPCRM_Logger::info( 'request_status_changed', 'request_status_changed', array( 'request_id' => absint( $request['id'] ), 'old_status' => $old_status, 'new_status' => $new_status ) );

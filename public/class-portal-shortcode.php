@@ -384,11 +384,27 @@ class CRPCRM_Portal_Shortcode {
 				'last_activity_at'     => $now,
 				'created_at'           => $now,
 				'updated_at'           => $now,
+			),
+			array(
+				'type' => 'request_created',
+				'args' => array(
+					'customer_id'   => $customer_id,
+					'actor_user_id' => $user_id,
+					'actor_type'    => 'customer',
+					'new_status'    => 'new',
+					'note'          => 'درخواست توسط مشتری ثبت شد.',
+					'is_internal'   => 0,
+					'meta'          => array(
+						'request_type' => $request_type,
+						'source'       => $effective_attribution['source'],
+						'campaign'     => $effective_attribution['campaign'],
+					),
+				),
 			)
 		);
 
-		if ( ! $request_id ) {
-			CRPCRM_Logger::error( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'reason' => 'request_insert_failed' ) );
+		if ( is_wp_error( $request_id ) || ! $request_id ) {
+			CRPCRM_Logger::error( 'customer_request_validation_failed', 'request', array( 'user_id' => $user_id, 'customer_id' => $customer_id, 'reason' => is_wp_error( $request_id ) ? $request_id->get_error_code() : 'request_insert_failed' ) );
 			$this->redirect_with_notice( $redirect_to, 'error', 'در ثبت درخواست خطایی رخ داد. لطفاً دوباره تلاش کنید.' );
 		}
 
