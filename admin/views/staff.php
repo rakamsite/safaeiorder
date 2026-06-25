@@ -227,8 +227,13 @@ $announcement_data = $detail_item && 'announcements' === $tab ? CRPCRM_Helpers::
 <?php if ( 'announcements' === $tab && $can_manage && ! $detail_item ) : ?><div class="crpcrm-card"><h2>ثبت اطلاعیه</h2><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form"><?php wp_nonce_field( 'crpcrm_staff_save_announcement' ); ?><input type="hidden" name="action" value="crpcrm_staff_action"><input type="hidden" name="staff_action_type" value="save_announcement"><p><label for="crpcrm-announcement-title">عنوان</label><input id="crpcrm-announcement-title" name="title" required class="regular-text" placeholder="عنوان"></p><p class="crpcrm-full-field"><label for="crpcrm-announcement-body">متن اطلاعیه</label><textarea id="crpcrm-announcement-body" name="body" required rows="5" class="large-text" placeholder="متن اطلاعیه"></textarea></p><p><label for="crpcrm-announcement-audience-type">مخاطب</label><select id="crpcrm-announcement-audience-type" name="audience_type"><?php foreach ( $audiences as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select></p><div class="crpcrm-staff-option-grid"><?php foreach ( $role_labels as $key => $label ) : ?><label><input type="checkbox" name="audience_roles[]" value="<?php echo esc_attr( $key ); ?>"> <?php echo esc_html( $label ); ?></label><?php endforeach; ?></div><div class="crpcrm-staff-option-grid"><?php foreach ( $staff_users as $user ) : ?><label><input type="checkbox" name="audience_users[]" value="<?php echo esc_attr( $user->ID ); ?>"> <?php echo esc_html( $user->display_name ); ?></label><?php endforeach; ?></div><?php submit_button( 'ثبت اطلاعیه' ); ?></form></div><?php endif; ?>
 
 <?php if ( 'dashboard' !== $tab ) : ?>
-<?php $filter_file = __DIR__ . '/staff-parts/filters-' . ( 'daily_reports' === $tab ? 'daily' : $tab ) . '.php'; if ( file_exists( $filter_file ) ) { include $filter_file; } ?>
-<div class="crpcrm-table-wrap crpcrm-table-scroll"><table class="widefat striped crpcrm-staff-list"><thead><tr>
+<?php
+$filter_file = __DIR__ . '/staff-parts/filters-' . ( 'daily_reports' === $tab ? 'daily' : $tab ) . '.php';
+if ( file_exists( $filter_file ) ) {
+	include $filter_file;
+}
+?>
+<div class="crpcrm-table-wrap crpcrm-table-scroll"><table class="widefat striped crpcrm-staff-list crpcrm-staff-table"><thead><tr>
 <?php if ( 'daily_reports' === $tab ) : ?><th>تاریخ</th><th>کارمند</th><th>وضعیت</th><th>نیازمند توجه</th>
 <?php elseif ( 'requests' === $tab ) : ?><th>عنوان</th><th>کارمند</th><th>دسته‌بندی</th><th>اولویت</th><th>وضعیت</th>
 <?php elseif ( 'issues' === $tab ) : ?><th>عنوان</th><th>کارمند</th><th>واحد مرتبط</th><th>شدت</th><th>وضعیت</th>

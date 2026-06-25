@@ -26,14 +26,14 @@
 		};
 	}
 
-	var persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-	var monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
-	var weekDays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+	var persianDigits = ['Û°', 'Û±', 'Û²', 'Û³', 'Û´', 'Ûµ', 'Û¶', 'Û·', 'Û¸', 'Û¹'];
+	var monthNames = ['ÙØ±ÙˆØ±Ø¯ÛŒÙ†', 'Ø§Ø±Ø¯ÛŒØ¨Ù‡Ø´Øª', 'Ø®Ø±Ø¯Ø§Ø¯', 'ØªÛŒØ±', 'Ù…Ø±Ø¯Ø§Ø¯', 'Ø´Ù‡Ø±ÛŒÙˆØ±', 'Ù…Ù‡Ø±', 'Ø¢Ø¨Ø§Ù†', 'Ø¢Ø°Ø±', 'Ø¯ÛŒ', 'Ø¨Ù‡Ù…Ù†', 'Ø§Ø³ÙÙ†Ø¯'];
+	var weekDays = ['Ø´', 'ÛŒ', 'Ø¯', 'Ø³', 'Ú†', 'Ù¾', 'Ø¬'];
 	var activePicker = null;
 
 	function toLatin(value) {
-		return String(value || '').replace(/[۰-۹٠-٩]/g, function (digit) {
-			return '۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩'.indexOf(digit) % 10;
+		return String(value || '').replace(/[Û°-Û¹Ù -Ù©]/g, function (digit) {
+			return 'Û°Û±Û²Û³Û´ÛµÛ¶Û·Û¸Û¹Ù Ù¡Ù¢Ù£Ù¤Ù¥Ù¦Ù§Ù¨Ù©'.indexOf(digit) % 10;
 		});
 	}
 
@@ -165,12 +165,12 @@
 		header.className = 'crpcrm-jalali-picker-header';
 		var next = document.createElement('button');
 		next.type = 'button';
-		next.textContent = '‹';
+		next.textContent = 'â€¹';
 		var title = document.createElement('strong');
 		title.textContent = monthNames[month - 1] + ' ' + toPersian(year);
 		var prev = document.createElement('button');
 		prev.type = 'button';
-		prev.textContent = '›';
+		prev.textContent = 'â€º';
 		header.appendChild(next);
 		header.appendChild(title);
 		header.appendChild(prev);
@@ -256,10 +256,10 @@
 	}
 
 	function toEnglishDigits(value) {
-		var persian = '۰۱۲۳۴۵۶۷۸۹';
-		var arabic = '٠١٢٣٤٥٦٧٨٩';
+		var persian = 'Û°Û±Û²Û³Û´ÛµÛ¶Û·Û¸Û¹';
+		var arabic = 'Ù Ù¡Ù¢Ù£Ù¤Ù¥Ù¦Ù§Ù¨Ù©';
 
-		return String(value).replace(/[۰-۹٠-٩]/g, function (digit) {
+		return String(value).replace(/[Û°-Û¹Ù -Ù©]/g, function (digit) {
 			var persianIndex = persian.indexOf(digit);
 			if (persianIndex > -1) {
 				return String(persianIndex);
@@ -377,7 +377,7 @@
 				return;
 			}
 
-			countdown.textContent = 'تا ارسال مجدد کد تأیید ' + seconds + ' ثانیه';
+			countdown.textContent = 'ØªØ§ Ø§Ø±Ø³Ø§Ù„ Ù…Ø¬Ø¯Ø¯ Ú©Ø¯ ØªØ£ÛŒÛŒØ¯ ' + seconds + ' Ø«Ø§Ù†ÛŒÙ‡';
 			seconds -= 1;
 			window.setTimeout(render, 1000);
 		}
@@ -552,8 +552,8 @@
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-product-chip-remove';
-		remove.setAttribute('aria-label', labels.productRemoveLabel || 'حذف محصول');
-		remove.textContent = '×';
+		remove.setAttribute('aria-label', labels.productRemoveLabel || 'Ø­Ø°Ù Ù…Ø­ØµÙˆÙ„');
+		remove.textContent = 'Ã—';
 		remove.addEventListener('click', function () {
 			chip.remove();
 			syncProductHiddenValue(container, hidden);
@@ -595,7 +595,7 @@
 				if (!items.length) {
 					var empty = document.createElement('div');
 					empty.className = 'crpcrm-product-search-empty';
-					empty.textContent = labels.productSearchEmpty || 'محصولی پیدا نشد.';
+					empty.textContent = labels.productSearchEmpty || 'Ù…Ø­ØµÙˆÙ„ÛŒ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯.';
 					results.appendChild(empty);
 					results.hidden = false;
 					return;
@@ -644,7 +644,7 @@
 				}
 
 				results.hidden = false;
-				renderStatusMessage(results, 'crpcrm-product-search-empty', labels.productSearchLoading || 'در حال جستجو...');
+				renderStatusMessage(results, 'crpcrm-product-search-empty', labels.productSearchLoading || 'Ø¯Ø± Ø­Ø§Ù„ Ø¬Ø³ØªØ¬Ùˆ...');
 
 				if (window.AbortController) {
 					if (abortController) {
@@ -807,7 +807,7 @@
 			}
 
 			if ('function' === typeof input.setCustomValidity) {
-				input.setCustomValidity(input.files && input.files.length ? '' : 'حداقل یک فایل انتخاب کنید.');
+				input.setCustomValidity(input.files && input.files.length ? '' : 'Ø­Ø¯Ø§Ù‚Ù„ ÛŒÚ© ÙØ§ÛŒÙ„ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ù†ÛŒØ¯.');
 				return;
 			}
 		});
@@ -1046,7 +1046,7 @@
 			preview.innerHTML = '';
 			var tooMany = document.createElement('span');
 			tooMany.className = 'crpcrm-file-upload-name';
-			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'حداکثر 5 فایل مجاز است.');
+			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'Ø­Ø¯Ø§Ú©Ø«Ø± 5 ÙØ§ÛŒÙ„ Ù…Ø¬Ø§Ø² Ø§Ø³Øª.');
 			preview.appendChild(tooMany);
 			input.value = '';
 			refreshUploadRequirements(wrapper);
@@ -1057,7 +1057,7 @@
 			preview.innerHTML = '';
 			var totalTooLarge = document.createElement('span');
 			totalTooLarge.className = 'crpcrm-file-upload-name';
-			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'مجموع حجم فایل‌ها بیش از حد مجاز است.');
+			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'Ù…Ø¬Ù…ÙˆØ¹ Ø­Ø¬Ù… ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ø¨ÛŒØ´ Ø§Ø² Ø­Ø¯ Ù…Ø¬Ø§Ø² Ø§Ø³Øª.');
 			preview.appendChild(totalTooLarge);
 			input.value = '';
 			refreshUploadRequirements(wrapper);
@@ -1152,7 +1152,7 @@
 		row.dataset.boundUpload = '1';
 
 		if (input) {
-			input.setAttribute('aria-label', input.getAttribute('aria-label') || 'انتخاب فایل');
+			input.setAttribute('aria-label', input.getAttribute('aria-label') || 'Ø§Ù†ØªØ®Ø§Ø¨ ÙØ§ÛŒÙ„');
 			input.addEventListener('change', function () {
 				uploadSelectedFile(input, preview, wrapper, config);
 			});
@@ -1167,7 +1167,7 @@
 		input.type = 'file';
 		input.name = name + '[]';
 		input.accept = '.jpg,.jpeg,.png,.webp,.gif,.pdf';
-		input.setAttribute('aria-label', 'انتخاب فایل');
+		input.setAttribute('aria-label', 'Ø§Ù†ØªØ®Ø§Ø¨ ÙØ§ÛŒÙ„');
 		if (required) {
 			input.required = true;
 			input.setAttribute('data-required', '1');
@@ -1181,9 +1181,9 @@
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-file-upload-remove';
-		remove.setAttribute('aria-label', 'حذف فایل');
-		remove.setAttribute('title', 'حذف فایل');
-		remove.textContent = '×';
+		remove.setAttribute('aria-label', 'Ø­Ø°Ù ÙØ§ÛŒÙ„');
+		remove.setAttribute('title', 'Ø­Ø°Ù ÙØ§ÛŒÙ„');
+		remove.textContent = 'Ã—';
 		row.appendChild(remove);
 
 		bindUploadRow(row, wrapper, config);
@@ -1202,7 +1202,30 @@
 		modal.setAttribute('aria-modal', 'true');
 		modal.setAttribute('aria-label', 'پیش‌نمایش فایل');
 		modal.setAttribute('aria-hidden', 'true');
-		modal.innerHTML = '<button type="button" class="crpcrm-file-preview-close" aria-label="بستن" title="بستن">×</button><img alt=""><div class="crpcrm-file-preview-name"></div><a class="crpcrm-file-preview-download button button-primary" href="#" download>دانلود فایل</a>';
+
+		var closeButton = document.createElement('button');
+		closeButton.type = 'button';
+		closeButton.className = 'crpcrm-file-preview-close';
+		closeButton.setAttribute('aria-label', 'بستن');
+		closeButton.setAttribute('title', 'بستن');
+		closeButton.textContent = '×';
+
+		var image = document.createElement('img');
+		image.setAttribute('alt', '');
+
+		var name = document.createElement('div');
+		name.className = 'crpcrm-file-preview-name';
+
+		var download = document.createElement('a');
+		download.className = 'crpcrm-file-preview-download button button-primary';
+		download.href = '#';
+		download.setAttribute('download', '');
+		download.textContent = 'دانلود فایل';
+
+		modal.appendChild(closeButton);
+		modal.appendChild(image);
+		modal.appendChild(name);
+		modal.appendChild(download);
 		document.body.appendChild(modal);
 		modal.addEventListener('click', function (event) {
 			if (event.target === modal || event.target.classList.contains('crpcrm-file-preview-close')) {
@@ -1224,18 +1247,37 @@
 			return;
 		}
 
-		function releaseSubmitGuard() {
-			delete form.dataset.crpcrmSubmitting;
-			Array.prototype.forEach.call(form.querySelectorAll('[data-crpcrm-temporarily-disabled="1"]'), function (button) {
-				button.disabled = false;
-				button.removeAttribute('data-crpcrm-temporarily-disabled');
+		function setButtonsDisabled(disabled) {
+			Array.prototype.forEach.call(form.querySelectorAll('button[type="submit"], input[type="submit"]'), function (button) {
+				if (disabled) {
+					if (!button.disabled) {
+						button.disabled = true;
+						button.setAttribute('data-crpcrm-temporarily-disabled', '1');
+					}
+					return;
+				}
+
+				if (button.getAttribute('data-crpcrm-temporarily-disabled') === '1') {
+					button.disabled = false;
+					button.removeAttribute('data-crpcrm-temporarily-disabled');
+				}
 			});
+		}
+
+		function releaseSubmitGuard() {
+			if (form.dataset.submitGuardTimer) {
+				window.clearTimeout(Number(form.dataset.submitGuardTimer));
+				delete form.dataset.submitGuardTimer;
+			}
+			delete form.dataset.crpcrmSubmitting;
+			setButtonsDisabled(false);
 		}
 
 		form.dataset.submitGuardBound = '1';
 		form.addEventListener('invalid', function () {
 			releaseSubmitGuard();
 		}, true);
+		window.addEventListener('pageshow', releaseSubmitGuard);
 		form.addEventListener('submit', function (event) {
 			if (form.dataset.crpcrmSubmitting === '1') {
 				event.preventDefault();
@@ -1249,17 +1291,14 @@
 			}
 
 			form.dataset.crpcrmSubmitting = '1';
-			var buttons = form.querySelectorAll('button[type="submit"], input[type="submit"]');
-			Array.prototype.forEach.call(buttons, function (button) {
-				if (!button.disabled) {
-					button.disabled = true;
-					button.setAttribute('data-crpcrm-temporarily-disabled', '1');
+			setButtonsDisabled(true);
+			form.dataset.submitGuardTimer = String(window.setTimeout(function () {
+				if (!document.body.contains(form) || form.dataset.crpcrmSubmitting !== '1') {
+					return;
 				}
-			});
 
-			window.setTimeout(function () {
 				releaseSubmitGuard();
-			}, 12000);
+			}, 45000));
 		});
 	}
 

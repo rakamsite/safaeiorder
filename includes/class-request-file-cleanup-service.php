@@ -136,9 +136,23 @@ class CRPCRM_Request_File_Cleanup_Service {
 			return 'missing';
 		}
 
+		return $this->delete_file_by_path( $path, sanitize_text_field( $file['relative_path'] ?? '' ) );
+	}
+
+	public static function delete_uploaded_file_path( $path, $relative_path = '' ) {
+		$service = new self();
+		return $service->delete_file_by_path( $path, $relative_path );
+	}
+
+	private function delete_file_by_path( $path, $relative_path = '' ) {
+		$path = $this->normalize_real_path( $path );
+		if ( ! $path ) {
+			return 'missing';
+		}
+
 		$root = $this->resolve_allowed_root( $path );
 		if ( ! $root ) {
-			$this->debug_log( 'request_file_cleanup_outside_root', array( 'relative_path' => sanitize_text_field( $file['relative_path'] ?? '' ) ) );
+			$this->debug_log( 'request_file_cleanup_outside_root', array( 'relative_path' => sanitize_text_field( $relative_path ) ) );
 			return 'failed';
 		}
 
@@ -148,13 +162,13 @@ class CRPCRM_Request_File_Cleanup_Service {
 
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 
-		$deleted = false !== wp_delete_file( $path );
-		if ( ! $deleted && file_exists( $path ) ) {
-			$deleted = @unlink( $path );
+		wp_delete_file( $path );
+		if ( file_exists( $path ) ) {
+			@unlink( $path );
 		}
 
-		if ( ! $deleted && file_exists( $path ) ) {
-			$this->debug_log( 'request_file_cleanup_delete_failed', array( 'relative_path' => sanitize_text_field( $file['relative_path'] ?? '' ) ) );
+		if ( file_exists( $path ) ) {
+			$this->debug_log( 'request_file_cleanup_delete_failed', array( 'relative_path' => sanitize_text_field( $relative_path ) ) );
 			return 'failed';
 		}
 

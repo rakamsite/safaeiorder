@@ -48,13 +48,13 @@ class CRPCRM_Dynamic_Form_Renderer {
 			if ( 'product_search' === $type ) {
 				$product_ids = self::sanitize_product_ids( $posted[ $name ] ?? '' );
 				if ( ! empty( $field['required'] ) && empty( $product_ids ) ) {
-					$errors[] = self::field_error( $field, 'این فیلد الزامی است.' );
+					$errors[] = self::field_error( $field, 'Ã˜Â§Ã›Å’Ã™â€  Ã™ÂÃ›Å’Ã™â€žÃ˜Â¯ Ã˜Â§Ã™â€žÃ˜Â²Ã˜Â§Ã™â€¦Ã›Å’ Ã˜Â§Ã˜Â³Ã˜Âª.' );
 					continue;
 				}
 				if ( ! empty( $product_ids ) ) {
 					$products = self::get_selected_products( $product_ids );
 					if ( count( $products ) !== count( $product_ids ) ) {
-						$errors[] = self::field_error( $field, 'یک یا چند محصول انتخاب‌شده معتبر نیست.');
+						$errors[] = self::field_error( $field, 'Ã›Å’ÃšÂ© Ã›Å’Ã˜Â§ Ãšâ€ Ã™â€ Ã˜Â¯ Ã™â€¦Ã˜Â­Ã˜ÂµÃ™Ë†Ã™â€ž Ã˜Â§Ã™â€ Ã˜ÂªÃ˜Â®Ã˜Â§Ã˜Â¨Ã¢â‚¬Å’Ã˜Â´Ã˜Â¯Ã™â€¡ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.');
 						continue;
 					}
 					$data[ $name ] = $products;
@@ -71,7 +71,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 					continue;
 				}
 				if ( ! empty( $field['required'] ) && empty( $uploaded_files ) ) {
-					$errors[] = self::field_error( $field, 'این فیلد الزامی است.' );
+					$errors[] = self::field_error( $field, 'Ã˜Â§Ã›Å’Ã™â€  Ã™ÂÃ›Å’Ã™â€žÃ˜Â¯ Ã˜Â§Ã™â€žÃ˜Â²Ã˜Â§Ã™â€¦Ã›Å’ Ã˜Â§Ã˜Â³Ã˜Âª.' );
 					continue;
 				}
 				$total_uploaded_size += self::sum_uploaded_files_size( $uploaded_files );
@@ -83,12 +83,12 @@ class CRPCRM_Dynamic_Form_Renderer {
 			$value = self::sanitize_value( $type, $value );
 
 			if ( ! empty( $field['required'] ) && '' === $value ) {
-				$errors[] = self::field_error( $field, 'این فیلد الزامی است.' );
+				$errors[] = self::field_error( $field, 'Ã˜Â§Ã›Å’Ã™â€  Ã™ÂÃ›Å’Ã™â€žÃ˜Â¯ Ã˜Â§Ã™â€žÃ˜Â²Ã˜Â§Ã™â€¦Ã›Å’ Ã˜Â§Ã˜Â³Ã˜Âª.' );
 				continue;
 			}
 
 			if ( 'select' === $type && '' !== $value && ! array_key_exists( $value, self::get_field_options( $field ) ) ) {
-				$errors[] = self::field_error( $field, 'مقدار واردشده معتبر نیست.' );
+				$errors[] = self::field_error( $field, 'Ã™â€¦Ã™â€šÃ˜Â¯Ã˜Â§Ã˜Â± Ã™Ë†Ã˜Â§Ã˜Â±Ã˜Â¯Ã˜Â´Ã˜Â¯Ã™â€¡ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.' );
 				continue;
 			}
 
@@ -314,7 +314,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 	public static function render_uploaded_file_value( $value, $field = array(), $context = 'admin' ) {
 		$files = self::normalize_uploaded_file_payload( $value );
 		if ( empty( $files ) ) {
-			return '<span class="crpcrm-file-empty">' . esc_html__( 'فایلی برای بارگذاری ارسال نشده است.', 'customer-request-portal-crm' ) . '</span>';
+			return '<span class="crpcrm-file-empty">' . esc_html__( 'Ã™ÂÃ˜Â§Ã›Å’Ã™â€žÃ›Å’ Ã˜Â¨Ã˜Â±Ã˜Â§Ã›Å’ Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’ Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€ž Ã™â€ Ã˜Â´Ã˜Â¯Ã™â€¡ Ã˜Â§Ã˜Â³Ã˜Âª.', 'customer-request-portal-crm' ) . '</span>';
 		}
 
 		$context = 'public' === $context ? 'public' : 'admin';
@@ -373,7 +373,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		if ( 'textarea' === $type ) {
 			echo '<textarea' . $control_class . ' id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $name ) . '" placeholder="' . esc_attr( $placeholder ) . '"' . ( $required ? ' required' : '' ) . '>' . esc_textarea( $default ) . '</textarea>';
 		} elseif ( 'select' === $type ) {
-			echo '<select' . $control_class . ' id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $name ) . '"' . ( $required ? ' required' : '' ) . '><option value="">' . esc_html( 'انتخاب کنید' ) . '</option>';
+			echo '<select' . $control_class . ' id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $name ) . '"' . ( $required ? ' required' : '' ) . '><option value="">' . esc_html( 'Ã˜Â§Ã™â€ Ã˜ÂªÃ˜Â®Ã˜Â§Ã˜Â¨ ÃšÂ©Ã™â€ Ã›Å’Ã˜Â¯' ) . '</option>';
 			foreach ( self::get_field_options( $field ) as $value => $option_label ) {
 				echo '<option value="' . esc_attr( $value ) . '"' . selected( $default, $value, false ) . '>' . esc_html( $option_label ) . '</option>';
 			}
@@ -381,7 +381,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		} elseif ( 'product_search' === $type ) {
 			echo '<div class="crpcrm-product-search" data-field-name="' . esc_attr( $name ) . '">';
 			echo '<input type="hidden" id="' . esc_attr( $field_id ) . '" name="' . esc_attr( $name ) . '" value="" class="crpcrm-product-search-value">';
-			echo '<input type="search" class="crpcrm-input crpcrm-product-search-input" placeholder="' . esc_attr( $placeholder ? $placeholder : 'نام محصول را تایپ کنید' ) . '"' . ( $required ? ' data-required="1"' : '' ) . ' autocomplete="off">';
+			echo '<input type="search" class="crpcrm-input crpcrm-product-search-input" placeholder="' . esc_attr( $placeholder ? $placeholder : 'Ã™â€ Ã˜Â§Ã™â€¦ Ã™â€¦Ã˜Â­Ã˜ÂµÃ™Ë†Ã™â€ž Ã˜Â±Ã˜Â§ Ã˜ÂªÃ˜Â§Ã›Å’Ã™Â¾ ÃšÂ©Ã™â€ Ã›Å’Ã˜Â¯' ) . '"' . ( $required ? ' data-required="1"' : '' ) . ' autocomplete="off">';
 			echo '<div class="crpcrm-product-search-results" hidden></div>';
 			echo '<div class="crpcrm-product-search-selected"></div>';
 			echo '</div>';
@@ -403,11 +403,11 @@ class CRPCRM_Dynamic_Form_Renderer {
 		$required = (bool) $required;
 		$accept   = is_string( $accept ) && '' !== trim( $accept ) ? $accept : '.jpg,.jpeg,.png,.webp,.gif,.pdf';
 
-		return '<div class="crpcrm-file-upload" data-field-name="' . esc_attr( $name ) . '" data-field-required="' . ( $required ? '1' : '0' ) . '" data-max-files="' . esc_attr( (string) self::MAX_FILES_PER_FIELD ) . '" data-max-total-size="' . esc_attr( (string) self::MAX_TOTAL_REQUEST_SIZE ) . '"><input type="hidden" class="crpcrm-uploaded-files-store" name="' . esc_attr( $name . '__uploaded' ) . '" value=""><div class="crpcrm-file-upload-list">' . self::render_file_input_row( $name, $accept, $required ) . '</div><button type="button" class="crpcrm-file-upload-add" aria-label="' . esc_attr__( 'افزودن فایل', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'افزودن فایل', 'customer-request-portal-crm' ) . '">+</button></div>';
+		return '<div class="crpcrm-file-upload" data-field-name="' . esc_attr( $name ) . '" data-field-required="' . ( $required ? '1' : '0' ) . '" data-max-files="' . esc_attr( (string) self::MAX_FILES_PER_FIELD ) . '" data-max-total-size="' . esc_attr( (string) self::MAX_TOTAL_REQUEST_SIZE ) . '"><input type="hidden" class="crpcrm-uploaded-files-store" name="' . esc_attr( $name . '__uploaded' ) . '" value=""><div class="crpcrm-file-upload-list">' . self::render_file_input_row( $name, $accept, $required ) . '</div><button type="button" class="crpcrm-file-upload-add" aria-label="' . esc_attr__( 'Ã˜Â§Ã™ÂÃ˜Â²Ã™Ë†Ã˜Â¯Ã™â€  Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'Ã˜Â§Ã™ÂÃ˜Â²Ã™Ë†Ã˜Â¯Ã™â€  Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '">+</button></div>';
 	}
 
 	private static function render_file_input_row( $name, $accept, $required ) {
-		return '<div class="crpcrm-file-upload-row"><input type="file" name="' . esc_attr( $name ) . '[]" accept="' . esc_attr( $accept ) . '"' . ( $required ? ' required data-required="1"' : '' ) . ' aria-label="' . esc_attr__( 'انتخاب فایل', 'customer-request-portal-crm' ) . '"><button type="button" class="crpcrm-file-upload-remove" aria-label="' . esc_attr__( 'حذف', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'حذف', 'customer-request-portal-crm' ) . '">&times;</button></div>';
+		return '<div class="crpcrm-file-upload-row"><input type="file" name="' . esc_attr( $name ) . '[]" accept="' . esc_attr( $accept ) . '"' . ( $required ? ' required data-required="1"' : '' ) . ' aria-label="' . esc_attr__( 'Ã˜Â§Ã™â€ Ã˜ÂªÃ˜Â®Ã˜Â§Ã˜Â¨ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '"><button type="button" class="crpcrm-file-upload-remove" aria-label="' . esc_attr__( 'Ã˜Â­Ã˜Â°Ã™Â', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'Ã˜Â­Ã˜Â°Ã™Â', 'customer-request-portal-crm' ) . '">&times;</button></div>';
 	}
 
 	private static function normalize_type( $type ) {
@@ -439,7 +439,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 					$names[] = sanitize_text_field( $product['name'] );
 				}
 			}
-			return implode( '، ', $names );
+			return implode( 'Ã˜Å’ ', $names );
 		}
 
 		if ( 'file_upload' === $type && is_array( $value ) ) {
@@ -451,7 +451,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 					$names[] = sanitize_text_field( $file['name'] );
 				}
 			}
-			return implode( '، ', $names );
+			return implode( 'Ã˜Å’ ', $names );
 		}
 
 		if ( is_array( $value ) ) {
@@ -461,7 +461,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 					$flattened[] = (string) $item;
 				}
 			}
-			return implode( '، ', $flattened );
+			return implode( 'Ã˜Å’ ', $flattened );
 		}
 
 		return is_scalar( $value ) ? (string) $value : '';
@@ -542,10 +542,10 @@ class CRPCRM_Dynamic_Form_Renderer {
 				continue;
 			}
 			if ( (int) $file['error'] !== UPLOAD_ERR_OK ) {
-				return new WP_Error( 'crpcrm_upload_error', 'بارگذاری فایل انجام نشد.' );
+				return new WP_Error( 'crpcrm_upload_error', 'Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã™â€ Ã˜Â¬Ã˜Â§Ã™â€¦ Ã™â€ Ã˜Â´Ã˜Â¯.' );
 			}
 			if ( empty( $file['size'] ) || (int) $file['size'] > self::get_max_file_size() ) {
-				return new WP_Error( 'crpcrm_upload_size', 'هر فایل باید حداکثر ' . size_format( self::get_max_file_size(), 0 ) . ' باشد.' );
+				return new WP_Error( 'crpcrm_upload_size', 'Ã™â€¡Ã˜Â± Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â¨Ã˜Â§Ã›Å’Ã˜Â¯ Ã˜Â­Ã˜Â¯Ã˜Â§ÃšÂ©Ã˜Â«Ã˜Â± ' . size_format( self::get_max_file_size(), 0 ) . ' Ã˜Â¨Ã˜Â§Ã˜Â´Ã˜Â¯.' );
 			}
 
 			$limits = self::validate_incoming_upload_limits(
@@ -791,7 +791,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		$text = self::display_value( $value, $type );
 		if ( '' === $text ) {
-			return '<span class="crpcrm-empty-value">—</span>';
+			return '<span class="crpcrm-empty-value">Ã¢â‚¬â€</span>';
 		}
 
 		return nl2br( esc_html( $text ) );
@@ -806,21 +806,21 @@ class CRPCRM_Dynamic_Form_Renderer {
 		$mime_type     = esc_attr( $file['mime_type'] ?? '' );
 
 		if ( ! $download_url ) {
-			return '<span class="crpcrm-file-empty">' . esc_html__( 'اطلاعات فایل ارسالی معتبر نیست.', 'customer-request-portal-crm' ) . '</span>';
+			return '<span class="crpcrm-file-empty">' . esc_html__( 'Ã˜Â§Ã˜Â·Ã™â€žÃ˜Â§Ã˜Â¹Ã˜Â§Ã˜Âª Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ›Å’ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.', 'customer-request-portal-crm' ) . '</span>';
 		}
 
 		if ( ! empty( $file['is_image'] ) ) {
 			$thumb = '<img class="crpcrm-file-thumb-image" src="' . esc_url( $full_url ? $full_url : $download_url ) . '" alt="' . $filename_attr . '" loading="lazy">';
 
-			return '<div class="crpcrm-file-item crpcrm-file-item-image"><button type="button" class="crpcrm-file-thumb" aria-label="' . esc_attr__( 'مشاهده فایل', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'مشاهده فایل', 'customer-request-portal-crm' ) . '" data-crpcrm-file-preview="1" data-full-url="' . esc_url( $full_url ? $full_url : $download_url ) . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '" data-mime-type="' . $mime_type . '">' . $thumb . '</button><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل', 'customer-request-portal-crm' ) . '">' . esc_html__( 'دانلود فایل', 'customer-request-portal-crm' ) . '</a></div>';
+			return '<div class="crpcrm-file-item crpcrm-file-item-image"><button type="button" class="crpcrm-file-thumb" aria-label="' . esc_attr__( 'Ã™â€¦Ã˜Â´Ã˜Â§Ã™â€¡Ã˜Â¯Ã™â€¡ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'Ã™â€¦Ã˜Â´Ã˜Â§Ã™â€¡Ã˜Â¯Ã™â€¡ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '" data-crpcrm-file-preview="1" data-full-url="' . esc_url( $full_url ? $full_url : $download_url ) . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '" data-mime-type="' . $mime_type . '">' . $thumb . '</button><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'Ã˜Â¯Ã˜Â§Ã™â€ Ã™â€žÃ™Ë†Ã˜Â¯ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '">' . esc_html__( 'Ã˜Â¯Ã˜Â§Ã™â€ Ã™â€žÃ™Ë†Ã˜Â¯ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '</a></div>';
 		}
 
 		if ( ! empty( $file['is_pdf'] ) ) {
-			return '<div class="crpcrm-file-item crpcrm-file-item-pdf"><a class="crpcrm-file-pdf" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل PDF', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'دانلود فایل PDF', 'customer-request-portal-crm' ) . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '"><span class="crpcrm-file-pdf-icon">PDF</span><span class="crpcrm-file-name">' . esc_html( $filename ) . '</span></a><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل', 'customer-request-portal-crm' ) . '">' . esc_html__( 'دانلود فایل', 'customer-request-portal-crm' ) . '</a></div>';
+			return '<div class="crpcrm-file-item crpcrm-file-item-pdf"><a class="crpcrm-file-pdf" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'Ã˜Â¯Ã˜Â§Ã™â€ Ã™â€žÃ™Ë†Ã˜Â¯ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž PDF', 'customer-request-portal-crm' ) . '" title="' . esc_attr__( 'Ã˜Â¯Ã˜Â§Ã™â€ Ã™â€žÃ™Ë†Ã˜Â¯ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž PDF', 'customer-request-portal-crm' ) . '" data-download-url="' . esc_url( $download_url ) . '" data-filename="' . $filename_attr . '"><span class="crpcrm-file-pdf-icon">PDF</span><span class="crpcrm-file-name">' . esc_html( $filename ) . '</span></a><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'Ã˜Â¯Ã˜Â§Ã™â€ Ã™â€žÃ™Ë†Ã˜Â¯ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '">' . esc_html__( 'Ã˜Â¯Ã˜Â§Ã™â€ Ã™â€žÃ™Ë†Ã˜Â¯ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '</a></div>';
 		}
 
-		$label = $filename ? $filename : __( 'دانلود فایل', 'customer-request-portal-crm' );
-		return '<div class="crpcrm-file-item crpcrm-file-item-generic"><span class="crpcrm-file-generic-icon">فایل</span><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'دانلود فایل', 'customer-request-portal-crm' ) . '">' . esc_html( $label ) . '</a></div>';
+		$label = $filename ? $filename : __( 'Ã˜Â¯Ã˜Â§Ã™â€ Ã™â€žÃ™Ë†Ã˜Â¯ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' );
+		return '<div class="crpcrm-file-item crpcrm-file-item-generic"><span class="crpcrm-file-generic-icon">Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž</span><a class="crpcrm-file-download-link" href="' . esc_url( $download_url ) . '" download="' . $filename_attr . '" aria-label="' . esc_attr__( 'Ã˜Â¯Ã˜Â§Ã™â€ Ã™â€žÃ™Ë†Ã˜Â¯ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž', 'customer-request-portal-crm' ) . '">' . esc_html( $label ) . '</a></div>';
 	}
 
 	private static function is_safe_internal_file_url( $url ) {
@@ -948,7 +948,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		self::ensure_request_upload_root_protection();
 		if ( empty( $upload_dir['path'] ) || ! wp_mkdir_p( $upload_dir['path'] ) ) {
 			error_log( '[CRPCRM] request_file_upload_dir_failed: ' . wp_json_encode( $upload_dir ) );
-			return new WP_Error( 'crpcrm_upload_dir_failed', 'بارگذاری فایل انجام نشد.' );
+			return new WP_Error( 'crpcrm_upload_dir_failed', 'Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã™â€ Ã˜Â¬Ã˜Â§Ã™â€¦ Ã™â€ Ã˜Â´Ã˜Â¯.' );
 		}
 
 		add_filter( 'upload_dir', array( __CLASS__, 'filter_upload_dir' ) );
@@ -1037,7 +1037,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 	public static function handle_async_upload( $file, $field_key = '', $context = array() ) {
 		if ( empty( $file ) || ! is_array( $file ) ) {
-			return new WP_Error( 'crpcrm_upload_missing', 'فایلی برای بارگذاری ارسال نشده است.' );
+			return new WP_Error( 'crpcrm_upload_missing', 'Ã™ÂÃ˜Â§Ã›Å’Ã™â€žÃ›Å’ Ã˜Â¨Ã˜Â±Ã˜Â§Ã›Å’ Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’ Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€ž Ã™â€ Ã˜Â´Ã˜Â¯Ã™â€¡ Ã˜Â§Ã˜Â³Ã˜Âª.' );
 		}
 
 		$uploaded = self::handle_uploaded_files_with_context( $file, $field_key, $context );
@@ -1046,7 +1046,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 		}
 
 		if ( empty( $uploaded ) ) {
-			return new WP_Error( 'crpcrm_upload_missing', 'فایلی برای بارگذاری ارسال نشده است.' );
+			return new WP_Error( 'crpcrm_upload_missing', 'Ã™ÂÃ˜Â§Ã›Å’Ã™â€žÃ›Å’ Ã˜Â¨Ã˜Â±Ã˜Â§Ã›Å’ Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’ Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€ž Ã™â€ Ã˜Â´Ã˜Â¯Ã™â€¡ Ã˜Â§Ã˜Â³Ã˜Âª.' );
 		}
 
 		$file = self::normalize_single_uploaded_file_meta( $uploaded[0] );
@@ -1084,31 +1084,31 @@ class CRPCRM_Dynamic_Form_Renderer {
 		}
 
 		if ( ! is_array( $decoded ) ) {
-			return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+			return new WP_Error( 'crpcrm_upload_invalid', 'Ã˜Â§Ã˜Â·Ã™â€žÃ˜Â§Ã˜Â¹Ã˜Â§Ã˜Âª Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ›Å’ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.' );
 		}
 
 		$normalized = array();
 		foreach ( self::normalize_uploaded_file_payload( $decoded ) as $file ) {
 			if ( ! is_array( $file ) ) {
-				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+				return new WP_Error( 'crpcrm_upload_invalid', 'Ã˜Â§Ã˜Â·Ã™â€žÃ˜Â§Ã˜Â¹Ã˜Â§Ã˜Âª Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ›Å’ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.' );
 			}
 
 			$token = ! empty( $file['upload_token'] ) ? sanitize_text_field( $file['upload_token'] ) : '';
 			if ( '' === $token ) {
-				return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست. لطفاً فایل را دوباره بارگذاری کنید.' );
+				return new WP_Error( 'crpcrm_upload_invalid', 'Ã˜Â§Ã˜Â·Ã™â€žÃ˜Â§Ã˜Â¹Ã˜Â§Ã˜Âª Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ›Å’ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª. Ã™â€žÃ˜Â·Ã™ÂÃ˜Â§Ã™â€¹ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â±Ã˜Â§ Ã˜Â¯Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Â±Ã™â€¡ Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’ ÃšÂ©Ã™â€ Ã›Å’Ã˜Â¯.' );
 			}
 			if ( $token ) {
 				$pending = self::get_pending_upload( $token );
 				if ( ! $pending ) {
-					return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+					return new WP_Error( 'crpcrm_upload_invalid', 'Ã˜Â§Ã˜Â·Ã™â€žÃ˜Â§Ã˜Â¹Ã˜Â§Ã˜Âª Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ›Å’ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.' );
 				}
 				if ( ! self::pending_upload_belongs_to_actor( $pending, sanitize_key( $field_key ) ) ) {
-					return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+					return new WP_Error( 'crpcrm_upload_invalid', 'Ã˜Â§Ã˜Â·Ã™â€žÃ˜Â§Ã˜Â¹Ã˜Â§Ã˜Âª Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ›Å’ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.' );
 				}
 				$pending_field_key   = sanitize_key( $pending['field_key'] ?? '' );
 				$requested_field_key = sanitize_key( $field_key );
 				if ( $pending_field_key && $requested_field_key && $pending_field_key !== $requested_field_key ) {
-					return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست.' );
+					return new WP_Error( 'crpcrm_upload_invalid', 'Ã˜Â§Ã˜Â·Ã™â€žÃ˜Â§Ã˜Â¹Ã˜Â§Ã˜Âª Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ›Å’ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.' );
 				}
 
 				$file = $pending;
@@ -1117,7 +1117,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 				continue;
 			}
 
-			return new WP_Error( 'crpcrm_upload_invalid', 'اطلاعات فایل ارسالی معتبر نیست. لطفاً فایل را دوباره بارگذاری کنید.' );
+			return new WP_Error( 'crpcrm_upload_invalid', 'Ã˜Â§Ã˜Â·Ã™â€žÃ˜Â§Ã˜Â¹Ã˜Â§Ã˜Âª Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã˜Â±Ã˜Â³Ã˜Â§Ã™â€žÃ›Å’ Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª. Ã™â€žÃ˜Â·Ã™ÂÃ˜Â§Ã™â€¹ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â±Ã˜Â§ Ã˜Â¯Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Â±Ã™â€¡ Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’ ÃšÂ©Ã™â€ Ã›Å’Ã˜Â¯.' );
 		}
 
 		return $normalized;
@@ -1201,28 +1201,28 @@ class CRPCRM_Dynamic_Form_Renderer {
 		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
 
 		if ( '' === $token ) {
-			return new WP_Error( 'crpcrm_pending_upload_invalid', __( 'فایل موقت معتبر نیست.', 'customer-request-portal-crm' ) );
+			return new WP_Error( 'crpcrm_pending_upload_invalid', __( 'Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã™â€¦Ã™Ë†Ã™â€šÃ˜Âª Ã™â€¦Ã˜Â¹Ã˜ÂªÃ˜Â¨Ã˜Â± Ã™â€ Ã›Å’Ã˜Â³Ã˜Âª.', 'customer-request-portal-crm' ) );
 		}
 
 		$pending = self::get_pending_upload( $token );
 		if ( ! $pending ) {
 			self::finalize_pending_upload( $token );
-			return new WP_Error( 'crpcrm_pending_upload_missing', __( 'فایل موقت پیدا نشد یا منقضی شده است.', 'customer-request-portal-crm' ) );
+			return new WP_Error( 'crpcrm_pending_upload_missing', __( 'Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã™â€¦Ã™Ë†Ã™â€šÃ˜Âª Ã™Â¾Ã›Å’Ã˜Â¯Ã˜Â§ Ã™â€ Ã˜Â´Ã˜Â¯ Ã›Å’Ã˜Â§ Ã™â€¦Ã™â€ Ã™â€šÃ˜Â¶Ã›Å’ Ã˜Â´Ã˜Â¯Ã™â€¡ Ã˜Â§Ã˜Â³Ã˜Âª.', 'customer-request-portal-crm' ) );
 		}
 
 		if ( ! self::pending_upload_belongs_to_actor( $pending, $field_key, $user_id ) ) {
-			return new WP_Error( 'crpcrm_pending_upload_forbidden', __( 'اجازه حذف این فایل را ندارید.', 'customer-request-portal-crm' ) );
+			return new WP_Error( 'crpcrm_pending_upload_forbidden', __( 'Ã˜Â§Ã˜Â¬Ã˜Â§Ã˜Â²Ã™â€¡ Ã˜Â­Ã˜Â°Ã™Â Ã˜Â§Ã›Å’Ã™â€  Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â±Ã˜Â§ Ã™â€ Ã˜Â¯Ã˜Â§Ã˜Â±Ã›Å’Ã˜Â¯.', 'customer-request-portal-crm' ) );
 		}
 
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 
 		$path = self::resolve_uploaded_file_path( $pending );
 		if ( $path && file_exists( $path ) ) {
-			$deleted = false !== wp_delete_file( $path );
-			if ( ! $deleted && file_exists( $path ) ) {
-				$deleted = @unlink( $path );
-			}
-			if ( ! $deleted && file_exists( $path ) ) {
+			$deleted = CRPCRM_Request_File_Cleanup_Service::delete_uploaded_file_path(
+				$path,
+				sanitize_text_field( $pending['relative_path'] ?? '' )
+			);
+			if ( 'failed' === $deleted ) {
 				return new WP_Error( 'crpcrm_pending_upload_delete_failed', __( 'حذف فایل موقت انجام نشد.', 'customer-request-portal-crm' ) );
 			}
 		}
@@ -1397,11 +1397,11 @@ class CRPCRM_Dynamic_Form_Renderer {
 			if ( $token ) {
 				$pending = self::get_pending_upload( $token );
 				if ( ! $pending ) {
-					return new WP_Error( 'crpcrm_pending_upload_missing', __( 'فایل انتخاب‌شده پیدا نشد یا منقضی شده است. لطفاً دوباره فایل را بارگذاری کنید.', 'customer-request-portal-crm' ) );
+					return new WP_Error( 'crpcrm_pending_upload_missing', __( 'Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â§Ã™â€ Ã˜ÂªÃ˜Â®Ã˜Â§Ã˜Â¨Ã¢â‚¬Å’Ã˜Â´Ã˜Â¯Ã™â€¡ Ã™Â¾Ã›Å’Ã˜Â¯Ã˜Â§ Ã™â€ Ã˜Â´Ã˜Â¯ Ã›Å’Ã˜Â§ Ã™â€¦Ã™â€ Ã™â€šÃ˜Â¶Ã›Å’ Ã˜Â´Ã˜Â¯Ã™â€¡ Ã˜Â§Ã˜Â³Ã˜Âª. Ã™â€žÃ˜Â·Ã™ÂÃ˜Â§Ã™â€¹ Ã˜Â¯Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Â±Ã™â€¡ Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã˜Â±Ã˜Â§ Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’ ÃšÂ©Ã™â€ Ã›Å’Ã˜Â¯.', 'customer-request-portal-crm' ) );
 				}
 
 				if ( ! self::pending_upload_belongs_to_actor( $pending, $field_key, $user_id ) ) {
-					return new WP_Error( 'crpcrm_pending_upload_forbidden', __( 'اجازه استفاده از این فایل موقت را ندارید.', 'customer-request-portal-crm' ) );
+					return new WP_Error( 'crpcrm_pending_upload_forbidden', __( 'Ã˜Â§Ã˜Â¬Ã˜Â§Ã˜Â²Ã™â€¡ Ã˜Â§Ã˜Â³Ã˜ÂªÃ™ÂÃ˜Â§Ã˜Â¯Ã™â€¡ Ã˜Â§Ã˜Â² Ã˜Â§Ã›Å’Ã™â€  Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã™â€¦Ã™Ë†Ã™â€šÃ˜Âª Ã˜Â±Ã˜Â§ Ã™â€ Ã˜Â¯Ã˜Â§Ã˜Â±Ã›Å’Ã˜Â¯.', 'customer-request-portal-crm' ) );
 				}
 
 				$file = self::normalize_single_uploaded_file_meta( $pending );
@@ -1498,11 +1498,11 @@ class CRPCRM_Dynamic_Form_Renderer {
 	private static function validate_uploaded_file_collection( $files ) {
 		$files = self::normalize_uploaded_file_payload( $files );
 		if ( count( $files ) > self::MAX_FILES_PER_FIELD ) {
-			return new WP_Error( 'crpcrm_upload_count', sprintf( __( 'حداکثر %d فایل مجاز است.', 'customer-request-portal-crm' ), self::MAX_FILES_PER_FIELD ) );
+			return new WP_Error( 'crpcrm_upload_count', sprintf( __( 'Ã˜Â­Ã˜Â¯Ã˜Â§ÃšÂ©Ã˜Â«Ã˜Â± %d Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã™â€¦Ã˜Â¬Ã˜Â§Ã˜Â² Ã˜Â§Ã˜Â³Ã˜Âª.', 'customer-request-portal-crm' ), self::MAX_FILES_PER_FIELD ) );
 		}
 
 		if ( self::sum_uploaded_files_size( $files ) > self::MAX_TOTAL_REQUEST_SIZE ) {
-			return new WP_Error( 'crpcrm_upload_total_size', sprintf( __( 'مجموع حجم فایل‌ها نباید بیشتر از %s باشد.', 'customer-request-portal-crm' ), size_format( self::MAX_TOTAL_REQUEST_SIZE, 0 ) ) );
+			return new WP_Error( 'crpcrm_upload_total_size', sprintf( __( 'Ã™â€¦Ã˜Â¬Ã™â€¦Ã™Ë†Ã˜Â¹ Ã˜Â­Ã˜Â¬Ã™â€¦ Ã™ÂÃ˜Â§Ã›Å’Ã™â€žÃ¢â‚¬Å’Ã™â€¡Ã˜Â§ Ã™â€ Ã˜Â¨Ã˜Â§Ã›Å’Ã˜Â¯ Ã˜Â¨Ã›Å’Ã˜Â´Ã˜ÂªÃ˜Â± Ã˜Â§Ã˜Â² %s Ã˜Â¨Ã˜Â§Ã˜Â´Ã˜Â¯.', 'customer-request-portal-crm' ), size_format( self::MAX_TOTAL_REQUEST_SIZE, 0 ) ) );
 		}
 
 		return true;
@@ -1510,11 +1510,11 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 	private static function validate_incoming_upload_limits( $incoming_size, $current_file_count, $current_total_size ) {
 		if ( ( $current_file_count + 1 ) > self::MAX_FILES_PER_FIELD ) {
-			return new WP_Error( 'crpcrm_upload_count', sprintf( __( 'حداکثر %d فایل مجاز است.', 'customer-request-portal-crm' ), self::MAX_FILES_PER_FIELD ) );
+			return new WP_Error( 'crpcrm_upload_count', sprintf( __( 'Ã˜Â­Ã˜Â¯Ã˜Â§ÃšÂ©Ã˜Â«Ã˜Â± %d Ã™ÂÃ˜Â§Ã›Å’Ã™â€ž Ã™â€¦Ã˜Â¬Ã˜Â§Ã˜Â² Ã˜Â§Ã˜Â³Ã˜Âª.', 'customer-request-portal-crm' ), self::MAX_FILES_PER_FIELD ) );
 		}
 
 		if ( ( $current_total_size + $incoming_size ) > self::MAX_TOTAL_REQUEST_SIZE ) {
-			return new WP_Error( 'crpcrm_upload_total_size', sprintf( __( 'مجموع حجم فایل‌ها نباید بیشتر از %s باشد.', 'customer-request-portal-crm' ), size_format( self::MAX_TOTAL_REQUEST_SIZE, 0 ) ) );
+			return new WP_Error( 'crpcrm_upload_total_size', sprintf( __( 'Ã™â€¦Ã˜Â¬Ã™â€¦Ã™Ë†Ã˜Â¹ Ã˜Â­Ã˜Â¬Ã™â€¦ Ã™ÂÃ˜Â§Ã›Å’Ã™â€žÃ¢â‚¬Å’Ã™â€¡Ã˜Â§ Ã™â€ Ã˜Â¨Ã˜Â§Ã›Å’Ã˜Â¯ Ã˜Â¨Ã›Å’Ã˜Â´Ã˜ÂªÃ˜Â± Ã˜Â§Ã˜Â² %s Ã˜Â¨Ã˜Â§Ã˜Â´Ã˜Â¯.', 'customer-request-portal-crm' ), size_format( self::MAX_TOTAL_REQUEST_SIZE, 0 ) ) );
 		}
 
 		return self::validate_daily_upload_limits( $incoming_size );
@@ -1525,10 +1525,10 @@ class CRPCRM_Dynamic_Form_Renderer {
 		foreach ( self::get_daily_upload_actor_keys() as $actor_key ) {
 			$stats = $usage[ $actor_key ] ?? array( 'count' => 0, 'size' => 0 );
 			if ( ( absint( $stats['count'] ?? 0 ) + 1 ) > self::DAILY_UPLOAD_FILE_LIMIT ) {
-				return new WP_Error( 'crpcrm_upload_daily_count', __( 'تعداد بارگذاری‌های امروز از حد مجاز بیشتر شده است. لطفاً بعداً دوباره تلاش کنید.', 'customer-request-portal-crm' ) );
+				return new WP_Error( 'crpcrm_upload_daily_count', __( 'Ã˜ÂªÃ˜Â¹Ã˜Â¯Ã˜Â§Ã˜Â¯ Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’Ã¢â‚¬Å’Ã™â€¡Ã˜Â§Ã›Å’ Ã˜Â§Ã™â€¦Ã˜Â±Ã™Ë†Ã˜Â² Ã˜Â§Ã˜Â² Ã˜Â­Ã˜Â¯ Ã™â€¦Ã˜Â¬Ã˜Â§Ã˜Â² Ã˜Â¨Ã›Å’Ã˜Â´Ã˜ÂªÃ˜Â± Ã˜Â´Ã˜Â¯Ã™â€¡ Ã˜Â§Ã˜Â³Ã˜Âª. Ã™â€žÃ˜Â·Ã™ÂÃ˜Â§Ã™â€¹ Ã˜Â¨Ã˜Â¹Ã˜Â¯Ã˜Â§Ã™â€¹ Ã˜Â¯Ã™Ë†Ã˜Â¨Ã˜Â§Ã˜Â±Ã™â€¡ Ã˜ÂªÃ™â€žÃ˜Â§Ã˜Â´ ÃšÂ©Ã™â€ Ã›Å’Ã˜Â¯.', 'customer-request-portal-crm' ) );
 			}
 			if ( ( absint( $stats['size'] ?? 0 ) + $incoming_size ) > self::DAILY_UPLOAD_SIZE_LIMIT ) {
-				return new WP_Error( 'crpcrm_upload_daily_size', sprintf( __( 'حجم بارگذاری‌های امروز به حد مجاز %s رسیده است.', 'customer-request-portal-crm' ), size_format( self::DAILY_UPLOAD_SIZE_LIMIT, 0 ) ) );
+				return new WP_Error( 'crpcrm_upload_daily_size', sprintf( __( 'Ã˜Â­Ã˜Â¬Ã™â€¦ Ã˜Â¨Ã˜Â§Ã˜Â±ÃšÂ¯Ã˜Â°Ã˜Â§Ã˜Â±Ã›Å’Ã¢â‚¬Å’Ã™â€¡Ã˜Â§Ã›Å’ Ã˜Â§Ã™â€¦Ã˜Â±Ã™Ë†Ã˜Â² Ã˜Â¨Ã™â€¡ Ã˜Â­Ã˜Â¯ Ã™â€¦Ã˜Â¬Ã˜Â§Ã˜Â² %s Ã˜Â±Ã˜Â³Ã›Å’Ã˜Â¯Ã™â€¡ Ã˜Â§Ã˜Â³Ã˜Âª.', 'customer-request-portal-crm' ), size_format( self::DAILY_UPLOAD_SIZE_LIMIT, 0 ) ) );
 			}
 		}
 
@@ -1656,14 +1656,17 @@ class CRPCRM_Dynamic_Form_Renderer {
 			return true;
 		}
 
-		$deleted = false !== wp_delete_file( $path );
-		if ( ! $deleted && file_exists( $path ) ) {
-			$deleted = @unlink( $path );
-		}
+		$deleted = CRPCRM_Request_File_Cleanup_Service::delete_uploaded_file_path(
+			$path,
+			sanitize_text_field( $file['relative_path'] ?? '' )
+		);
 
-		return $deleted || ! file_exists( $path );
+		return 'failed' !== $deleted;
 	}
 
+	/**
+	 * Keep a tiny fallback for upstream upload errors that may arrive empty.
+	 */
 	private static function normalize_upload_error_message( $message ) {
 		$message = is_string( $message ) ? trim( $message ) : '';
 		if ( '' === $message ) {
