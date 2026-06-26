@@ -38,6 +38,8 @@ class CRPCRM_Admin_Pages {
 		add_action( 'admin_post_crpcrm_reports_csv', array( $this, 'handle_reports_csv' ) );
 		add_action( 'admin_post_crpcrm_staff_action', array( $this, 'handle_staff_action' ) );
 		add_action( 'admin_post_crpcrm_staff_request_reply', array( $this, 'handle_request_reply' ) );
+		add_action( 'wp_ajax_crpcrm_manual_request_customer_lookup', array( $this, 'handle_manual_request_customer_lookup' ) );
+		add_action( 'wp_ajax_crpcrm_manual_request_customer_save', array( $this, 'handle_manual_request_customer_save' ) );
 	}
 
 	public function dashboard() {
@@ -156,6 +158,7 @@ class CRPCRM_Admin_Pages {
 				'agents'             => CRPCRM_Feature_Manager::is_enabled( 'staff' ) ? $this->customer_repository->get_customer_agents( $customer_id ) : array(),
 				'activities'         => $this->customer_repository->get_customer_recent_activities( $customer_id, 20 ),
 				'attribution_events' => CRPCRM_Feature_Manager::is_enabled( 'tracking' ) ? $attribution_repository->get_events_by_customer( $customer_id, 20 ) : array(),
+				'staff_customer_audit' => $this->get_manual_request_customer_audit( $customer ),
 				'return_request_id'  => isset( $_GET['return_request_id'] ) ? absint( $_GET['return_request_id'] ) : 0,
 			)
 		);
@@ -1208,11 +1211,32 @@ class CRPCRM_Admin_Pages {
 			$status = 'new';
 		}
 
-		$customer_mode = isset( $_POST['customer_mode'] ) ? sanitize_key( wp_unslash( $_POST['customer_mode'] ) ) : 'existing';
-		$customer      = null;
+		$customer_phone = isset( $_POST['customer_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['customer_phone'] ) ) : '';
+		if ( ! CRPCRM_Helpers::is_valid_iran_phone_normalized( CRPCRM_Helpers::normalize_iran_phone( $customer_phone ) ) ) {
+			$this->redirect_to_manual_request_form( 'manual_customer_invalid', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
+		}
+
+		$landing_value = isset( $_POST['request_source'] ) ? sanitize_text_field( wp_unslash( $_POST['request_source'] ) ) : '';
+		$landing       = $this->get_manual_request_selected_landing( $landing_value );
+		if ( is_wp_error( $landing ) ) {
+			$this->redirect_to_manual_request_form( $landing->get_error_code(), $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
+		}
+
+		if ( empty( $landing ) || empty( $landing['id'] ) ) {
+			$this->redirect_to_manual_request_form( 'manual_landing_required', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
+		}
+
+		$customer_mode       = isset( $_POST['customer_mode'] ) ? sanitize_key( wp_unslash( $_POST['customer_mode'] ) ) : 'existing';
+		$selected_customer_id = isset( $_POST['customer_id'] ) ? absint( $_POST['customer_id'] ) : 0;
+		$customer            = null;
 		$created_customer = false;
 		$created_user     = false;
-		if ( 'new' === $customer_mode ) {
+		if ( $selected_customer_id ) {
+			$customer = $this->customer_repository->get( $selected_customer_id );
+			if ( ! $customer ) {
+				$this->redirect_to_manual_request_form( 'manual_customer_required', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
+			}
+		} elseif ( 'new' === $customer_mode ) {
 			$customer_result = $this->create_customer_from_manual_request( $_POST );
 			if ( is_wp_error( $customer_result ) ) {
 				$this->redirect_to_manual_request_form(
@@ -1236,20 +1260,17 @@ class CRPCRM_Admin_Pages {
 			$this->redirect_to_manual_request_form( 'manual_customer_failed', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
 		}
 
-		$owner_id = get_current_user_id();
-		if ( CRPCRM_Request_Access_Service::can_manage_request() && isset( $_POST['owner_id'] ) ) {
-			$requested_owner_id = absint( $_POST['owner_id'] );
-			$assignable_ids     = wp_list_pluck( $this->get_assignable_users(), 'ID' );
-			$owner_id           = $requested_owner_id && in_array( $requested_owner_id, array_map( 'absint', $assignable_ids ), true ) ? $requested_owner_id : 0;
-		}
-		$submitted_fields = $validated['data'];
-		$request_data     = $submitted_fields;
-		$form_id          = sanitize_key( $form['id'] );
-		$form_version     = sanitize_text_field( $form['version'] ?? '1' );
-		$request_data     = array_merge( $request_data, CRPCRM_Dynamic_Form_Renderer::get_submission_snapshot( $form ) );
-		if ( ! empty( $_POST['manual_details'] ) ) {
-			$request_data['manual_details'] = sanitize_textarea_field( wp_unslash( $_POST['manual_details'] ) );
-		}
+		$owner_id           = get_current_user_id();
+		$submitted_fields   = $validated['data'];
+		$request_data       = $submitted_fields;
+		$form_id            = sanitize_key( $form['id'] );
+		$form_version       = sanitize_text_field( $form['version'] ?? '1' );
+		$landing_attribution = $this->build_manual_request_landing_attribution( $landing );
+		$request_data       = array_merge( $request_data, CRPCRM_Dynamic_Form_Renderer::get_submission_snapshot( $form ) );
+		$request_data['_landing_attribution'] = $landing_attribution;
+		$request_data['created_by_staff']     = 1;
+		$request_data['staff_user_id']        = $owner_id;
+		$request_data['created_via']          = 'staff_panel';
 
 		$now          = CRPCRM_Helpers::current_datetime();
 		$request_args = array(
@@ -1262,16 +1283,17 @@ class CRPCRM_Admin_Pages {
 				'owner_id'         => $owner_id ? $owner_id : null,
 				'first_assigned_at' => $owner_id ? $now : null,
 				'request_title'    => ! empty( $_POST['request_title'] ) ? sanitize_text_field( wp_unslash( $_POST['request_title'] ) ) : CRPCRM_Helpers::get_request_type_label( $request_type ),
-				'request_summary'  => ! empty( $_POST['request_summary'] ) ? sanitize_textarea_field( wp_unslash( $_POST['request_summary'] ) ) : CRPCRM_Request_Forms::build_summary( $form, $submitted_fields ),
+				'request_summary'  => CRPCRM_Request_Forms::build_summary( $form, $submitted_fields ),
 				'request_data'     => $request_data,
-				'request_source'   => isset( $_POST['request_source'] ) ? sanitize_key( wp_unslash( $_POST['request_source'] ) ) : 'direct',
-				'request_medium'   => isset( $_POST['request_medium'] ) ? sanitize_key( wp_unslash( $_POST['request_medium'] ) ) : '',
-				'request_campaign' => isset( $_POST['request_campaign'] ) ? sanitize_text_field( wp_unslash( $_POST['request_campaign'] ) ) : '',
-				'request_content'  => isset( $_POST['request_content'] ) ? sanitize_text_field( wp_unslash( $_POST['request_content'] ) ) : '',
-				'request_term'     => isset( $_POST['request_term'] ) ? sanitize_text_field( wp_unslash( $_POST['request_term'] ) ) : '',
-				'request_landing_page' => isset( $_POST['request_landing_page'] ) ? esc_url_raw( wp_unslash( $_POST['request_landing_page'] ) ) : '',
-				'request_referrer' => isset( $_POST['request_referrer'] ) ? esc_url_raw( wp_unslash( $_POST['request_referrer'] ) ) : '',
-				'next_follow_up_at' => isset( $_POST['next_follow_up_at'] ) ? CRPCRM_Helpers::normalize_datetime_input( wp_unslash( $_POST['next_follow_up_at'] ) ) : null,
+				'request_source'   => sanitize_key( $landing['source_code'] ?? $landing['slug'] ?? '' ),
+				'request_medium'   => sanitize_text_field( $landing['medium_code'] ?? '' ),
+				'request_campaign' => sanitize_text_field( $landing['campaign_code'] ?? '' ),
+				'request_content'  => sanitize_text_field( $landing['content_code'] ?? '' ),
+				'request_term'     => sanitize_text_field( $landing['term_code'] ?? '' ),
+				'request_landing_id'   => absint( $landing['id'] ),
+				'request_landing_slug' => sanitize_key( $landing['slug'] ?? '' ),
+				'request_landing_page' => esc_url_raw( $landing['destination_url'] ?? '' ),
+				'request_referrer'     => '',
 				'last_action'      => 'manual_request_created',
 			);
 		if ( in_array( $status, array( 'won', 'lost', 'invalid' ), true ) ) {
@@ -1297,6 +1319,8 @@ class CRPCRM_Admin_Pages {
 		}
 
 		$request = $this->request_repository->get( $request_id );
+		CRPCRM_Activity::add( $request_id, 'manual_request_created', array( 'customer_id' => absint( $customer['id'] ), 'actor_user_id' => get_current_user_id(), 'actor_type' => CRPCRM_Request_Access_Service::can_manage_request() ? 'sales_manager' : 'sales_agent', 'new_status' => $status, 'note' => 'درخواست به صورت دستی توسط کارشناس فروش ثبت شد.', 'is_internal' => 1 ) );
+		$this->sync_manual_request_customer_attribution( $customer, $landing, $request_id );
 		CRPCRM_Logger::info( 'manual_request_created', 'request', array( 'request_id' => $request_id, 'customer_id' => absint( $customer['id'] ), 'actor_user_id' => get_current_user_id() ) );
 		$this->notify_sales_team_about_request( $request_id, $request_args['request_title'] );
 		if ( $owner_id && $owner_id !== get_current_user_id() && $request ) {
@@ -1351,7 +1375,7 @@ class CRPCRM_Admin_Pages {
 		}
 
 		if ( ! $user || ! isset( $user->ID ) ) {
-			return new WP_Error( 'manual_customer_failed', 'ساخت کاربر جدید انجام نشد.' );
+			return new WP_Error( 'manual_customer_failed', 'ساخت مشتری جدید انجام نشد.' );
 		}
 
 		$existing_customer_by_user = $this->customer_repository->find_by_user_id( $user->ID );
@@ -1416,11 +1440,28 @@ class CRPCRM_Admin_Pages {
 			$this->render_message( 'شما اجازه ایجاد درخواست را ندارید.' );
 			return;
 		}
-		$search        = isset( $_GET['customer_search'] ) ? sanitize_text_field( wp_unslash( $_GET['customer_search'] ) ) : '';
-		$forms         = CRPCRM_Form_Registry::get_enabled_forms();
-		$selected_id   = isset( $_GET['form_id'] ) ? sanitize_key( wp_unslash( $_GET['form_id'] ) ) : ( $forms ? sanitize_key( array_key_first( $forms ) ) : '' );
-		$selected_form = CRPCRM_Form_Registry::get_enabled_form( $selected_id );
-		$this->render( 'request-create.php', array( 'customer_search' => $search, 'customer_results' => $this->customer_repository->search_for_manual_request( $search ), 'assignable_users' => CRPCRM_Request_Access_Service::can_manage_request() ? $this->get_assignable_users() : array(), 'can_manage' => CRPCRM_Request_Access_Service::can_manage_request(), 'forms' => $forms, 'selected_form' => $selected_form ) );
+		$forms                  = CRPCRM_Form_Registry::get_enabled_forms();
+		$selected_id            = isset( $_GET['form_id'] ) ? sanitize_key( wp_unslash( $_GET['form_id'] ) ) : ( $forms ? sanitize_key( array_key_first( $forms ) ) : '' );
+		$selected_form          = CRPCRM_Form_Registry::get_enabled_form( $selected_id );
+		$current_customer_phone = isset( $_GET['customer_phone'] ) ? sanitize_text_field( wp_unslash( $_GET['customer_phone'] ) ) : '';
+		$current_customer_id    = isset( $_GET['customer_id'] ) ? absint( $_GET['customer_id'] ) : 0;
+		$current_request_status = isset( $_GET['request_status'] ) ? sanitize_key( wp_unslash( $_GET['request_status'] ) ) : 'new';
+		$current_request_source = isset( $_GET['request_source'] ) ? sanitize_text_field( wp_unslash( $_GET['request_source'] ) ) : '';
+		$customer_context       = $this->build_manual_request_customer_context( $current_customer_phone, $current_customer_id );
+		$active_landings        = $this->get_manual_request_active_landings();
+		$this->render(
+			'request-create.php',
+			array(
+				'forms'                  => $forms,
+				'selected_form'          => $selected_form,
+				'current_customer_phone' => $current_customer_phone,
+				'current_customer_id'    => $current_customer_id,
+				'current_request_status' => $current_request_status,
+				'current_request_source' => $current_request_source,
+				'customer_context'       => $customer_context,
+				'active_landings'        => $active_landings,
+			)
+		);
 	}
 
 	private function redirect_to_manual_request_form( $notice, $args = array() ) {
@@ -1686,19 +1727,683 @@ class CRPCRM_Admin_Pages {
 			$redirect_args['form_id'] = $form_id;
 		}
 
-		$search_term = isset( $args['customer_search'] ) ? sanitize_text_field( $args['customer_search'] ) : '';
+		$search_term = isset( $args['customer_phone'] ) ? sanitize_text_field( $args['customer_phone'] ) : '';
 		if ( '' === $search_term ) {
-			if ( ! empty( $posted['new_customer_phone'] ) ) {
+			if ( ! empty( $posted['customer_phone'] ) ) {
+				$search_term = sanitize_text_field( wp_unslash( $posted['customer_phone'] ) );
+			} elseif ( ! empty( $posted['new_customer_phone'] ) ) {
 				$search_term = sanitize_text_field( wp_unslash( $posted['new_customer_phone'] ) );
-			} elseif ( ! empty( $posted['customer_search'] ) ) {
-				$search_term = sanitize_text_field( wp_unslash( $posted['customer_search'] ) );
 			}
 		}
 		if ( '' !== $search_term ) {
-			$redirect_args['customer_search'] = $search_term;
+			$redirect_args['customer_phone'] = $search_term;
+		}
+
+		$customer_id = isset( $args['customer_id'] ) ? absint( $args['customer_id'] ) : ( isset( $posted['customer_id'] ) ? absint( $posted['customer_id'] ) : 0 );
+		if ( $customer_id ) {
+			$redirect_args['customer_id'] = $customer_id;
+		}
+
+		$request_status = isset( $args['request_status'] ) ? sanitize_key( $args['request_status'] ) : ( isset( $posted['request_status'] ) ? sanitize_key( wp_unslash( $posted['request_status'] ) ) : '' );
+		if ( '' !== $request_status ) {
+			$redirect_args['request_status'] = $request_status;
+		}
+
+		$request_source = isset( $args['request_source'] ) ? sanitize_text_field( $args['request_source'] ) : ( isset( $posted['request_source'] ) ? sanitize_text_field( wp_unslash( $posted['request_source'] ) ) : '' );
+		if ( '' !== $request_source ) {
+			$redirect_args['request_source'] = $request_source;
 		}
 
 		return $redirect_args;
+	}
+
+	private function get_manual_request_active_landings() {
+		if ( ! class_exists( 'CRPCRM_Landing_Manager' ) || ! CRPCRM_Feature_Manager::is_enabled( 'landing_manager' ) ) {
+			return array();
+		}
+
+		$manager = new CRPCRM_Landing_Manager();
+		$result  = $manager->list_landings(
+			array(
+				'status' => 'active',
+				'limit'  => 500,
+				'offset' => 0,
+			)
+		);
+
+		return ! empty( $result['items'] ) && is_array( $result['items'] ) ? $result['items'] : array();
+	}
+
+	private function get_manual_request_selected_landing( $value ) {
+		$landings = $this->get_manual_request_active_landings();
+		if ( empty( $landings ) ) {
+			return new WP_Error( 'manual_landing_required', 'برای ثبت درخواست، ابتدا باید حداقل یک لندینگ فعال در مدیریت لندینگ‌ها تعریف شود.' );
+		}
+
+		$value = sanitize_text_field( (string) $value );
+		if ( '' === $value ) {
+			return new WP_Error( 'manual_landing_required', 'برای ثبت درخواست، انتخاب منبع الزامی است.' );
+		}
+
+		foreach ( $landings as $landing ) {
+			$landing_id   = absint( $landing['id'] ?? 0 );
+			$landing_slug = sanitize_key( $landing['slug'] ?? '' );
+
+			if ( (string) $landing_id === $value || $landing_slug === sanitize_key( $value ) ) {
+				return $landing;
+			}
+		}
+
+		return new WP_Error( 'manual_landing_invalid', 'منبع انتخاب‌شده معتبر نیست.' );
+	}
+
+	private function build_manual_request_landing_attribution( $landing ) {
+		$landing = is_array( $landing ) ? $landing : array();
+		$touch   = array(
+			'landing_id'      => absint( $landing['id'] ?? 0 ),
+			'landing_slug'    => sanitize_key( $landing['slug'] ?? '' ),
+			'landing_title'   => sanitize_text_field( $landing['title'] ?? '' ),
+			'destination_url' => esc_url_raw( $landing['destination_url'] ?? '' ),
+			'source_code'     => sanitize_text_field( $landing['source_code'] ?? '' ),
+			'source_label'    => sanitize_text_field( $landing['source_label'] ?? '' ),
+			'medium_code'     => sanitize_text_field( $landing['medium_code'] ?? '' ),
+			'medium_label'    => sanitize_text_field( $landing['medium_label'] ?? '' ),
+			'campaign_code'   => sanitize_text_field( $landing['campaign_code'] ?? '' ),
+			'campaign_label'  => sanitize_text_field( $landing['campaign_label'] ?? '' ),
+			'content_code'    => sanitize_text_field( $landing['content_code'] ?? '' ),
+			'content_label'   => sanitize_text_field( $landing['content_label'] ?? '' ),
+			'term_code'       => sanitize_text_field( $landing['term_code'] ?? '' ),
+			'term_label'      => sanitize_text_field( $landing['term_label'] ?? '' ),
+			'clicked_at'      => CRPCRM_Helpers::current_datetime(),
+			'click_id'        => 0,
+		);
+
+		return array(
+			'visitor_id'      => '',
+			'conversion_page' => admin_url( 'admin.php?page=crpcrm-requests&action=new' ),
+			'converted_at'    => CRPCRM_Helpers::current_datetime(),
+			'referrer'        => '',
+			'first_touch'     => $touch,
+			'last_touch'      => $touch,
+		);
+	}
+
+	private function sync_manual_request_customer_attribution( $customer, $landing, $request_id = 0 ) {
+		$customer_id = absint( $customer['id'] ?? 0 );
+		if ( ! $customer_id ) {
+			return false;
+		}
+
+		$customer            = $this->customer_repository->get( $customer_id );
+		$landing_attribution = $this->build_manual_request_landing_attribution( $landing );
+		$touch               = $landing_attribution['last_touch'];
+		$stored              = CRPCRM_Customer_Repository::get_landing_attribution( $customer );
+		$first_touch         = ! empty( $stored['first_touch'] ) ? $stored['first_touch'] : array();
+		$last_touch          = $touch;
+
+		if ( empty( $first_touch ) ) {
+			$first_touch = $touch;
+		}
+
+		$normalized = array(
+			'visitor_id'      => sanitize_text_field( $stored['visitor_id'] ?? '' ),
+			'conversion_page' => ! empty( $touch['destination_url'] ) ? esc_url_raw( $touch['destination_url'] ) : '',
+			'converted_at'    => CRPCRM_Helpers::current_datetime(),
+			'referrer'        => '',
+			'first_touch'     => $first_touch,
+			'last_touch'      => $last_touch,
+		);
+
+		$update = array(
+			'last_source'       => sanitize_text_field( $touch['source_code'] ?? '' ),
+			'last_medium'       => sanitize_text_field( $touch['medium_code'] ?? '' ),
+			'last_campaign'     => sanitize_text_field( $touch['campaign_code'] ?? '' ),
+			'last_content'      => sanitize_text_field( $touch['content_code'] ?? '' ),
+			'last_term'         => sanitize_text_field( $touch['term_code'] ?? '' ),
+			'last_landing_page' => esc_url_raw( $touch['destination_url'] ?? '' ),
+			'last_referrer'     => '',
+			'last_seen_at'      => CRPCRM_Helpers::current_datetime(),
+		);
+
+		if ( empty( $customer['first_source'] ) ) {
+			$update['first_source']       = sanitize_text_field( $first_touch['source_code'] ?? '' );
+			$update['first_medium']       = sanitize_text_field( $first_touch['medium_code'] ?? '' );
+			$update['first_campaign']     = sanitize_text_field( $first_touch['campaign_code'] ?? '' );
+			$update['first_content']      = sanitize_text_field( $first_touch['content_code'] ?? '' );
+			$update['first_term']         = sanitize_text_field( $first_touch['term_code'] ?? '' );
+			$update['first_landing_page'] = esc_url_raw( $first_touch['destination_url'] ?? '' );
+			$update['first_referrer']     = '';
+			$update['first_seen_at']      = CRPCRM_Helpers::current_datetime();
+		}
+
+		$result  = $this->customer_repository->save_landing_attribution( $customer_id, $normalized );
+		$updated = $this->customer_repository->update( $customer_id, $update );
+
+		if ( ! $result || false === $updated ) {
+			CRPCRM_Logger::warning(
+				'manual_request_customer_attribution_failed',
+				'customer',
+				array(
+					'customer_id' => $customer_id,
+					'request_id'  => absint( $request_id ),
+					'landing_id'  => absint( $landing['id'] ?? 0 ),
+					'stored'      => $result ? 1 : 0,
+					'updated'     => false === $updated ? 0 : 1,
+				)
+			);
+		}
+
+		return $result;
+	}
+
+	private function record_manual_request_customer_audit( $customer, $action ) {
+		$user_id  = absint( $customer['user_id'] ?? 0 );
+		$staff_id = get_current_user_id();
+
+		if ( ! $user_id || ! $staff_id ) {
+			return;
+		}
+
+		if ( 'created' === $action ) {
+			update_user_meta( $user_id, 'crpcrm_customer_created_by_staff_user_id', $staff_id );
+			update_user_meta( $user_id, 'crpcrm_customer_created_by_staff_at', CRPCRM_Helpers::current_datetime() );
+		}
+
+		if ( in_array( $action, array( 'created', 'updated' ), true ) ) {
+			update_user_meta( $user_id, 'crpcrm_customer_updated_by_staff_user_id', $staff_id );
+			update_user_meta( $user_id, 'crpcrm_customer_updated_by_staff_at', CRPCRM_Helpers::current_datetime() );
+		}
+	}
+
+	private function get_manual_request_customer_audit( $customer ) {
+		$user_id = absint( $customer['user_id'] ?? 0 );
+		if ( ! $user_id ) {
+			return array();
+		}
+
+		$created_by = absint( get_user_meta( $user_id, 'crpcrm_customer_created_by_staff_user_id', true ) );
+		$created_at = sanitize_text_field( (string) get_user_meta( $user_id, 'crpcrm_customer_created_by_staff_at', true ) );
+		$updated_by = absint( get_user_meta( $user_id, 'crpcrm_customer_updated_by_staff_user_id', true ) );
+		$updated_at = sanitize_text_field( (string) get_user_meta( $user_id, 'crpcrm_customer_updated_by_staff_at', true ) );
+
+		return array(
+			'created_by'   => $created_by,
+			'created_name' => $created_by ? CRPCRM_Helpers::get_owner_label( $created_by ) : '',
+			'created_at'   => $created_at,
+			'updated_by'   => $updated_by,
+			'updated_name' => $updated_by ? CRPCRM_Helpers::get_owner_label( $updated_by ) : '',
+			'updated_at'   => $updated_at,
+		);
+	}
+
+	public function handle_manual_request_customer_lookup() {
+		$this->verify_manual_request_ajax_request( 'crpcrm_manual_request_customer_lookup' );
+
+		$phone       = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
+		$customer_id = isset( $_POST['customer_id'] ) ? absint( $_POST['customer_id'] ) : 0;
+
+		wp_send_json_success( $this->build_manual_request_customer_context( $phone, $customer_id ) );
+	}
+
+	public function handle_manual_request_customer_save() {
+		$this->verify_manual_request_ajax_request( 'crpcrm_manual_request_customer_save' );
+
+		$mode               = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'create';
+		$customer_id        = isset( $_POST['customer_id'] ) ? absint( $_POST['customer_id'] ) : 0;
+		$phone              = isset( $_POST['customer_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['customer_phone'] ) ) : '';
+		$registration_input = isset( $_POST['registration'] ) && is_array( $_POST['registration'] ) ? wp_unslash( $_POST['registration'] ) : array();
+		$result             = $this->save_manual_request_customer( $mode, $phone, $registration_input, $customer_id );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $result->get_error_message(),
+				),
+				400
+			);
+		}
+
+		wp_send_json_success( $result );
+	}
+
+	private function verify_manual_request_ajax_request( $action ) {
+		check_ajax_referer( $action, 'nonce' );
+
+		if ( ! CRPCRM_Request_Access_Service::can_create_request() ) {
+			wp_send_json_error(
+				array(
+					'message' => 'شما اجازه انجام این عملیات را ندارید.',
+				),
+				403
+			);
+		}
+	}
+
+	private function build_manual_request_customer_context( $phone, $customer_id = 0 ) {
+		$customer         = null;
+		$phone_input      = sanitize_text_field( (string) $phone );
+		$phone_normalized = CRPCRM_Helpers::normalize_iran_phone( $phone_input );
+		$phone_is_valid   = CRPCRM_Helpers::is_valid_iran_phone_normalized( $phone_normalized );
+
+		if ( $customer_id ) {
+			$customer = $this->customer_repository->get( $customer_id );
+		}
+
+		if ( ! $customer && $phone_is_valid ) {
+			$customer = $this->customer_repository->find_by_phone_normalized( $phone_normalized );
+		}
+
+		if ( $customer ) {
+			$is_complete = $this->is_manual_request_customer_complete( $customer );
+
+			return array(
+				'state'            => $is_complete ? 'complete' : 'incomplete',
+				'customer_id'      => absint( $customer['id'] ),
+				'phone'            => $phone_input,
+				'phone_normalized' => ! empty( $customer['phone_normalized'] ) ? $customer['phone_normalized'] : $phone_normalized,
+				'summary'          => $this->build_manual_request_customer_summary( $customer ),
+				'message'          => $is_complete ? '' : 'مشتری قبلاً در سایت ثبت‌نام کرده ولی اطلاعاتش ناقص است.',
+				'action_label'     => $is_complete ? '' : 'تکمیل اطلاعات',
+				'form_html'        => $this->render_manual_request_customer_form_html( 'update', $customer, '' !== $phone_input ? $phone_input : $phone_normalized ),
+			);
+		}
+
+		if ( $phone_is_valid ) {
+			return array(
+				'state'            => 'not_found',
+				'customer_id'      => 0,
+				'phone'            => $phone_input,
+				'phone_normalized' => $phone_normalized,
+				'summary'          => '',
+				'message'          => 'مشتری یافت نشد.',
+				'action_label'     => 'ساخت مشتری',
+				'form_html'        => $this->render_manual_request_customer_form_html( 'create', null, '' !== $phone_input ? $phone_input : $phone_normalized ),
+			);
+		}
+
+		return array(
+			'state'            => 'idle',
+			'customer_id'      => 0,
+			'phone'            => $phone_input,
+			'phone_normalized' => $phone_normalized,
+			'summary'          => '',
+			'message'          => '',
+			'action_label'     => '',
+			'form_html'        => '',
+		);
+	}
+
+	private function save_manual_request_customer( $mode, $phone, $registration_input, $customer_id = 0 ) {
+		$mode             = 'update' === $mode ? 'update' : 'create';
+		$phone_normalized = CRPCRM_Helpers::normalize_iran_phone( $phone );
+
+		if ( ! CRPCRM_Helpers::is_valid_iran_phone_normalized( $phone_normalized ) ) {
+			return new WP_Error( 'manual_customer_invalid', 'شماره موبایل مشتری معتبر نیست.' );
+		}
+
+		$registration_data = $this->sanitize_manual_request_customer_input( $registration_input );
+		$errors            = $this->validate_manual_request_customer_input( $registration_input, $registration_data, $customer_id );
+
+		if ( ! empty( $errors ) ) {
+			return new WP_Error( 'manual_customer_invalid', implode( ' ', $errors ) );
+		}
+
+		if ( 'update' === $mode ) {
+			$customer = $this->customer_repository->get( $customer_id );
+			if ( ! $customer ) {
+				return new WP_Error( 'manual_customer_required', 'مشتری انتخاب‌شده معتبر نیست.' );
+			}
+
+			$update_data = array(
+				'profile_completed' => $this->is_manual_request_registration_complete( $registration_data ) ? 1 : 0,
+			);
+			foreach ( array( 'full_name', 'province', 'city' ) as $column ) {
+				if ( array_key_exists( $column, $registration_data ) ) {
+					$update_data[ $column ] = $registration_data[ $column ];
+				}
+			}
+
+			if ( ! $this->customer_repository->update( absint( $customer['id'] ), $update_data ) ) {
+				return new WP_Error( 'manual_customer_failed', 'ذخیره اطلاعات مشتری انجام نشد.' );
+			}
+
+			CRPCRM_Customer_Registration_Fields::save_customer_values( $customer, $registration_data );
+			if ( ! empty( $registration_data['full_name'] ) && ! empty( $customer['user_id'] ) ) {
+				$this->maybe_update_customer_display_name( absint( $customer['user_id'] ), $registration_data['full_name'], $customer );
+			}
+			$this->record_manual_request_customer_audit( $customer, 'updated' );
+
+			$context              = $this->build_manual_request_customer_context( $phone_normalized, absint( $customer['id'] ) );
+			$context['message']   = 'اطلاعات مشتری با موفقیت ذخیره شد.';
+			return $context;
+		}
+
+		$existing_customer = $this->customer_repository->find_by_phone_normalized( $phone_normalized );
+		if ( $existing_customer ) {
+			$context            = $this->build_manual_request_customer_context( $phone_normalized, absint( $existing_customer['id'] ) );
+			$context['message'] = 'مشتری با این شماره موبایل قبلاً ثبت شده است و برای همین درخواست انتخاب شد.';
+			return $context;
+		}
+
+		$user         = $this->find_existing_user_by_phone( $phone_normalized );
+		$created_user = false;
+		if ( ! $user ) {
+			$user_id = wp_insert_user(
+				array(
+					'user_login'   => $phone_normalized,
+					'user_pass'    => wp_generate_password( 20 ),
+					'display_name' => ! empty( $registration_data['full_name'] ) ? $registration_data['full_name'] : $phone_normalized,
+					'role'         => 'customer',
+				)
+			);
+
+			if ( is_wp_error( $user_id ) || ! $user_id ) {
+				return new WP_Error( 'manual_customer_failed', 'ساخت مشتری انجام نشد.' );
+			}
+
+			$user         = get_user_by( 'id', $user_id );
+			$created_user = true;
+			update_user_meta( $user_id, 'crpcrm_phone_normalized', $phone_normalized );
+		}
+
+		$new_customer_id = $this->customer_repository->create(
+			array(
+				'user_id'           => absint( $user->ID ),
+				'phone'             => $phone_normalized,
+				'phone_normalized'  => $phone_normalized,
+				'full_name'         => $registration_data['full_name'] ?? '',
+				'province'          => $registration_data['province'] ?? '',
+				'city'              => $registration_data['city'] ?? '',
+				'profile_completed' => $this->is_manual_request_registration_complete( $registration_data ) ? 1 : 0,
+				'first_source'      => '',
+				'last_source'       => '',
+			)
+		);
+
+		if ( ! $new_customer_id ) {
+			if ( $created_user ) {
+				$this->delete_user_safely( $user->ID );
+			}
+			return new WP_Error( 'manual_customer_failed', 'ساخت مشتری انجام نشد.' );
+		}
+
+		$customer = $this->customer_repository->get( $new_customer_id );
+		if ( ! $customer ) {
+			$this->rollback_manual_request_customer(
+				array(
+					'id'      => $new_customer_id,
+					'user_id' => $user->ID,
+				),
+				true,
+				$created_user
+			);
+			return new WP_Error( 'manual_customer_failed', 'ساخت مشتری انجام نشد.' );
+		}
+
+			CRPCRM_Customer_Registration_Fields::save_customer_values( $customer, $registration_data );
+			if ( ! empty( $registration_data['full_name'] ) ) {
+				$this->maybe_update_customer_display_name( absint( $user->ID ), $registration_data['full_name'], $customer );
+			}
+			$this->record_manual_request_customer_audit( $customer, 'created' );
+
+		$context            = $this->build_manual_request_customer_context( $phone_normalized, absint( $new_customer_id ) );
+		$context['message'] = 'مشتری با موفقیت ایجاد شد.';
+		return $context;
+	}
+
+	private function get_manual_request_registration_fields() {
+		$fields = CRPCRM_Customer_Registration_Fields::get_enabled_fields();
+		if ( ! empty( $fields ) ) {
+			return $fields;
+		}
+
+		$all_fields = CRPCRM_Customer_Registration_Fields::get_fields();
+		$fallback   = array();
+		foreach ( array( 'full_name', 'province', 'city' ) as $field_key ) {
+			if ( ! isset( $all_fields[ $field_key ] ) ) {
+				continue;
+			}
+			$fallback[ $field_key ]             = $all_fields[ $field_key ];
+			$fallback[ $field_key ]['required'] = 'full_name' === $field_key;
+		}
+
+		return $fallback;
+	}
+
+	private function sanitize_manual_request_customer_input( $input ) {
+		$input       = is_array( $input ) ? $input : array();
+		$definitions = CRPCRM_Customer_Registration_Fields::get_fields();
+		$clean       = array();
+
+		foreach ( $this->get_manual_request_registration_fields() as $field_key => $field ) {
+			$value = isset( $input[ $field_key ] ) ? wp_unslash( $input[ $field_key ] ) : '';
+			$type  = $definitions[ $field_key ]['type'] ?? ( $field['type'] ?? 'text' );
+
+			if ( 'email' === $type ) {
+				$clean[ $field_key ] = sanitize_email( $value );
+			} elseif ( 'textarea' === $type ) {
+				$clean[ $field_key ] = sanitize_textarea_field( $value );
+			} else {
+				$clean[ $field_key ] = sanitize_text_field( $value );
+			}
+		}
+
+		return $clean;
+	}
+
+	private function validate_manual_request_customer_input( $raw_input, $registration_data, $customer_id = 0 ) {
+		$raw_input    = is_array( $raw_input ) ? $raw_input : array();
+		$errors       = array();
+		$definitions  = CRPCRM_Customer_Registration_Fields::get_fields();
+		$current_user = 0;
+
+		if ( $customer_id ) {
+			$current_customer = $this->customer_repository->get( $customer_id );
+			$current_user     = $current_customer ? absint( $current_customer['user_id'] ) : 0;
+		}
+
+		foreach ( $this->get_manual_request_registration_fields() as $field_key => $field ) {
+			$value = isset( $registration_data[ $field_key ] ) ? $registration_data[ $field_key ] : '';
+			$type  = $definitions[ $field_key ]['type'] ?? ( $field['type'] ?? 'text' );
+
+			if ( ! empty( $field['required'] ) && '' === $value ) {
+				$errors[] = sprintf( '%s الزامی است.', $field['label'] );
+				continue;
+			}
+
+			if ( 'email' === $type && '' !== $value ) {
+				if ( ! is_email( $value ) ) {
+					$errors[] = 'ایمیل واردشده معتبر نیست.';
+					continue;
+				}
+
+				$existing_user_id = email_exists( $value );
+				if ( $existing_user_id && absint( $existing_user_id ) !== $current_user ) {
+					$errors[] = 'این ایمیل قبلاً برای حساب دیگری ثبت شده است.';
+				}
+			}
+
+			if ( 'select' === $type && '' !== $value && ! empty( $field['options'] ) && ! in_array( $value, $field['options'], true ) ) {
+				$errors[] = sprintf( '%s معتبر نیست.', $field['label'] );
+			}
+		}
+
+		if ( isset( $registration_data['province'] ) && '' !== $registration_data['province'] && ! in_array( $registration_data['province'], $this->get_iran_provinces(), true ) ) {
+			$errors[] = 'استان انتخاب‌شده معتبر نیست.';
+		}
+
+		return $errors;
+	}
+
+	private function is_manual_request_registration_complete( $registration_data ) {
+		foreach ( $this->get_manual_request_registration_fields() as $field_key => $field ) {
+			if ( empty( $field['required'] ) ) {
+				continue;
+			}
+
+			$value = isset( $registration_data[ $field_key ] ) ? trim( (string) $registration_data[ $field_key ] ) : '';
+			if ( '' === $value ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private function is_manual_request_customer_complete( $customer ) {
+		$fields = $this->get_manual_request_registration_fields();
+		if ( empty( $fields ) ) {
+			return true;
+		}
+
+		$values = CRPCRM_Customer_Registration_Fields::get_customer_values( $customer );
+		foreach ( $fields as $field_key => $field ) {
+			if ( empty( $field['required'] ) ) {
+				continue;
+			}
+
+			$value = isset( $values[ $field_key ] ) ? trim( (string) $values[ $field_key ] ) : '';
+			if ( '' === $value ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private function build_manual_request_customer_summary( $customer ) {
+		$values = CRPCRM_Customer_Registration_Fields::get_customer_values( $customer );
+		$stats  = $this->customer_repository->get_customer_stats( absint( $customer['id'] ) );
+		$parts  = array();
+
+		$name = trim( (string) ( $values['full_name'] ?? '' ) );
+		if ( '' === $name ) {
+			$name = trim( (string) ( $values['company_name'] ?? '' ) );
+		}
+		if ( '' === $name ) {
+			$name = trim( (string) ( $customer['full_name'] ?? '' ) );
+		}
+		if ( '' !== $name ) {
+			$parts[] = $name;
+		}
+
+		foreach ( array( 'province', 'city' ) as $field_key ) {
+			$value = trim( (string) ( $values[ $field_key ] ?? '' ) );
+			if ( '' !== $value ) {
+				$parts[] = $value;
+			}
+		}
+
+		$parts[] = sprintf( 'دارای %s درخواست', number_format_i18n( absint( $stats['total_requests'] ?? 0 ) ) );
+		return implode( '، ', array_filter( $parts ) );
+	}
+
+	private function render_manual_request_customer_form_html( $mode, $customer = null, $phone_normalized = '' ) {
+		$mode        = 'update' === $mode ? 'update' : 'create';
+		$customer    = is_array( $customer ) ? $customer : null;
+		$values      = $customer ? CRPCRM_Customer_Registration_Fields::get_customer_values( $customer ) : array();
+		$fields      = $this->get_manual_request_registration_fields();
+		$customer_id = $customer ? absint( $customer['id'] ) : 0;
+
+		ob_start();
+		?>
+		<div class="crpcrm-manual-customer-editor-form" data-mode="<?php echo esc_attr( $mode ); ?>" data-customer-id="<?php echo esc_attr( $customer_id ); ?>">
+			<div class="crpcrm-form-grid">
+				<label class="crpcrm-width-50">
+					<?php echo esc_html( 'شماره موبایل مشتری' ); ?>
+					<input type="tel" name="customer_phone" value="<?php echo esc_attr( $phone_normalized ); ?>" readonly>
+				</label>
+				<?php foreach ( $fields as $field_key => $field ) : ?>
+					<?php $field_value = isset( $values[ $field_key ] ) ? $values[ $field_key ] : ''; ?>
+					<label class="<?php echo esc_attr( 'textarea' === $field['type'] ? 'crpcrm-full-field' : 'crpcrm-width-50' ); ?>">
+						<?php echo esc_html( $field['label'] . ( ! empty( $field['required'] ) ? ' *' : '' ) ); ?>
+						<?php if ( 'province' === $field['type'] ) : ?>
+							<select name="registration[<?php echo esc_attr( $field_key ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>>
+								<option value=""><?php echo esc_html( 'استان را انتخاب کنید' ); ?></option>
+								<?php foreach ( $this->get_iran_provinces() as $province ) : ?>
+									<option value="<?php echo esc_attr( $province ); ?>" <?php selected( $field_value, $province ); ?>><?php echo esc_html( $province ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						<?php elseif ( 'select' === $field['type'] ) : ?>
+							<select name="registration[<?php echo esc_attr( $field_key ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>>
+								<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
+								<?php foreach ( $field['options'] ?? array() as $option ) : ?>
+									<option value="<?php echo esc_attr( $option ); ?>" <?php selected( $field_value, $option ); ?>><?php echo esc_html( $option ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						<?php elseif ( 'textarea' === $field['type'] ) : ?>
+							<textarea name="registration[<?php echo esc_attr( $field_key ); ?>]" rows="4" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>><?php echo esc_textarea( $field_value ); ?></textarea>
+						<?php elseif ( 'date' === $field['type'] ) : ?>
+							<?php echo CRPCRM_Helpers::jalali_date_input( 'registration[' . $field_key . ']', $field_value, array( 'required' => ! empty( $field['required'] ) ) ); ?>
+						<?php else : ?>
+							<input type="<?php echo esc_attr( 'email' === $field['type'] ? 'email' : 'text' ); ?>" name="registration[<?php echo esc_attr( $field_key ); ?>]" value="<?php echo esc_attr( $field_value ); ?>" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>>
+						<?php endif; ?>
+					</label>
+				<?php endforeach; ?>
+			</div>
+			<div class="crpcrm-manual-customer-editor-actions">
+				<button type="button" class="button button-secondary crpcrm-manual-customer-save">
+					<?php echo esc_html( 'update' === $mode ? 'ذخیره اطلاعات مشتری' : 'ساخت مشتری' ); ?>
+				</button>
+				<span class="crpcrm-manual-customer-editor-status" aria-live="polite"></span>
+			</div>
+		</div>
+		<?php
+
+		return (string) ob_get_clean();
+	}
+
+	private function get_iran_provinces() {
+		return array(
+			'آذربایجان شرقی',
+			'آذربایجان غربی',
+			'اردبیل',
+			'اصفهان',
+			'البرز',
+			'ایلام',
+			'بوشهر',
+			'تهران',
+			'چهارمحال و بختیاری',
+			'خراسان جنوبی',
+			'خراسان رضوی',
+			'خراسان شمالی',
+			'خوزستان',
+			'زنجان',
+			'سمنان',
+			'سیستان و بلوچستان',
+			'فارس',
+			'قزوین',
+			'قم',
+			'کردستان',
+			'کرمان',
+			'کرمانشاه',
+			'کهگیلویه و بویراحمد',
+			'گلستان',
+			'گیلان',
+			'لرستان',
+			'مازندران',
+			'مرکزی',
+			'هرمزگان',
+			'همدان',
+			'یزد',
+		);
+	}
+
+	private function maybe_update_customer_display_name( $user_id, $full_name, $customer ) {
+		$user = get_user_by( 'id', absint( $user_id ) );
+		if ( ! $user ) {
+			return;
+		}
+
+		$phone_normalized = ! empty( $customer['phone_normalized'] ) ? $customer['phone_normalized'] : get_user_meta( $user_id, 'crpcrm_phone_normalized', true );
+		if ( $user->display_name === $phone_normalized || $user->display_name === $user->user_login || '' === trim( (string) $user->display_name ) ) {
+			wp_update_user(
+				array(
+					'ID'           => absint( $user_id ),
+					'display_name' => sanitize_text_field( $full_name ),
+				)
+			);
+		}
 	}
 
 	private function find_existing_user_by_phone( $phone_normalized ) {

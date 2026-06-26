@@ -2,52 +2,138 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
 $messages = array(
-	'manual_customer_required'    => 'یک مشتری ثبت‌شده را انتخاب کنید.',
-	'manual_customer_invalid'     => 'نام و شماره موبایل معتبر مشتری جدید الزامی است.',
-	'manual_customer_exists'      => 'این شماره موبایل قبلاً ثبت شده است؛ مشتری موجود را جستجو کنید.',
-	'manual_customer_failed'      => 'ساخت مشتری جدید انجام نشد.',
+	'manual_customer_required'    => 'برای ثبت درخواست ابتدا باید مشتری ایجاد شود.',
+	'manual_customer_invalid'     => 'اطلاعات مشتری معتبر نیست.',
+	'manual_customer_exists'      => 'مشتری با این شماره موبایل قبلاً ثبت شده است و برای همین درخواست انتخاب شد.',
+	'manual_customer_failed'      => 'ساخت یا انتخاب مشتری انجام نشد.',
 	'manual_request_type_invalid' => 'نوع درخواست معتبر نیست.',
-	'manual_form_invalid'         => 'فرم انتخاب‌شده یا اطلاعات واردشده معتبر نیست.',
+	'manual_form_invalid'         => 'نوع درخواست انتخاب‌شده یا اطلاعات واردشده معتبر نیست.',
 	'manual_request_failed'       => 'ثبت درخواست دستی انجام نشد.',
+	'manual_landing_required'     => 'برای ثبت درخواست، ابتدا باید حداقل یک لندینگ فعال در مدیریت لندینگ‌ها تعریف شود.',
+	'manual_landing_invalid'      => 'منبع انتخاب‌شده معتبر نیست.',
 );
-$notice = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_notice'] ) ) : '';
-$customer_mode = isset( $_GET['customer_mode'] ) ? sanitize_key( wp_unslash( $_GET['customer_mode'] ) ) : 'existing';
-$sources = array( 'direct', 'instagram', 'whatsapp', 'telegram', 'google', 'bing', 'referral', 'other' );
+
+$notice                 = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_notice'] ) ) : '';
+$customer_context       = is_array( $customer_context ?? null ) ? $customer_context : array();
+$customer_state         = isset( $customer_context['state'] ) ? sanitize_key( $customer_context['state'] ) : 'idle';
+$customer_summary       = isset( $customer_context['summary'] ) ? (string) $customer_context['summary'] : '';
+$customer_message       = isset( $customer_context['message'] ) ? (string) $customer_context['message'] : '';
+$customer_action        = isset( $customer_context['action_label'] ) ? (string) $customer_context['action_label'] : '';
+$customer_form_html     = isset( $customer_context['form_html'] ) ? (string) $customer_context['form_html'] : '';
+$current_customer_phone = isset( $current_customer_phone ) ? (string) $current_customer_phone : '';
+$current_customer_phone = '' !== $current_customer_phone ? $current_customer_phone : (string) ( $customer_context['phone_normalized'] ?? '' );
+$current_customer_id    = isset( $current_customer_id ) ? absint( $current_customer_id ) : 0;
+$current_request_status = isset( $current_request_status ) ? sanitize_key( (string) $current_request_status ) : 'new';
+$current_request_source = isset( $current_request_source ) ? sanitize_text_field( (string) $current_request_source ) : '';
+$active_landings        = ! empty( $active_landings ) && is_array( $active_landings ) ? $active_landings : array();
+$request_page_url       = crpcrm_admin_requests_url( array( 'action' => 'new' ) );
+$has_active_landings    = ! empty( $active_landings );
 ?>
 <div class="wrap crpcrm-admin-wrap crpcrm-requests-admin" dir="rtl">
 	<h1><?php echo esc_html( 'ایجاد درخواست جدید' ); ?></h1>
 	<p><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=crpcrm-requests' ) ); ?>"><?php echo esc_html( 'بازگشت به درخواست‌ها' ); ?></a></p>
-	<?php if ( isset( $messages[ $notice ] ) ) : ?><div class="notice notice-error"><p><?php echo esc_html( $messages[ $notice ] ); ?></p></div><?php endif; ?>
 
-	<div class="crpcrm-card"><h2><?php echo esc_html( 'جستجوی مشتری ثبت‌شده' ); ?></h2>
-		<form method="get" class="crpcrm-manual-search"><input type="hidden" name="page" value="crpcrm-requests"><input type="hidden" name="action" value="new"><input type="hidden" name="form_id" value="<?php echo esc_attr( $selected_form['id'] ?? '' ); ?>"><input type="search" name="customer_search" value="<?php echo esc_attr( $customer_search ); ?>" placeholder="<?php echo esc_attr( 'نام یا شماره موبایل' ); ?>" required><button class="button" type="submit"><?php echo esc_html( 'جستجو' ); ?></button></form>
-		<?php if ( '' !== $customer_search && empty( $customer_results ) ) : ?><p><?php echo esc_html( 'کاربری پیدا نشد؛ می‌توانید در فرم زیر کاربر جدید بسازید.' ); ?></p><?php endif; ?>
-	</div>
+	<?php if ( isset( $messages[ $notice ] ) ) : ?>
+		<div class="notice notice-error"><p><?php echo esc_html( $messages[ $notice ] ); ?></p></div>
+	<?php endif; ?>
 
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-card crpcrm-manual-request-form" enctype="multipart/form-data">
-		<input type="hidden" name="action" value="crpcrm_create_manual_request"><?php wp_nonce_field( 'crpcrm_create_manual_request' ); ?>
-		<h2><?php echo esc_html( '۱. انتخاب یا ساخت مشتری' ); ?></h2>
-		<div class="crpcrm-radio-row"><label><input type="radio" name="customer_mode" value="existing" <?php checked( $customer_mode, 'existing' ); ?>> <?php echo esc_html( 'انتخاب کاربر ثبت‌شده' ); ?></label><label><input type="radio" name="customer_mode" value="new" <?php checked( $customer_mode, 'new' ); ?>> <?php echo esc_html( 'ساخت کاربر جدید بدون OTP' ); ?></label></div>
-		<div class="crpcrm-existing-customer-fields" <?php echo 'new' === $customer_mode ? 'style="display:none;"' : ''; ?>><label><?php echo esc_html( 'کاربر ثبت‌شده' ); ?><select name="customer_id" <?php echo 'new' === $customer_mode ? 'disabled' : ''; ?>><option value=""><?php echo esc_html( 'از نتایج جستجو انتخاب کنید' ); ?></option><?php foreach ( $customer_results as $customer ) : ?><option value="<?php echo esc_attr( $customer['id'] ); ?>"><?php echo esc_html( ( $customer['full_name'] ? $customer['full_name'] : $customer['display_name'] ) . ' — ' . $customer['phone_normalized'] ); ?></option><?php endforeach; ?></select></label></div>
-		<div class="crpcrm-new-customer-fields" <?php echo 'new' === $customer_mode ? 'style="display:block;"' : ''; ?>><div class="crpcrm-form-grid"><label><?php echo esc_html( 'نام و نام خانوادگی *' ); ?><input type="text" name="new_customer_name" required <?php echo 'new' === $customer_mode ? '' : 'disabled'; ?>></label><label><?php echo esc_html( 'شماره موبایل *' ); ?><input type="tel" name="new_customer_phone" placeholder="09123456789" required <?php echo 'new' === $customer_mode ? '' : 'disabled'; ?>></label><label><?php echo esc_html( 'استان *' ); ?><input type="text" name="new_customer_province" required <?php echo 'new' === $customer_mode ? '' : 'disabled'; ?>></label><label><?php echo esc_html( 'شهر *' ); ?><input type="text" name="new_customer_city" required <?php echo 'new' === $customer_mode ? '' : 'disabled'; ?>></label><label><?php echo esc_html( 'منبع اولیه کاربر' ); ?><select name="new_customer_source" <?php echo 'new' === $customer_mode ? '' : 'disabled'; ?>><?php foreach ( $sources as $source ) : ?><option value="<?php echo esc_attr( $source ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $source ) ); ?></option><?php endforeach; ?></select></label></div></div>
+	<?php if ( ! $has_active_landings ) : ?>
+		<div class="notice notice-warning"><p><?php echo esc_html( $messages['manual_landing_required'] ); ?></p></div>
+	<?php endif; ?>
 
-		<h2><?php echo esc_html( '۲. اطلاعات درخواست' ); ?></h2>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-card crpcrm-manual-request-form" enctype="multipart/form-data" data-request-page-url="<?php echo esc_url( $request_page_url ); ?>">
+		<input type="hidden" name="action" value="crpcrm_create_manual_request">
+		<?php wp_nonce_field( 'crpcrm_create_manual_request' ); ?>
+		<input type="hidden" name="customer_id" value="<?php echo esc_attr( $current_customer_id ? $current_customer_id : ( $customer_context['customer_id'] ?? 0 ) ); ?>">
+
+		<div class="crpcrm-card-header">
+			<div>
+				<h2><?php echo esc_html( 'ثبت درخواست توسط کارشناس فروش' ); ?></h2>
+				<p><?php echo esc_html( 'ابتدا نوع درخواست و مشتری را مشخص کنید، سپس اطلاعات درخواست را ثبت کنید.' ); ?></p>
+			</div>
+		</div>
+
 		<?php if ( empty( $forms ) || ! $selected_form ) : ?>
 			<p><?php echo esc_html( 'هیچ فرم فعالی برای ثبت درخواست وجود ندارد.' ); ?></p>
 		<?php else : ?>
-			<p><label><?php echo esc_html( 'فرم درخواست' ); ?><select onchange="window.location.href=this.value"><?php foreach ( $forms as $form_id => $form_definition ) : ?><option value="<?php echo esc_url( crpcrm_admin_requests_url( array( 'action' => 'new', 'form_id' => $form_id, 'customer_search' => $customer_search ) ) ); ?>" <?php selected( $selected_form['id'], $form_definition['id'] ); ?>><?php echo esc_html( $form_definition['label'] ?? $form_definition['title'] ); ?></option><?php endforeach; ?></select></label></p>
-			<input type="hidden" name="form_id" value="<?php echo esc_attr( $selected_form['id'] ); ?>">
 			<div class="crpcrm-form-grid">
-			<?php CRPCRM_Dynamic_Form_Renderer::render_fields( $selected_form, 'admin' ); ?>
-			<label><?php echo esc_html( 'وضعیت' ); ?><select name="request_status"><?php foreach ( array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' ) as $status ) : ?><option value="<?php echo esc_attr( $status ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $status ) ); ?></option><?php endforeach; ?></select></label>
-			<?php if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
-				<label><?php echo esc_html( 'مسئول' ); ?><select name="owner_id"><option value="0"><?php echo esc_html( 'بدون مسئول' ); ?></option><?php foreach ( $assignable_users as $user ) : ?><option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( ! $can_manage && absint( $user->ID ) === get_current_user_id() ); ?>><?php echo esc_html( $user->display_name ); ?></option><?php endforeach; ?></select></label>
-			<?php endif; ?>
-			<label><?php echo esc_html( 'منبع درخواست' ); ?><select name="request_source"><?php foreach ( $sources as $source ) : ?><option value="<?php echo esc_attr( $source ); ?>"><?php echo esc_html( CRPCRM_Helpers::get_source_label( $source ) ); ?></option><?php endforeach; ?></select></label>
-			<label><?php echo esc_html( 'مدیوم' ); ?><input type="text" name="request_medium"></label><label><?php echo esc_html( 'کمپین' ); ?><input type="text" name="request_campaign"></label><label><?php echo esc_html( 'محتوا / utm_content' ); ?><input type="text" name="request_content"></label><label><?php echo esc_html( 'عبارت / utm_term' ); ?><input type="text" name="request_term"></label><label><?php echo esc_html( 'Landing page' ); ?><input type="url" name="request_landing_page"></label><label><?php echo esc_html( 'Referrer' ); ?><input type="url" name="request_referrer"></label><label><?php echo esc_html( 'پیگیری بعدی' ); ?><?php echo CRPCRM_Helpers::jalali_datetime_input( 'next_follow_up_at' ); ?></label>
-			<label><?php echo esc_html( 'عنوان' ); ?><input type="text" name="request_title"></label><label class="crpcrm-full-field"><?php echo esc_html( 'خلاصه درخواست (اختیاری)' ); ?><textarea name="request_summary" rows="3"></textarea></label><label class="crpcrm-full-field"><?php echo esc_html( 'توضیحات دستی تکمیلی' ); ?><textarea name="manual_details" rows="3"></textarea></label>
-			</div><p class="submit"><button class="button button-primary" type="submit"><?php echo esc_html( 'ثبت درخواست' ); ?></button></p>
+				<label class="crpcrm-width-50">
+					<?php echo esc_html( 'نوع درخواست' ); ?>
+					<select name="manual_form_selector" class="crpcrm-manual-request-type-selector" data-base-url="<?php echo esc_url( $request_page_url ); ?>">
+						<?php foreach ( $forms as $form_id => $form_definition ) : ?>
+							<option value="<?php echo esc_attr( $form_id ); ?>" <?php selected( $selected_form['id'], $form_definition['id'] ); ?>>
+								<?php echo esc_html( $form_definition['label'] ?? $form_definition['title'] ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+				</label>
+				<input type="hidden" name="form_id" value="<?php echo esc_attr( $selected_form['id'] ); ?>">
+
+				<label class="crpcrm-width-50">
+					<?php echo esc_html( 'شماره موبایل مشتری' ); ?>
+					<input type="tel" name="customer_phone" class="crpcrm-manual-customer-phone" value="<?php echo esc_attr( $current_customer_phone ); ?>" placeholder="09123456789" autocomplete="off" inputmode="tel" required>
+				</label>
+			</div>
+
+			<div class="crpcrm-manual-customer-block">
+				<div class="crpcrm-manual-customer-status" aria-live="polite"></div>
+
+				<div class="crpcrm-manual-customer-result<?php echo 'idle' !== $customer_state ? ' is-visible' : ''; ?>" data-customer-state="<?php echo esc_attr( $customer_state ); ?>">
+					<?php if ( '' !== $customer_summary ) : ?>
+						<p class="crpcrm-manual-customer-summary"><?php echo esc_html( $customer_summary ); ?></p>
+					<?php endif; ?>
+
+					<?php if ( '' !== $customer_message ) : ?>
+						<p class="crpcrm-manual-customer-message">
+							<?php echo esc_html( $customer_message ); ?>
+							<?php if ( '' !== $customer_action ) : ?>
+								<?php echo esc_html( ' ' ); ?>
+								<button type="button" class="button-link crpcrm-manual-customer-toggle"><?php echo esc_html( $customer_action ); ?></button>
+							<?php endif; ?>
+						</p>
+					<?php endif; ?>
+				</div>
+
+				<div class="crpcrm-manual-customer-editor" hidden>
+					<?php echo $customer_form_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				</div>
+			</div>
+
+			<div class="crpcrm-manual-request-fields">
+				<div class="crpcrm-form-grid">
+					<?php CRPCRM_Dynamic_Form_Renderer::render_fields( $selected_form, 'admin' ); ?>
+
+					<label class="crpcrm-width-50">
+						<?php echo esc_html( 'وضعیت درخواست' ); ?>
+						<select name="request_status" required>
+							<?php foreach ( array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' ) as $status ) : ?>
+								<option value="<?php echo esc_attr( $status ); ?>" <?php selected( $current_request_status, $status ); ?>>
+									<?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $status ) ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+					</label>
+
+					<label class="crpcrm-width-50">
+						<?php echo esc_html( 'منبع' ); ?>
+						<select name="request_source" <?php disabled( ! $has_active_landings ); ?> required>
+							<option value=""><?php echo esc_html( 'انتخاب منبع' ); ?></option>
+							<?php foreach ( $active_landings as $landing ) : ?>
+								<?php $landing_id = absint( $landing['id'] ?? 0 ); ?>
+								<option value="<?php echo esc_attr( $landing_id ); ?>" <?php selected( (string) $current_request_source, (string) $landing_id ); ?>>
+									<?php echo esc_html( $landing['title'] ?? '' ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+					</label>
+				</div>
+			</div>
+
+			<p class="submit">
+				<button class="button button-primary" type="submit" <?php disabled( ! $has_active_landings ); ?>><?php echo esc_html( 'ثبت درخواست' ); ?></button>
+			</p>
 		<?php endif; ?>
 	</form>
 </div>
