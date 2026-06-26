@@ -121,6 +121,21 @@ $notice = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crp
 					<?php foreach ( $registration_fields as $field_id => $field ) : ?><?php if ( isset( $registration_values[ $field_id ] ) && '' !== trim( (string) $registration_values[ $field_id ] ) ) : ?><dt><?php echo esc_html( $field['label'] ); ?></dt><dd><?php echo esc_html( $registration_values[ $field_id ] ); ?></dd><?php endif; ?><?php endforeach; ?>
 				</dl></div>
 			<?php endif; ?>
+			<?php if ( ! empty( $staff_customer_audit['created_by'] ) || ! empty( $staff_customer_audit['updated_by'] ) ) : ?>
+				<div class="crpcrm-card">
+					<h2><?php echo esc_html( 'ثبت و ویرایش داخلی' ); ?></h2>
+					<dl>
+						<?php if ( ! empty( $staff_customer_audit['created_by'] ) && ! empty( $staff_customer_audit['created_at'] ) ) : ?>
+							<dt><?php echo esc_html( 'ایجاد توسط کارشناس' ); ?></dt>
+							<dd><?php echo esc_html( sprintf( 'این مشتری توسط %1$s در تاریخ %2$s ایجاد شده است.', $staff_customer_audit['created_name'], CRPCRM_Helpers::format_jalali_datetime( $staff_customer_audit['created_at'] ) ) ); ?></dd>
+						<?php endif; ?>
+						<?php if ( ! empty( $staff_customer_audit['updated_by'] ) && ! empty( $staff_customer_audit['updated_at'] ) ) : ?>
+							<dt><?php echo esc_html( 'آخرین ویرایش اطلاعات تکمیلی' ); ?></dt>
+							<dd><?php echo esc_html( sprintf( 'اطلاعات تکمیلی این مشتری توسط %1$s در تاریخ %2$s ویرایش شده است.', $staff_customer_audit['updated_name'], CRPCRM_Helpers::format_jalali_datetime( $staff_customer_audit['updated_at'] ) ) ); ?></dd>
+						<?php endif; ?>
+					</dl>
+				</div>
+			<?php endif; ?>
 			<div class="crpcrm-card"><h2><?php echo esc_html( 'اولین ورود' ); ?></h2><dl><dt><?php echo esc_html( 'منبع' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_source_label( $customer['first_source'] ) ); ?></dd><dt><?php echo esc_html( 'مدیوم' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_medium_label( $customer['first_medium'] ) ); ?></dd><dt><?php echo esc_html( 'کمپین' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['first_campaign'] ) ); ?></dd><dt><?php echo esc_html( 'محتوا' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['first_content'] ) ); ?></dd><dt><?php echo esc_html( 'کلمه کلیدی' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['first_term'] ) ); ?></dd><dt><?php echo esc_html( 'صفحه ورود' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['first_landing_page'] ) ); ?></dd><dt><?php echo esc_html( 'ارجاع‌دهنده' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['first_referrer'] ) ); ?></dd><dt><?php echo esc_html( 'تاریخ اولین ورود' ); ?></dt><dd><?php echo esc_html( ( $customer['first_seen_at'] ? CRPCRM_Helpers::format_jalali_datetime( $customer['first_seen_at'] ) : 'ثبت نشده' ) ); ?></dd></dl></div>
 			<div class="crpcrm-card"><h2><?php echo esc_html( 'آخرین ورود' ); ?></h2><dl><dt><?php echo esc_html( 'منبع' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_source_label( $customer['last_source'] ) ); ?></dd><dt><?php echo esc_html( 'مدیوم' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_medium_label( $customer['last_medium'] ) ); ?></dd><dt><?php echo esc_html( 'کمپین' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['last_campaign'] ) ); ?></dd><dt><?php echo esc_html( 'محتوا' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['last_content'] ) ); ?></dd><dt><?php echo esc_html( 'کلمه کلیدی' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['last_term'] ) ); ?></dd><dt><?php echo esc_html( 'صفحه ورود' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['last_landing_page'] ) ); ?></dd><dt><?php echo esc_html( 'ارجاع‌دهنده' ); ?></dt><dd><?php echo esc_html( crpcrm_display_value( $customer['last_referrer'] ) ); ?></dd><dt><?php echo esc_html( 'تاریخ آخرین ورود' ); ?></dt><dd><?php echo esc_html( ( $customer['last_seen_at'] ? CRPCRM_Helpers::format_jalali_datetime( $customer['last_seen_at'] ) : 'ثبت نشده' ) ); ?></dd></dl></div>
 		</div>

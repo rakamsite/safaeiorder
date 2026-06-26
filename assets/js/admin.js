@@ -382,6 +382,298 @@
 		container.appendChild(notice);
 	}
 
+	function normalizeManualPhone(value) {
+		var normalized = toLatin(String(value || '')).replace(/[^0-9+]/g, '');
+		if (normalized.indexOf('+98') === 0) {
+			normalized = normalized.substring(1);
+		} else if (normalized.indexOf('0098') === 0) {
+			normalized = normalized.substring(2);
+		} else if (normalized.indexOf('09') === 0 && normalized.length === 11) {
+			normalized = '98' + normalized.substring(1);
+		} else if (normalized.indexOf('9') === 0 && normalized.length === 10) {
+			normalized = '98' + normalized;
+		}
+		return normalized;
+	}
+
+	function isValidManualPhone(value) {
+		return /^989\d{9}$/.test(String(value || ''));
+	}
+
+	function renderManualCustomerResult(form, state) {
+		var result = form.querySelector('.crpcrm-manual-customer-result');
+		var editor = form.querySelector('.crpcrm-manual-customer-editor');
+		var hiddenCustomer = form.querySelector('input[name="customer_id"]');
+		if (!result || !editor || !hiddenCustomer) {
+			return;
+		}
+
+		form._crpcrmManualCustomerState = state || null;
+		hiddenCustomer.value = state && state.customer_id ? String(state.customer_id) : '';
+		clearElement(result);
+
+		if (!state || !state.state || state.state === 'idle') {
+			result.classList.remove('is-visible');
+			result.setAttribute('data-customer-state', 'idle');
+			editor.hidden = true;
+			editor.classList.remove('is-visible');
+			clearElement(editor);
+			return;
+		}
+
+		result.classList.add('is-visible');
+		result.setAttribute('data-customer-state', state.state);
+
+		if (state.summary) {
+			var summary = document.createElement('p');
+			summary.className = 'crpcrm-manual-customer-summary';
+			summary.textContent = state.summary;
+			result.appendChild(summary);
+		}
+
+		if (state.message) {
+			var message = document.createElement('p');
+			message.className = 'crpcrm-manual-customer-message';
+			message.appendChild(document.createTextNode(state.message + (state.action_label ? ' ' : '')));
+			if (state.action_label) {
+				var action = document.createElement('button');
+				action.type = 'button';
+				action.className = 'button-link crpcrm-manual-customer-toggle';
+				action.textContent = state.action_label;
+				message.appendChild(action);
+			}
+			result.appendChild(message);
+		}
+
+		if (state.state === 'incomplete' || state.state === 'not_found') {
+			editor.innerHTML = state.form_html || '';
+			editor.hidden = true;
+			editor.classList.remove('is-visible');
+		} else {
+			editor.hidden = true;
+			editor.classList.remove('is-visible');
+			clearElement(editor);
+		}
+	}
+
+	function buildManualRequestUrl(form, formId) {
+		var baseUrl = form.getAttribute('data-request-page-url') || '';
+		if (!baseUrl || !formId || !window.URL) {
+			return '';
+		}
+
+		var url = new URL(baseUrl, window.location.origin);
+		var phone = form.querySelector('.crpcrm-manual-customer-phone');
+		var customer = form.querySelector('input[name="customer_id"]');
+		var source = form.querySelector('select[name="request_source"]');
+		var statusField = form.querySelector('select[name="request_status"]');
+
+		url.searchParams.set('form_id', formId);
+		if (phone && phone.value.trim()) {
+			url.searchParams.set('customer_phone', phone.value.trim());
+		}
+		if (customer && customer.value) {
+			url.searchParams.set('customer_id', customer.value);
+		}
+		if (source && source.value) {
+			url.searchParams.set('request_source', source.value);
+		}
+		if (statusField && statusField.value) {
+			url.searchParams.set('request_status', statusField.value);
+		}
+
+		return url.toString();
+	}
+
+	function submitManualCustomerEditor(form, config) {
+		var editor = form.querySelector('.crpcrm-manual-customer-editor');
+		if (!editor || !editor.querySelector('.crpcrm-manual-customer-editor-form')) {
+			return;
+		}
+
+		var editorForm = editor.querySelector('.crpcrm-manual-customer-editor-form');
+		var status = editor.querySelector('.crpcrm-manual-customer-editor-status');
+		var button = editor.querySelector('.crpcrm-manual-customer-save');
+		if (!button) {
+			return;
+		}
+
+		if (typeof editorForm.checkValidity === 'function' && !editorForm.checkValidity()) {
+			editorForm.reportValidity();
+			return;
+		}
+
+		if (!window.fetch || !config.ajaxUrl || !config.manualCustomerSaveNonce) {
+			if (status) {
+				status.textContent = config.manualCustomerSaveError || 'ذخیره اطلاعات مشتری انجام نشد.';
+			}
+			return;
+		}
+
+		var formData = new FormData();
+		formData.append('action', 'crpcrm_manual_request_customer_save');
+		formData.append('nonce', config.manualCustomerSaveNonce);
+		formData.append('mode', editorForm.getAttribute('data-mode') || 'create');
+		formData.append('customer_id', editorForm.getAttribute('data-customer-id') || '');
+		Array.prototype.forEach.call(editorForm.querySelectorAll('input, select, textarea'), function (field) {
+			if (!field.name || field.disabled) {
+				return;
+			}
+			formData.append(field.name, field.value);
+		});
+
+		if (status) {
+			status.textContent = config.manualCustomerSaveLoading || 'در حال ذخیره اطلاعات مشتری...';
+		}
+		button.disabled = true;
+
+		fetch(config.ajaxUrl, {
+			method: 'POST',
+			body: formData,
+			credentials: 'same-origin'
+		})
+			.then(function (response) { return response.json(); })
+			.then(function (payload) {
+				if (!payload || !payload.success || !payload.data) {
+					throw new Error((payload && payload.data && payload.data.message) || config.manualCustomerSaveError || 'ذخیره اطلاعات مشتری انجام نشد.');
+				}
+
+				renderManualCustomerResult(form, payload.data);
+				if (status) {
+					status.textContent = payload.data.message || '';
+				}
+			})
+			.catch(function (error) {
+				if (status) {
+					status.textContent = (error && error.message) || config.manualCustomerSaveError || 'ذخیره اطلاعات مشتری انجام نشد.';
+				}
+			})
+			.finally(function () {
+				button.disabled = false;
+			});
+	}
+
+	function initManualRequestFlow(form, config) {
+		var phoneInput = form.querySelector('.crpcrm-manual-customer-phone');
+		var status = form.querySelector('.crpcrm-manual-customer-status');
+		var typeSelect = form.querySelector('.crpcrm-manual-request-type-selector');
+		var lookupTimer = null;
+		var requestId = 0;
+
+		if (!phoneInput) {
+			return;
+		}
+
+		function runLookup() {
+			var phone = phoneInput.value.trim();
+			var normalized = normalizeManualPhone(phone);
+			var hiddenCustomer = form.querySelector('input[name="customer_id"]');
+
+			if (!isValidManualPhone(normalized)) {
+				if (hiddenCustomer) {
+					hiddenCustomer.value = '';
+				}
+				if (status) {
+					status.textContent = '';
+				}
+				renderManualCustomerResult(form, { state: 'idle' });
+				return;
+			}
+
+			if (!window.fetch || !config.ajaxUrl || !config.manualCustomerLookupNonce) {
+				return;
+			}
+
+			requestId += 1;
+			var currentRequestId = requestId;
+			if (status) {
+				status.textContent = config.manualCustomerLoading || 'در حال جستجوی مشتری...';
+			}
+
+			var formData = new FormData();
+			formData.append('action', 'crpcrm_manual_request_customer_lookup');
+			formData.append('nonce', config.manualCustomerLookupNonce);
+			formData.append('phone', phone);
+			if (hiddenCustomer && hiddenCustomer.value) {
+				formData.append('customer_id', hiddenCustomer.value);
+			}
+
+			fetch(config.ajaxUrl, {
+				method: 'POST',
+				body: formData,
+				credentials: 'same-origin'
+			})
+				.then(function (response) { return response.json(); })
+				.then(function (payload) {
+					if (currentRequestId !== requestId) {
+						return;
+					}
+					if (!payload || !payload.success || !payload.data) {
+						throw new Error(config.manualCustomerLookupError || 'جستجوی مشتری انجام نشد.');
+					}
+					if (status) {
+						status.textContent = '';
+					}
+					renderManualCustomerResult(form, payload.data);
+				})
+				.catch(function () {
+					if (currentRequestId !== requestId) {
+						return;
+					}
+					if (status) {
+						status.textContent = config.manualCustomerLookupError || 'جستجوی مشتری انجام نشد.';
+					}
+					renderManualCustomerResult(form, { state: 'idle' });
+				});
+		}
+
+		phoneInput.addEventListener('input', function () {
+			var hiddenCustomer = form.querySelector('input[name="customer_id"]');
+			if (hiddenCustomer) {
+				hiddenCustomer.value = '';
+			}
+			window.clearTimeout(lookupTimer);
+			lookupTimer = window.setTimeout(runLookup, 350);
+		});
+
+		form.addEventListener('click', function (event) {
+			if (event.target.classList.contains('crpcrm-manual-customer-toggle')) {
+				event.preventDefault();
+				var editor = form.querySelector('.crpcrm-manual-customer-editor');
+				if (!editor) {
+					return;
+				}
+				editor.hidden = false;
+				editor.classList.add('is-visible');
+				return;
+			}
+
+			if (event.target.classList.contains('crpcrm-manual-customer-save')) {
+				event.preventDefault();
+				submitManualCustomerEditor(form, config);
+			}
+		});
+
+		if (typeSelect) {
+			typeSelect.addEventListener('change', function () {
+				var url = buildManualRequestUrl(form, typeSelect.value);
+				if (url) {
+					window.location.href = url;
+				}
+			});
+		}
+
+		form.addEventListener('submit', function (event) {
+			var hiddenCustomer = form.querySelector('input[name="customer_id"]');
+			if (hiddenCustomer && !hiddenCustomer.value) {
+				event.preventDefault();
+				if (status) {
+					status.textContent = config.manualCustomerCreateRequired || 'برای ثبت درخواست ابتدا باید مشتری ایجاد شود.';
+				}
+			}
+		});
+	}
+
 	function createProductChip(container, hidden, product, labels) {
 		var chip = document.createElement('span');
 		chip.className = 'crpcrm-product-chip';
@@ -1290,12 +1582,9 @@
 		initFormBuilder();
 		document.querySelectorAll('.crpcrm-manual-request-form, .crpcrm-sales-action-form, .crpcrm-staff-form').forEach(bindSubmitGuard);
 		document.querySelectorAll('.crpcrm-manual-request-form').forEach(function (form) {
-			updateManualCustomerFields(form);
 			initProductSearch(form, config);
 			initFileUploads(form, config);
-			form.querySelectorAll('input[name="customer_mode"]').forEach(function (radio) {
-				radio.addEventListener('change', function () { updateManualCustomerFields(form); });
-			});
+			initManualRequestFlow(form, config);
 		});
 		document.querySelectorAll('.crpcrm-sales-action-form').forEach(function (form) {
 			updateSalesActionFields(form);

@@ -1145,6 +1145,18 @@
 .crpcrm-form-grid .crpcrm-width-50 { grid-column: span 6; }
 .crpcrm-form-grid .crpcrm-width-100 { grid-column: 1 / -1; }
 .crpcrm-new-customer-fields { display: none; background: #f6f7f7; border-radius: 8px; margin: 14px 0; padding: 14px; }
+.crpcrm-manual-customer-block { margin: 18px 0 24px; }
+.crpcrm-manual-customer-status { color: #475569; min-height: 24px; }
+.crpcrm-manual-customer-result { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 10px; display: none; margin-bottom: 14px; padding: 14px 16px; }
+.crpcrm-manual-customer-result.is-visible { display: block; }
+.crpcrm-manual-customer-summary,
+.crpcrm-manual-customer-message { margin: 0; }
+.crpcrm-manual-customer-message { color: #334155; }
+.crpcrm-manual-customer-editor { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; }
+.crpcrm-manual-customer-editor.is-visible { display: block; }
+.crpcrm-manual-customer-editor-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.crpcrm-manual-customer-editor-status { color: #475569; font-size: 13px; }
+.crpcrm-manual-request-fields { margin-top: 24px; }
 @media (max-width: 782px) {
 	.crpcrm-form-builder-field-grid,
 	.crpcrm-form-grid {

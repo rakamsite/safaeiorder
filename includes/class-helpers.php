@@ -24,6 +24,8 @@ class CRPCRM_Helpers {
 
 		if ( 0 === strpos( $phone, '+98' ) ) {
 			$phone = substr( $phone, 1 );
+		} elseif ( 0 === strpos( $phone, '0098' ) ) {
+			$phone = substr( $phone, 2 );
 		} elseif ( 0 === strpos( $phone, '09' ) && 11 === strlen( $phone ) ) {
 			$phone = '98' . substr( $phone, 1 );
 		} elseif ( 0 === strpos( $phone, '9' ) && 10 === strlen( $phone ) ) {
