@@ -184,13 +184,11 @@ class CRPCRM_Request_File_Cleanup_Service {
 	}
 
 	private function get_allowed_roots() {
-		$uploads = wp_get_upload_dir();
-		$roots   = array(
-			$this->normalize_root_path( CRPCRM_Dynamic_Form_Renderer::get_protected_upload_root_dir() ),
-			$this->normalize_root_path( trailingslashit( $uploads['basedir'] ) . 'crpcrm-request-files' ),
-		);
+		if ( method_exists( 'CRPCRM_Dynamic_Form_Renderer', 'get_allowed_upload_root_dirs' ) ) {
+			return CRPCRM_Dynamic_Form_Renderer::get_allowed_upload_root_dirs();
+		}
 
-		return array_values( array_filter( array_unique( $roots ) ) );
+		return array_values( array_filter( array( $this->normalize_root_path( CRPCRM_Dynamic_Form_Renderer::get_protected_upload_root_dir() ) ) ) );
 	}
 
 	private function resolve_allowed_root( $path ) {
@@ -200,7 +198,7 @@ class CRPCRM_Request_File_Cleanup_Service {
 		}
 
 		foreach ( $this->get_allowed_roots() as $root ) {
-			if ( $root && 0 === strpos( $path, $root ) ) {
+			if ( $root && 0 === strpos( trailingslashit( $path ), $root ) ) {
 				return $root;
 			}
 		}
@@ -224,15 +222,34 @@ class CRPCRM_Request_File_Cleanup_Service {
 	}
 
 	private function delete_directory_tree( $path, $root ) {
-		$path = $this->normalize_real_path( $path );
 		$root = $this->normalize_root_path( $root );
+		if ( ! $root ) {
+			return;
+		}
 
-		if ( ! $path || ! $root || 0 !== strpos( trailingslashit( $path ), $root ) || ! is_dir( $path ) ) {
+		$path_string = is_string( $path ) ? wp_normalize_path( $path ) : '';
+		if ( '' === $path_string ) {
+			return;
+		}
+
+		if ( is_link( $path_string ) ) {
+			$parent = $this->normalize_real_path( dirname( $path_string ) );
+			if ( $parent && 0 === strpos( trailingslashit( $parent ), $root ) ) {
+				@unlink( $path_string );
+			} else {
+				$this->debug_log( 'request_file_cleanup_symlink_outside_root_skipped', array() );
+			}
+			return;
+		}
+
+		$path = $this->normalize_real_path( $path_string );
+		if ( ! $path || 0 !== strpos( trailingslashit( $path ), $root ) || ! is_dir( $path ) ) {
 			return;
 		}
 
 		$items = scandir( $path );
 		if ( false === $items ) {
+			$this->debug_log( 'request_file_cleanup_scandir_failed', array() );
 			return;
 		}
 
@@ -242,12 +259,23 @@ class CRPCRM_Request_File_Cleanup_Service {
 			}
 
 			$child = $path . DIRECTORY_SEPARATOR . $item;
-			if ( is_dir( $child ) ) {
-				$this->delete_directory_tree( $child, $root );
+			if ( is_link( $child ) ) {
+				@unlink( $child );
 				continue;
 			}
 
-			@unlink( $child );
+			$child_real = $this->normalize_real_path( $child );
+			if ( ! $child_real || 0 !== strpos( trailingslashit( $child_real ), $root ) ) {
+				$this->debug_log( 'request_file_cleanup_child_outside_root_skipped', array() );
+				continue;
+			}
+
+			if ( is_dir( $child_real ) ) {
+				$this->delete_directory_tree( $child_real, $root );
+				continue;
+			}
+
+			@unlink( $child_real );
 		}
 
 		@rmdir( $path );
