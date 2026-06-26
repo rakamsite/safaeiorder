@@ -1309,7 +1309,6 @@ class CRPCRM_Admin_Pages {
 		}
 
 		$request = $this->request_repository->get( $request_id );
-		CRPCRM_Activity::add( $request_id, 'manual_request_created', array( 'customer_id' => absint( $customer['id'] ), 'actor_user_id' => get_current_user_id(), 'actor_type' => CRPCRM_Request_Access_Service::can_manage_request() ? 'sales_manager' : 'sales_agent', 'new_status' => $status, 'note' => 'درخواست به صورت دستی توسط کارشناس فروش ثبت شد.', 'is_internal' => 1 ) );
 		$this->sync_manual_request_customer_attribution( $customer, $landing, $request_id );
 		CRPCRM_Logger::info( 'manual_request_created', 'request', array( 'request_id' => $request_id, 'customer_id' => absint( $customer['id'] ), 'actor_user_id' => get_current_user_id() ) );
 		$this->notify_sales_team_about_request( $request_id, $request_args['request_title'] );

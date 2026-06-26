@@ -542,8 +542,21 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		$request_data = CRPCRM_Request_Repository::get_merged_request_data( $request );
 		$detail_form  = CRPCRM_Request_Forms::get_form_for_request( $request['request_type'], $request_data );
 		$detail_items = CRPCRM_Dynamic_Form_Renderer::get_display_items( $detail_form, $request_data );
-		$landing_attribution = CRPCRM_Request_Repository::get_landing_attribution( $request );
 		$request_badges = crpcrm_request_operational_badges( $request );
+		ob_start();
+		if ( $can_claim ) {
+			crpcrm_admin_claim_form( $request['id'] );
+		}
+		if ( $can_manage && CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+			crpcrm_admin_owner_form( $request['id'], $request['owner_id'], $assignable_users );
+			if ( ! empty( $request['owner_id'] ) ) {
+				crpcrm_admin_release_form( $request['id'] );
+			}
+		}
+		if ( $can_delete ) {
+			crpcrm_admin_delete_form( $request['id'] );
+		}
+		$request_actions_html = trim( (string) ob_get_clean() );
 		?>
 		<p><a class="button" href="<?php echo esc_url( crpcrm_admin_requests_url() ); ?>"><?php echo esc_html( 'بازگشت به لیست درخواست‌ها' ); ?></a></p>
 		<div class="crpcrm-page-header crpcrm-request-detail-header">
@@ -564,7 +577,9 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			</div>
 		</div>
 		<div class="crpcrm-detail-grid">
-			<div class="crpcrm-card crpcrm-info-card crpcrm-request-meta-card"><h2><?php echo esc_html( 'اطلاعات اصلی درخواست' ); ?></h2><dl class="crpcrm-request-meta-list">
+			<details class="crpcrm-card crpcrm-info-card crpcrm-request-meta-card crpcrm-request-section crpcrm-request-accordion">
+				<summary class="crpcrm-request-section-toggle"><h2><?php echo esc_html( 'اطلاعات اصلی درخواست' ); ?></h2></summary>
+				<div class="crpcrm-request-section-body"><dl class="crpcrm-request-meta-list">
 				<dt><?php echo esc_html( 'کد پیگیری' ); ?></dt><dd><?php echo esc_html( $request['request_code'] ); ?></dd>
 				<dt><?php echo esc_html( 'نوع درخواست' ); ?></dt><dd><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?></dd>
 				<dt><?php echo esc_html( 'وضعیت داخلی' ); ?></dt><dd><span class="crpcrm-badge crpcrm-status-badge"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></dd>
@@ -572,55 +587,18 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<dt><?php echo esc_html( 'پیگیری بعدی' ); ?></dt><dd><?php echo esc_html( ! empty( $request['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $request['next_follow_up_at'] ) : 'ثبت نشده' ); ?></dd>
 				<dt><?php echo esc_html( 'تاریخ ثبت' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></dd>
 				<dt><?php echo esc_html( 'آخرین بروزرسانی' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['updated_at'] ) ); ?></dd>
-				<dt><?php echo esc_html( 'منبع' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_source_label( $request['request_source'] ) ); ?></dd>
-				<dt><?php echo esc_html( 'کمپین' ); ?></dt><dd><?php echo esc_html( $request['request_campaign'] ? $request['request_campaign'] : '—' ); ?></dd>
-				<dt><?php echo esc_html( 'محتوا / utm_content' ); ?></dt><dd><?php echo esc_html( $request['request_content'] ? $request['request_content'] : '—' ); ?></dd>
-				<dt><?php echo esc_html( 'landing page' ); ?></dt><dd><?php echo esc_html( $request['request_landing_page'] ? $request['request_landing_page'] : '—' ); ?></dd>
-				<dt><?php echo esc_html( 'referrer' ); ?></dt><dd><?php echo esc_html( $request['request_referrer'] ? $request['request_referrer'] : '—' ); ?></dd>
 			</dl></div>
-			<div class="crpcrm-card crpcrm-customer-card crpcrm-request-meta-card"><h2><?php echo esc_html( 'اطلاعات مشتری' ); ?></h2><dl class="crpcrm-request-meta-list">
+			</details>
+			<details class="crpcrm-card crpcrm-customer-card crpcrm-request-meta-card crpcrm-request-section crpcrm-request-accordion">
+				<summary class="crpcrm-request-section-toggle"><h2><?php echo esc_html( 'اطلاعات مشتری' ); ?></h2></summary>
+				<div class="crpcrm-request-section-body"><dl class="crpcrm-request-meta-list">
 				<dt><?php echo esc_html( 'نام و نام خانوادگی' ); ?></dt><dd><?php echo esc_html( $request['customer_name'] ? $request['customer_name'] : '—' ); ?></dd>
 				<dt><?php echo esc_html( 'شماره موبایل' ); ?></dt><dd><?php echo esc_html( $request['customer_phone'] ? $request['customer_phone'] : $request['customer_phone_normalized'] ); ?></dd>
 				<dt><?php echo esc_html( 'استان' ); ?></dt><dd><?php echo esc_html( $request['customer_province'] ? $request['customer_province'] : '—' ); ?></dd>
 				<dt><?php echo esc_html( 'شهر' ); ?></dt><dd><?php echo esc_html( $request['customer_city'] ? $request['customer_city'] : '—' ); ?></dd>
 				<dt><?php echo esc_html( 'پروفایل مشتری' ); ?></dt><dd><a href="<?php echo esc_url( crpcrm_admin_customer_profile_url( $request['customer_id'], array( 'return_request_id' => absint( $request['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده پروفایل مشتری' ); ?></a></dd>
 			</dl></div>
-		</div>
-
-		<div class="crpcrm-card crpcrm-request-section">
-			<h2><?php echo esc_html( 'منبع ورودی' ); ?></h2>
-			<?php if ( ! empty( $landing_attribution ) ) : ?>
-				<dl class="crpcrm-landing-attribution">
-					<dt><?php echo esc_html( 'اولین ورود' ); ?></dt>
-					<dd>
-						<strong><?php echo esc_html( crpcrm_request_landing_touch_title( $landing_attribution['first_touch'] ?? array() ) ); ?></strong>
-						<div><?php echo esc_html( crpcrm_request_landing_touch_summary( $landing_attribution['first_touch'] ?? array() ) ); ?></div>
-						<small><?php echo esc_html( crpcrm_request_landing_touch_datetime( $landing_attribution['first_touch'] ?? array() ) ); ?></small>
-					</dd>
-					<dt><?php echo esc_html( 'آخرین ورود' ); ?></dt>
-					<dd>
-						<strong><?php echo esc_html( crpcrm_request_landing_touch_title( $landing_attribution['last_touch'] ?? array() ) ); ?></strong>
-						<div><?php echo esc_html( crpcrm_request_landing_touch_summary( $landing_attribution['last_touch'] ?? array() ) ); ?></div>
-						<small><?php echo esc_html( crpcrm_request_landing_touch_datetime( $landing_attribution['last_touch'] ?? array() ) ); ?></small>
-					</dd>
-					<dt><?php echo esc_html( 'لینک / لندینگ' ); ?></dt>
-					<dd>
-						<?php
-						$landing_label = crpcrm_request_landing_touch_title( $landing_attribution['last_touch'] ?? array() );
-						if ( '' === $landing_label ) {
-							$landing_label = crpcrm_request_landing_touch_title( $landing_attribution['first_touch'] ?? array() );
-						}
-						echo esc_html( '' !== $landing_label ? $landing_label : 'ثبت نشده' );
-						?>
-					</dd>
-					<dt><?php echo esc_html( 'صفحه تبدیل' ); ?></dt>
-					<dd><?php echo esc_html( ! empty( $landing_attribution['conversion_page'] ) ? $landing_attribution['conversion_page'] : 'ثبت نشده' ); ?></dd>
-					<dt><?php echo esc_html( 'visitor_id' ); ?></dt>
-					<dd><?php echo esc_html( ! empty( $landing_attribution['visitor_id'] ) ? $landing_attribution['visitor_id'] : 'ثبت نشده' ); ?></dd>
-				</dl>
-			<?php else : ?>
-				<p><?php echo esc_html( 'ثبت نشده' ); ?></p>
-			<?php endif; ?>
+			</details>
 		</div>
 
 		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'اطلاعات فرم' ); ?></h2><dl class="crpcrm-form-data">
@@ -634,7 +612,9 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			<?php endforeach; ?>
 		</dl></div>
 
-		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'گفت‌وگو' ); ?></h2>
+		<details class="crpcrm-card crpcrm-request-section crpcrm-request-accordion">
+			<summary class="crpcrm-request-section-toggle"><h2><?php echo esc_html( 'گفت‌وگو' ); ?></h2></summary>
+			<div class="crpcrm-request-section-body">
 			<?php if ( ! empty( $request_conversation ) ) : ?>
 				<ol class="crpcrm-request-conversation">
 					<?php foreach ( $request_conversation as $message ) : ?>
@@ -666,18 +646,16 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 					<p class="submit"><button type="submit" class="button button-primary"><?php echo esc_html( 'ارسال پاسخ' ); ?></button></p>
 				</form>
 			<?php endif; ?>
-		</div>
-
-		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'عملیات' ); ?></h2>
-			<div class="crpcrm-request-actions crpcrm-request-actions-panel">
-				<?php if ( $can_claim ) : ?><?php crpcrm_admin_claim_form( $request['id'] ); ?><?php endif; ?>
-				<?php if ( $can_manage && CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) : ?>
-					<?php crpcrm_admin_owner_form( $request['id'], $request['owner_id'], $assignable_users ); ?>
-					<?php if ( ! empty( $request['owner_id'] ) ) : ?><?php crpcrm_admin_release_form( $request['id'] ); ?><?php endif; ?>
-				<?php endif; ?>
-				<?php if ( $can_delete ) : ?><?php crpcrm_admin_delete_form( $request['id'] ); ?><?php endif; ?>
 			</div>
-		</div>
+		</details>
+
+		<?php if ( '' !== $request_actions_html ) : ?>
+			<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'عملیات' ); ?></h2>
+				<div class="crpcrm-request-actions crpcrm-request-actions-panel">
+					<?php echo $request_actions_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				</div>
+			</div>
+		<?php endif; ?>
 
 		<div class="crpcrm-card crpcrm-sales-action-card"><h2><?php echo esc_html( 'ثبت اقدام' ); ?></h2>
 			<?php if ( $can_add_action ) : ?>
