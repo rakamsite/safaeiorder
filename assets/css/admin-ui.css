@@ -491,6 +491,43 @@ body.wp-admin {
 	margin-bottom: 0;
 }
 
+.crpcrm-request-accordion {
+	padding: 0;
+}
+
+.crpcrm-request-section-toggle {
+	align-items: center;
+	cursor: pointer;
+	display: flex;
+	justify-content: space-between;
+	list-style: none;
+	padding: 16px 18px;
+}
+
+.crpcrm-request-section-toggle::-webkit-details-marker {
+	display: none;
+}
+
+.crpcrm-request-section-toggle::after {
+	color: #64748b;
+	content: '+';
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.crpcrm-request-accordion[open] .crpcrm-request-section-toggle::after {
+	content: '−';
+}
+
+.crpcrm-request-section-toggle h2 {
+	margin: 0;
+}
+
+.crpcrm-request-section-body {
+	padding: 0 18px 18px;
+}
+
 .crpcrm-request-actions-panel {
 	align-items: flex-start;
 	display: flex;
