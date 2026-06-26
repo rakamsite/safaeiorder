@@ -447,13 +447,58 @@
 
 		if (state.state === 'incomplete' || state.state === 'not_found') {
 			editor.innerHTML = state.form_html || '';
-			editor.hidden = true;
-			editor.classList.remove('is-visible');
+			toggleManualCustomerEditor(editor, false);
 		} else {
-			editor.hidden = true;
-			editor.classList.remove('is-visible');
+			toggleManualCustomerEditor(editor, false);
 			clearElement(editor);
 		}
+	}
+
+	function setManualCustomerEditorEnabled(editor, enabled) {
+		if (!editor) {
+			return;
+		}
+
+		Array.prototype.forEach.call(editor.querySelectorAll('input, select, textarea'), function (field) {
+			field.disabled = !enabled;
+		});
+
+		Array.prototype.forEach.call(editor.querySelectorAll('button'), function (button) {
+			if (button.classList.contains('crpcrm-manual-customer-toggle')) {
+				return;
+			}
+			button.disabled = !enabled;
+		});
+	}
+
+	function toggleManualCustomerEditor(editor, visible) {
+		if (!editor) {
+			return;
+		}
+
+		editor.hidden = !visible;
+		editor.classList.toggle('is-visible', !!visible);
+		setManualCustomerEditorEnabled(editor, !!visible);
+	}
+
+	function validateManualCustomerEditor(editor, messages) {
+		var fields = editor ? editor.querySelectorAll('input, select, textarea') : [];
+		var fallbackMessage = (messages && messages.manualCustomerSaveError) || 'ذخیره اطلاعات مشتری انجام نشد.';
+
+		for (var i = 0; i < fields.length; i += 1) {
+			var field = fields[i];
+			if (!field || field.disabled) {
+				continue;
+			}
+			if (typeof field.checkValidity === 'function' && !field.checkValidity()) {
+				if (typeof field.reportValidity === 'function') {
+					field.reportValidity();
+				}
+				return field.validationMessage || fallbackMessage;
+			}
+		}
+
+		return '';
 	}
 
 	function buildManualRequestUrl(form, formId) {
@@ -498,8 +543,11 @@
 			return;
 		}
 
-		if (typeof editorForm.checkValidity === 'function' && !editorForm.checkValidity()) {
-			editorForm.reportValidity();
+		var validationError = validateManualCustomerEditor(editorForm, config);
+		if (validationError) {
+			if (status) {
+				status.textContent = validationError;
+			}
 			return;
 		}
 
@@ -557,11 +605,16 @@
 		var phoneInput = form.querySelector('.crpcrm-manual-customer-phone');
 		var status = form.querySelector('.crpcrm-manual-customer-status');
 		var typeSelect = form.querySelector('.crpcrm-manual-request-type-selector');
+		var editor = form.querySelector('.crpcrm-manual-customer-editor');
 		var lookupTimer = null;
 		var requestId = 0;
 
 		if (!phoneInput) {
 			return;
+		}
+
+		if (editor && editor.hidden) {
+			toggleManualCustomerEditor(editor, false);
 		}
 
 		function runLookup() {
@@ -639,12 +692,10 @@
 		form.addEventListener('click', function (event) {
 			if (event.target.classList.contains('crpcrm-manual-customer-toggle')) {
 				event.preventDefault();
-				var editor = form.querySelector('.crpcrm-manual-customer-editor');
 				if (!editor) {
 					return;
 				}
-				editor.hidden = false;
-				editor.classList.add('is-visible');
+				toggleManualCustomerEditor(editor, editor.hidden);
 				return;
 			}
 

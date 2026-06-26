@@ -1237,17 +1237,7 @@ class CRPCRM_Admin_Pages {
 				$this->redirect_to_manual_request_form( 'manual_customer_required', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
 			}
 		} elseif ( 'new' === $customer_mode ) {
-			$customer_result = $this->create_customer_from_manual_request( $_POST );
-			if ( is_wp_error( $customer_result ) ) {
-				$this->redirect_to_manual_request_form(
-					$customer_result->get_error_code(),
-					$this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) )
-				);
-			}
-
-			$customer          = isset( $customer_result['customer'] ) && is_array( $customer_result['customer'] ) ? $customer_result['customer'] : null;
-			$created_customer   = ! empty( $customer_result['created_customer'] );
-			$created_user       = ! empty( $customer_result['created_user'] );
+			$this->redirect_to_manual_request_form( 'manual_customer_required', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );
 		} else {
 			$customer_id = isset( $_POST['customer_id'] ) ? absint( $_POST['customer_id'] ) : 0;
 			$customer    = $this->customer_repository->get( $customer_id );
@@ -2206,11 +2196,6 @@ class CRPCRM_Admin_Pages {
 			$value = isset( $registration_data[ $field_key ] ) ? $registration_data[ $field_key ] : '';
 			$type  = $definitions[ $field_key ]['type'] ?? ( $field['type'] ?? 'text' );
 
-			if ( ! empty( $field['required'] ) && '' === $value ) {
-				$errors[] = sprintf( '%s الزامی است.', $field['label'] );
-				continue;
-			}
-
 			if ( 'email' === $type && '' !== $value ) {
 				if ( ! is_email( $value ) ) {
 					$errors[] = 'ایمیل واردشده معتبر نیست.';
@@ -2316,27 +2301,27 @@ class CRPCRM_Admin_Pages {
 				<?php foreach ( $fields as $field_key => $field ) : ?>
 					<?php $field_value = isset( $values[ $field_key ] ) ? $values[ $field_key ] : ''; ?>
 					<label class="<?php echo esc_attr( 'textarea' === $field['type'] ? 'crpcrm-full-field' : 'crpcrm-width-50' ); ?>">
-						<?php echo esc_html( $field['label'] . ( ! empty( $field['required'] ) ? ' *' : '' ) ); ?>
+						<?php echo esc_html( $field['label'] ); ?>
 						<?php if ( 'province' === $field['type'] ) : ?>
-							<select name="registration[<?php echo esc_attr( $field_key ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>>
+							<select name="registration[<?php echo esc_attr( $field_key ); ?>]">
 								<option value=""><?php echo esc_html( 'استان را انتخاب کنید' ); ?></option>
 								<?php foreach ( $this->get_iran_provinces() as $province ) : ?>
 									<option value="<?php echo esc_attr( $province ); ?>" <?php selected( $field_value, $province ); ?>><?php echo esc_html( $province ); ?></option>
 								<?php endforeach; ?>
 							</select>
 						<?php elseif ( 'select' === $field['type'] ) : ?>
-							<select name="registration[<?php echo esc_attr( $field_key ); ?>]" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>>
+							<select name="registration[<?php echo esc_attr( $field_key ); ?>]">
 								<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
 								<?php foreach ( $field['options'] ?? array() as $option ) : ?>
 									<option value="<?php echo esc_attr( $option ); ?>" <?php selected( $field_value, $option ); ?>><?php echo esc_html( $option ); ?></option>
 								<?php endforeach; ?>
 							</select>
 						<?php elseif ( 'textarea' === $field['type'] ) : ?>
-							<textarea name="registration[<?php echo esc_attr( $field_key ); ?>]" rows="4" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>><?php echo esc_textarea( $field_value ); ?></textarea>
+							<textarea name="registration[<?php echo esc_attr( $field_key ); ?>]" rows="4"><?php echo esc_textarea( $field_value ); ?></textarea>
 						<?php elseif ( 'date' === $field['type'] ) : ?>
-							<?php echo CRPCRM_Helpers::jalali_date_input( 'registration[' . $field_key . ']', $field_value, array( 'required' => ! empty( $field['required'] ) ) ); ?>
+							<?php echo CRPCRM_Helpers::jalali_date_input( 'registration[' . $field_key . ']', $field_value, array() ); ?>
 						<?php else : ?>
-							<input type="<?php echo esc_attr( 'email' === $field['type'] ? 'email' : 'text' ); ?>" name="registration[<?php echo esc_attr( $field_key ); ?>]" value="<?php echo esc_attr( $field_value ); ?>" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?>>
+							<input type="<?php echo esc_attr( 'email' === $field['type'] ? 'email' : 'text' ); ?>" name="registration[<?php echo esc_attr( $field_key ); ?>]" value="<?php echo esc_attr( $field_value ); ?>">
 						<?php endif; ?>
 					</label>
 				<?php endforeach; ?>
