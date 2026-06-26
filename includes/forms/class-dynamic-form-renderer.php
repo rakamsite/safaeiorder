@@ -207,6 +207,9 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		foreach ( $schema as $key => $meta ) {
 			$key = sanitize_key( $key );
+			if ( self::is_internal_display_key( $key ) ) {
+				continue;
+			}
 			if ( ! array_key_exists( $key, $request_data ) ) {
 				continue;
 			}
@@ -223,6 +226,9 @@ class CRPCRM_Dynamic_Form_Renderer {
 		}
 
 		foreach ( $labels as $key => $label ) {
+			if ( self::is_internal_display_key( $key ) ) {
+				continue;
+			}
 			if ( array_key_exists( $key, $request_data ) && ! isset( $items[ $key ] ) ) {
 				$type = isset( $field_types[ $key ] ) ? $field_types[ $key ] : '';
 				if ( 'display_html' === $type ) {
@@ -240,7 +246,7 @@ class CRPCRM_Dynamic_Form_Renderer {
 
 		foreach ( $request_data as $key => $value ) {
 			$key = sanitize_key( $key );
-			if ( ! $key || isset( $items[ $key ] ) || 0 === strpos( $key, '_submitted_' ) || in_array( $key, array( 'form_id', 'form_version', 'request_type', 'fields', 'submitted_fields', 'display_html', '_landing_attribution' ), true ) ) {
+			if ( ! $key || isset( $items[ $key ] ) || self::is_internal_display_key( $key ) ) {
 				continue;
 			}
 			if ( is_array( $value ) && empty( $value ) ) {
@@ -257,6 +263,36 @@ class CRPCRM_Dynamic_Form_Renderer {
 		}
 
 		return $items;
+	}
+
+	private static function is_internal_display_key( $key ) {
+		$key = sanitize_key( $key );
+		if ( '' === $key ) {
+			return true;
+		}
+
+		if ( 0 === strpos( $key, '_' ) || 0 === strpos( $key, 'manual_request_' ) ) {
+			return true;
+		}
+
+		return in_array(
+			$key,
+			array(
+				'created_by_staff',
+				'staff_user_id',
+				'created_via',
+				'created_by',
+				'owner_id',
+				'manual_request_created',
+				'form_id',
+				'form_version',
+				'request_type',
+				'fields',
+				'submitted_fields',
+				'display_html',
+			),
+			true
+		);
 	}
 
 	public static function get_summary_items( $form, $request_data ) {
