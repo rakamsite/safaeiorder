@@ -1144,33 +1144,27 @@
 			button.className = 'crpcrm-file-thumb';
 			button.setAttribute('aria-label', getUploadConfigLabel(config, 'filePreviewLabel', 'View file'));
 			button.setAttribute('title', getUploadConfigLabel(config, 'filePreviewLabel', 'View file'));
+			button.setAttribute('data-crpcrm-file-preview', '1');
+			button.setAttribute('data-full-url', file.previewUrl || file.url || '');
+			button.setAttribute('data-download-url', file.download_url || file.url || file.previewUrl || '');
+			button.setAttribute('data-filename', fileName);
+			button.setAttribute('data-mime-type', file.type || file.mime_type || '');
 			var image = document.createElement('img');
-			image.src = file.url || file.previewUrl || '';
+			image.src = file.previewUrl || file.url || '';
 			image.alt = fileName;
 			button.appendChild(image);
-			button.addEventListener('click', function () {
-				var modal = ensureFilePreviewModal();
-				var modalImage = modal.querySelector('img');
-				var modalName = modal.querySelector('.crpcrm-file-preview-name');
-				var modalDownload = modal.querySelector('.crpcrm-file-preview-download');
-				modalImage.src = image.src;
-				modalImage.alt = fileName;
-				modalName.textContent = fileName;
-				modalDownload.href = file.download_url || file.url || image.src;
-				modalDownload.textContent = getUploadConfigLabel(config, 'fileDownloadLabel', 'Download file');
-				if (fileName) {
-					modalDownload.setAttribute('download', fileName);
-				} else {
-					modalDownload.removeAttribute('download');
-				}
-				modal.classList.add('is-open');
-				modal.setAttribute('aria-hidden', 'false');
-				modal.querySelector('.crpcrm-file-preview-close').focus();
-			});
 			preview.appendChild(button);
 		} else if (isPdfUpload(file)) {
-			var pdfCard = document.createElement('div');
-			pdfCard.className = 'crpcrm-file-upload-card crpcrm-file-upload-card-pdf';
+			var pdfCard = document.createElement('button');
+			pdfCard.type = 'button';
+			pdfCard.className = 'crpcrm-file-upload-card crpcrm-file-upload-card-pdf crpcrm-file-pdf';
+			pdfCard.setAttribute('data-crpcrm-file-preview', '1');
+			pdfCard.setAttribute('data-full-url', file.url || file.download_url || '');
+			pdfCard.setAttribute('data-download-url', file.download_url || file.url || '');
+			pdfCard.setAttribute('data-filename', fileName);
+			pdfCard.setAttribute('data-mime-type', file.type || file.mime_type || 'application/pdf');
+			pdfCard.setAttribute('aria-label', getUploadConfigLabel(config, 'filePreviewLabel', 'View file'));
+			pdfCard.setAttribute('title', getUploadConfigLabel(config, 'filePreviewLabel', 'View file'));
 			var pdfIcon = document.createElement('span');
 			pdfIcon.className = 'crpcrm-file-upload-card-icon';
 			pdfIcon.textContent = 'PDF';

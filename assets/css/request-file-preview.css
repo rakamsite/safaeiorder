@@ -47,6 +47,9 @@
 	background: #fff;
 	color: #111827;
 	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+	cursor: pointer;
+	text-align: inherit;
+	width: 100%;
 }
 
 .crpcrm-file-pdf-icon,
@@ -136,6 +139,23 @@
 	max-height: 74vh;
 	border-radius: 16px;
 	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+}
+
+.crpcrm-file-modal-frame {
+	display: none;
+	width: min(88vw, 960px);
+	height: min(74vh, 760px);
+	border: 0;
+	border-radius: 16px;
+	background: #fff;
+}
+
+.crpcrm-file-modal.is-pdf .crpcrm-file-modal-image {
+	display: none;
+}
+
+.crpcrm-file-modal.is-pdf .crpcrm-file-modal-frame {
+	display: block;
 }
 
 .crpcrm-file-modal-footer {

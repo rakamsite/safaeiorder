@@ -1,6 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-$tabs = array( 'dashboard' => 'داشبورد کارکنان', 'daily_reports' => 'گزارش روزانه', 'requests' => 'درخواست از مدیریت', 'issues' => 'مشکلات و موانع', 'tasks' => 'وظایف', 'announcements' => 'اطلاعیه‌ها' );
+$tabs = array( 'dashboard' => 'داشبورد کارکنان', 'daily_reports' => 'گزارش روزانه', 'requests' => 'درخواست از مدیریت', 'tasks' => 'وظایف', 'announcements' => 'اطلاعیه‌ها' );
 $report_statuses = array( 'submitted' => 'ارسال شده', 'seen' => 'دیده شد', 'responded' => 'پاسخ داده شد', 'closed' => 'بسته شد' );
 $request_statuses = array( 'new' => 'جدید', 'seen' => 'دیده شد', 'in_review' => 'در حال بررسی', 'done' => 'انجام شد', 'rejected' => 'رد شد' );
 $issue_statuses = array( 'new' => 'جدید', 'seen' => 'دیده شد', 'in_review' => 'در حال بررسی', 'resolved' => 'حل شد', 'rejected' => 'رد شد' );
@@ -27,7 +27,7 @@ $announcement_data = $detail_item && 'announcements' === $tab ? CRPCRM_Helpers::
 ?>
 <div class="wrap crpcrm-admin-wrap crpcrm-staff-admin" dir="rtl">
 <h1>پنل کارکنان</h1>
-<p class="description">نمای عملیاتی روزانه برای گزارش‌ها، درخواست‌ها، وظایف، مشکلات و اطلاعیه‌ها.</p>
+<p class="description">نمای عملیاتی روزانه برای گزارش‌ها، درخواست‌ها، وظایف و اطلاعیه‌ها.</p>
 <?php if ( $notice && isset( $notice_labels[ $notice ] ) ) : ?><div class="notice <?php echo 'saved' === $notice ? 'notice-success' : 'notice-error'; ?> is-dismissible"><p><?php echo esc_html( $notice_labels[ $notice ] ); ?></p></div><?php endif; ?>
 <nav class="nav-tab-wrapper"><?php foreach ( $tabs as $key => $label ) : ?><a class="nav-tab <?php echo $tab === $key ? 'nav-tab-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'page' => 'crpcrm-staff', 'staff_tab' => $key ), admin_url( 'admin.php' ) ) ); ?>"><?php echo esc_html( $label ); ?></a><?php endforeach; ?></nav>
 
@@ -105,10 +105,12 @@ $announcement_data = $detail_item && 'announcements' === $tab ? CRPCRM_Helpers::
 <input type="hidden" name="action" value="crpcrm_staff_action">
 <input type="hidden" name="staff_action_type" value="save_daily_report">
 <?php if ( $is_sales_user ) : ?>
-<div class="crpcrm-full-field">
-	<h3>آمار امروز شما در CRM</h3>
-	<div class="crpcrm-detail-stats"><?php foreach ( $sales_form_keys as $key ) : ?><div><span><?php echo esc_html( $sales_stat_labels[ $key ] ?? $key ); ?></span><strong><?php echo esc_html( absint( $current_sales_stats[ $key ] ?? 0 ) ); ?></strong></div><?php endforeach; ?></div>
-</div>
+<details class="crpcrm-staff-accordion crpcrm-full-field">
+	<summary class="crpcrm-staff-accordion-toggle">آمار امروز شما در CRM</summary>
+	<div class="crpcrm-staff-accordion-body">
+		<div class="crpcrm-detail-stats"><?php foreach ( $sales_form_keys as $key ) : ?><div><span><?php echo esc_html( $sales_stat_labels[ $key ] ?? $key ); ?></span><strong><?php echo esc_html( absint( $current_sales_stats[ $key ] ?? 0 ) ); ?></strong></div><?php endforeach; ?></div>
+	</div>
+</details>
 <?php endif; ?>
 <p class="crpcrm-full-field"><label for="crpcrm-staff-completed-work">کارهای انجام‌شده امروز</label><textarea id="crpcrm-staff-completed-work" name="completed_work" required rows="4" class="large-text" placeholder="کارهای انجام‌شده امروز"><?php echo esc_textarea( $today_report['completed_work'] ?? '' ); ?></textarea></p>
 <p class="crpcrm-full-field"><label for="crpcrm-staff-unfinished-work">کارهای نیمه‌تمام</label><textarea id="crpcrm-staff-unfinished-work" name="unfinished_work" required rows="4" class="large-text" placeholder="کارهای نیمه‌تمام"><?php echo esc_textarea( $today_report['unfinished_work'] ?? '' ); ?></textarea></p>
@@ -121,14 +123,15 @@ $announcement_data = $detail_item && 'announcements' === $tab ? CRPCRM_Helpers::
 </div>
 <?php endif; ?>
 
-<?php if ( in_array( $tab, array( 'requests', 'issues' ), true ) && ! $can_manage ) : ?>
+<?php if ( 'requests' === $tab && ! $can_manage ) : ?>
 <div class="crpcrm-card">
-<h2><?php echo 'requests' === $tab ? 'ثبت درخواست از مدیریت' : 'ثبت مشکل یا مانع'; ?></h2>
+<details class="crpcrm-staff-accordion">
+<summary class="crpcrm-staff-accordion-toggle">ثبت درخواست از مدیریت</summary>
+<div class="crpcrm-staff-accordion-body">
 <form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-staff-form">
 <?php wp_nonce_field( 'crpcrm_staff_' . ( 'requests' === $tab ? 'save_staff_request' : 'save_issue' ) ); ?>
 <input type="hidden" name="action" value="crpcrm_staff_action">
 <input type="hidden" name="staff_action_type" value="<?php echo 'requests' === $tab ? 'save_staff_request' : 'save_issue'; ?>">
-<?php if ( 'requests' === $tab ) : ?>
 <div class="crpcrm-staff-inline-fields">
 	<p>
 		<label for="crpcrm-staff-request-category">دسته‌بندی</label>
@@ -151,39 +154,18 @@ $announcement_data = $detail_item && 'announcements' === $tab ? CRPCRM_Helpers::
 	<label><?php echo esc_html( 'پیوست فایل' ); ?></label>
 	<?php echo CRPCRM_Dynamic_Form_Renderer::render_file_upload_field( 'request_attachment' ); ?>
 </div>
-<?php else : ?>
-<div class="crpcrm-staff-inline-fields">
-	<p>
-		<label for="crpcrm-staff-issue-department">واحد مرتبط</label>
-		<input id="crpcrm-staff-issue-department" name="related_department" required placeholder="واحد مرتبط">
-	</p>
-	<p>
-		<label for="crpcrm-staff-issue-severity">شدت</label>
-		<select id="crpcrm-staff-issue-severity" name="severity" required>
-			<?php foreach ( $severities as $key => $label ) : ?>
-				<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
-			<?php endforeach; ?>
-		</select>
-	</p>
-</div>
-<?php endif; ?>
 <p>
 	<label for="crpcrm-staff-form-title">عنوان</label>
-	<input id="crpcrm-staff-form-title" name="title" required class="regular-text" placeholder="عنوان">
+	<input type="text" id="crpcrm-staff-form-title" name="title" required class="regular-text crpcrm-staff-text-input" placeholder="عنوان">
 </p>
 <p class="crpcrm-full-field">
 	<label for="crpcrm-staff-form-description">شرح کامل</label>
 	<textarea id="crpcrm-staff-form-description" name="description" required rows="5" class="large-text" placeholder="شرح کامل"></textarea>
 </p>
-<?php if ( 'issues' === $tab ) : ?>
-<p class="crpcrm-full-field">
-	<label for="crpcrm-staff-issue-solution">راهکار پیشنهادی</label>
-	<textarea id="crpcrm-staff-issue-solution" name="suggested_solution" rows="3" class="large-text" placeholder="راهکار پیشنهادی"></textarea>
-</p>
-<label class="crpcrm-staff-inline-check"><input type="checkbox" name="needs_manager_decision"> نیازمند تصمیم مدیر</label>
-<?php endif; ?>
 <?php submit_button( 'ثبت' ); ?>
 </form>
+</div>
+</details>
 </div>
 <?php endif; ?>
 

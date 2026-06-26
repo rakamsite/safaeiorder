@@ -20,6 +20,7 @@
 
 	var modal = null;
 	var modalImage = null;
+	var modalFrame = null;
 	var modalTitle = null;
 	var modalDownload = null;
 	var body = document.body || document.documentElement;
@@ -38,6 +39,7 @@
 			+   '<button type="button" class="crpcrm-file-modal-close" aria-label="بستن">×</button>'
 			+   '<div class="crpcrm-file-modal-body">'
 			+     '<img class="crpcrm-file-modal-image" alt="">'
+			+     '<iframe class="crpcrm-file-modal-frame" title="پیش‌نمایش PDF" loading="lazy"></iframe>'
 			+   '</div>'
 			+   '<div class="crpcrm-file-modal-footer">'
 			+     '<strong class="crpcrm-file-modal-title"></strong>'
@@ -47,6 +49,7 @@
 
 		body.appendChild(modal);
 		modalImage = modal.querySelector('.crpcrm-file-modal-image');
+		modalFrame = modal.querySelector('.crpcrm-file-modal-frame');
 		modalTitle = modal.querySelector('.crpcrm-file-modal-title');
 		modalDownload = modal.querySelector('.crpcrm-file-modal-download');
 
@@ -64,6 +67,7 @@
 		var fullUrl = trigger.getAttribute('data-full-url') || '';
 		var downloadUrl = trigger.getAttribute('data-download-url') || fullUrl;
 		var filename = trigger.getAttribute('data-filename') || '';
+		var mimeType = String(trigger.getAttribute('data-mime-type') || '').toLowerCase();
 		var alt = filename || '';
 		var node = ensureModal();
 
@@ -71,8 +75,17 @@
 			return;
 		}
 
-		modalImage.src = fullUrl || downloadUrl;
-		modalImage.alt = alt;
+		if (mimeType.indexOf('pdf') !== -1) {
+			modal.classList.add('is-pdf');
+			modalFrame.src = fullUrl || downloadUrl;
+			modalImage.src = '';
+			modalImage.alt = '';
+		} else {
+			modal.classList.remove('is-pdf');
+			modalImage.src = fullUrl || downloadUrl;
+			modalImage.alt = alt;
+			modalFrame.src = '';
+		}
 		modalTitle.textContent = filename || '';
 		modalDownload.href = downloadUrl || fullUrl;
 		modalDownload.textContent = 'دانلود فایل';
@@ -99,6 +112,9 @@
 			modalImage.src = '';
 			modalImage.alt = '';
 		}
+		if (modalFrame) {
+			modalFrame.src = '';
+		}
 		if (modalTitle) {
 			modalTitle.textContent = '';
 		}
@@ -107,6 +123,7 @@
 			modalDownload.removeAttribute('download');
 		}
 		body.classList.remove('crpcrm-file-modal-open');
+		modal.classList.remove('is-pdf');
 	}
 
 	document.addEventListener('click', function (event) {
