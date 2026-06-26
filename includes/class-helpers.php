@@ -329,9 +329,10 @@ class CRPCRM_Helpers {
 		$args = wp_parse_args(
 			$args,
 			array(
-				'required' => false,
-				'class'    => '',
-				'id'       => '',
+				'required'  => false,
+				'class'     => '',
+				'id'        => '',
+				'time_hint' => '',
 			)
 		);
 		$id       = $args['id'] ? $args['id'] : 'crpcrm-' . sanitize_key( $name ) . '-' . wp_generate_uuid4();
@@ -341,15 +342,18 @@ class CRPCRM_Helpers {
 		$required = $args['required'] ? ' required' : '';
 		$class    = trim( 'crpcrm-jalali-date crpcrm-jalali-datetime-date ' . $args['class'] );
 
+		$time_hint = '' !== trim( (string) $args['time_hint'] ) ? '<span class="crpcrm-jalali-time-hint">' . esc_html( $args['time_hint'] ) . '</span>' : '';
+
 		return sprintf(
-			'<span class="crpcrm-jalali-field crpcrm-jalali-datetime-field"><input type="hidden" name="%1$s" id="%2$s" value="%3$s"><input type="text" class="%4$s" data-crpcrm-date-target="%2$s" data-crpcrm-datetime-time="%2$s-time" value="%5$s" placeholder="مثلاً ۱۴۰۳/۰۱/۱۵" autocomplete="off"%7$s><input type="time" id="%2$s-time" class="crpcrm-jalali-time" value="%6$s" data-crpcrm-datetime-target="%2$s"%7$s></span>',
+			'<span class="crpcrm-jalali-field crpcrm-jalali-datetime-field"><input type="hidden" name="%1$s" id="%2$s" value="%3$s"><input type="text" class="%4$s" data-crpcrm-date-target="%2$s" data-crpcrm-datetime-time="%2$s-time" value="%5$s" placeholder="مثلاً ۱۴۰۳/۰۱/۱۵" autocomplete="off"%7$s><input type="time" id="%2$s-time" class="crpcrm-jalali-time" value="%6$s" data-crpcrm-datetime-target="%2$s" lang="fa-IR" dir="rtl"%7$s>%8$s</span>',
 			esc_attr( $name ),
 			esc_attr( $id ),
 			esc_attr( $datetime ? str_replace( ' ', 'T', substr( $datetime, 0, 16 ) ) : '' ),
 			esc_attr( $class ),
 			esc_attr( $date ? self::format_jalali_date( $date ) : '' ),
 			esc_attr( $time ),
-			$required
+			$required,
+			$time_hint
 		);
 	}
 

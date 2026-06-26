@@ -275,7 +275,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 			<textarea name="action_note" rows="4" required></textarea>
 		</label>
 		<label class="crpcrm-conditional-field crpcrm-follow-up-field"><?php echo esc_html( 'تاریخ پیگیری بعدی' ); ?>
-			<?php echo CRPCRM_Helpers::jalali_datetime_input( 'next_follow_up_at' ); ?>
+			<?php echo CRPCRM_Helpers::jalali_datetime_input( 'next_follow_up_at', '', array( 'time_hint' => 'قبل از ظهر / بعد از ظهر' ) ); ?>
 		</label>
 		<label class="crpcrm-conditional-field crpcrm-lost-reason-field"><?php echo esc_html( 'دلیل ناموفق' ); ?>
 			<select name="close_reason">
@@ -576,103 +576,122 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<?php if ( $request_badges ) : ?><div class="crpcrm-request-badge-line"><?php echo wp_kses_post( $request_badges ); ?></div><?php endif; ?>
 			</div>
 		</div>
-		<div class="crpcrm-detail-grid">
-			<details class="crpcrm-card crpcrm-info-card crpcrm-request-meta-card crpcrm-request-section crpcrm-request-accordion">
-				<summary class="crpcrm-request-section-toggle"><h2><?php echo esc_html( 'اطلاعات اصلی درخواست' ); ?></h2></summary>
-				<div class="crpcrm-request-section-body"><dl class="crpcrm-request-meta-list">
-				<dt><?php echo esc_html( 'کد پیگیری' ); ?></dt><dd><?php echo esc_html( $request['request_code'] ); ?></dd>
-				<dt><?php echo esc_html( 'نوع درخواست' ); ?></dt><dd><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?></dd>
-				<dt><?php echo esc_html( 'وضعیت داخلی' ); ?></dt><dd><span class="crpcrm-badge crpcrm-status-badge"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></dd>
-				<dt><?php echo esc_html( 'مسئول' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $request['owner_id'] ) ); ?></dd>
-				<dt><?php echo esc_html( 'پیگیری بعدی' ); ?></dt><dd><?php echo esc_html( ! empty( $request['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $request['next_follow_up_at'] ) : 'ثبت نشده' ); ?></dd>
-				<dt><?php echo esc_html( 'تاریخ ثبت' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></dd>
-				<dt><?php echo esc_html( 'آخرین بروزرسانی' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['updated_at'] ) ); ?></dd>
-			</dl></div>
-			</details>
-			<details class="crpcrm-card crpcrm-customer-card crpcrm-request-meta-card crpcrm-request-section crpcrm-request-accordion">
-				<summary class="crpcrm-request-section-toggle"><h2><?php echo esc_html( 'اطلاعات مشتری' ); ?></h2></summary>
-				<div class="crpcrm-request-section-body"><dl class="crpcrm-request-meta-list">
-				<dt><?php echo esc_html( 'نام و نام خانوادگی' ); ?></dt><dd><?php echo esc_html( $request['customer_name'] ? $request['customer_name'] : '—' ); ?></dd>
-				<dt><?php echo esc_html( 'شماره موبایل' ); ?></dt><dd><?php echo esc_html( $request['customer_phone'] ? $request['customer_phone'] : $request['customer_phone_normalized'] ); ?></dd>
-				<dt><?php echo esc_html( 'استان' ); ?></dt><dd><?php echo esc_html( $request['customer_province'] ? $request['customer_province'] : '—' ); ?></dd>
-				<dt><?php echo esc_html( 'شهر' ); ?></dt><dd><?php echo esc_html( $request['customer_city'] ? $request['customer_city'] : '—' ); ?></dd>
-				<dt><?php echo esc_html( 'پروفایل مشتری' ); ?></dt><dd><a href="<?php echo esc_url( crpcrm_admin_customer_profile_url( $request['customer_id'], array( 'return_request_id' => absint( $request['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده پروفایل مشتری' ); ?></a></dd>
-			</dl></div>
-			</details>
-		</div>
-
-		<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'اطلاعات فرم' ); ?></h2><dl class="crpcrm-form-data">
-			<?php foreach ( $detail_items as $detail_key => $item ) : ?>
-				<?php
-				$item['source_type']  = 'request';
-				$item['source_id']    = absint( $request['id'] ?? 0 );
-				$item['source_field'] = sanitize_key( is_string( $detail_key ) ? $detail_key : ( $item['key'] ?? $item['field_key'] ?? '' ) );
-				echo CRPCRM_Dynamic_Form_Renderer::render_display_item( $item, 'admin' );
-				?>
-			<?php endforeach; ?>
-		</dl></div>
-
-		<details class="crpcrm-card crpcrm-request-section crpcrm-request-accordion">
-			<summary class="crpcrm-request-section-toggle"><h2><?php echo esc_html( 'گفت‌وگو' ); ?></h2></summary>
-			<div class="crpcrm-request-section-body">
-			<?php if ( ! empty( $request_conversation ) ) : ?>
-				<ol class="crpcrm-request-conversation">
-					<?php foreach ( $request_conversation as $message ) : ?>
-						<?php
-						$author_type  = sanitize_key( $message['activity_type'] ?? '' );
-						$author_label = 'customer_reply' === $author_type ? 'مشتری' : ( 'manager_reply' === $author_type ? 'مدیر' : 'کارشناس فروش' );
-						?>
-						<li class="crpcrm-request-conversation-item crpcrm-request-conversation-<?php echo esc_attr( $author_type ); ?>">
-							<div class="crpcrm-request-conversation-meta">
-								<strong><?php echo esc_html( $author_label ); ?></strong>
-								<time><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $message['created_at'] ) ); ?></time>
-							</div>
-							<div class="crpcrm-request-conversation-message"><?php echo nl2br( esc_html( $message['message'] ?? '' ) ); ?></div>
-						</li>
-					<?php endforeach; ?>
-				</ol>
-			<?php else : ?>
-				<p><?php echo esc_html( 'هنوز پاسخی ثبت نشده است.' ); ?></p>
-			<?php endif; ?>
-
-			<?php if ( ! empty( $can_reply ) ) : ?>
-				<h3><?php echo esc_html( 'ارسال پاسخ' ); ?></h3>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-request-reply-form">
-					<input type="hidden" name="action" value="crpcrm_staff_request_reply">
-					<input type="hidden" name="request_id" value="<?php echo esc_attr( absint( $request['id'] ) ); ?>">
-					<?php wp_nonce_field( 'crpcrm_staff_request_reply_' . absint( $request['id'] ), 'crpcrm_request_reply_nonce' ); ?>
-					<label for="crpcrm-staff-request-reply-message"><?php echo esc_html( 'متن پاسخ' ); ?></label>
-					<textarea id="crpcrm-staff-request-reply-message" name="reply_message" rows="5" required></textarea>
-					<p class="submit"><button type="submit" class="button button-primary"><?php echo esc_html( 'ارسال پاسخ' ); ?></button></p>
-				</form>
-			<?php endif; ?>
+		<div class="crpcrm-request-detail-tabs" data-crpcrm-tabs="request-detail">
+			<div class="crpcrm-request-tab-nav" role="tablist" aria-label="<?php echo esc_attr( 'بخش‌های جزئیات درخواست' ); ?>">
+				<button type="button" class="crpcrm-request-tab-button is-active" data-tab-target="request-main" role="tab" aria-selected="true"><?php echo esc_html( 'اطلاعات اصلی درخواست' ); ?></button>
+				<button type="button" class="crpcrm-request-tab-button" data-tab-target="request-activity" role="tab" aria-selected="false"><?php echo esc_html( 'فعالیت' ); ?></button>
+				<button type="button" class="crpcrm-request-tab-button" data-tab-target="request-history" role="tab" aria-selected="false"><?php echo esc_html( 'تاریخچه' ); ?></button>
 			</div>
-		</details>
 
-		<?php if ( '' !== $request_actions_html ) : ?>
-			<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'عملیات' ); ?></h2>
-				<div class="crpcrm-request-actions crpcrm-request-actions-panel">
-					<?php echo $request_actions_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<div class="crpcrm-request-tab-panels">
+				<div class="crpcrm-request-tab-panel is-active" data-tab-panel="request-main" role="tabpanel">
+					<div class="crpcrm-detail-grid">
+						<div class="crpcrm-card crpcrm-info-card crpcrm-request-meta-card crpcrm-request-section">
+							<h2><?php echo esc_html( 'اطلاعات اصلی درخواست' ); ?></h2>
+							<dl class="crpcrm-request-meta-list">
+								<dt><?php echo esc_html( 'کد پیگیری' ); ?></dt><dd><?php echo esc_html( $request['request_code'] ); ?></dd>
+								<dt><?php echo esc_html( 'نوع درخواست' ); ?></dt><dd><?php echo esc_html( CRPCRM_Request_Type_Registry::get_label( $request['request_type'], $request ) ); ?></dd>
+								<dt><?php echo esc_html( 'وضعیت داخلی' ); ?></dt><dd><span class="crpcrm-badge crpcrm-status-badge"><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $request['status'] ) ); ?></span></dd>
+								<dt><?php echo esc_html( 'مسئول' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $request['owner_id'] ) ); ?></dd>
+								<dt><?php echo esc_html( 'پیگیری بعدی' ); ?></dt><dd><?php echo esc_html( ! empty( $request['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $request['next_follow_up_at'] ) : 'ثبت نشده' ); ?></dd>
+								<dt><?php echo esc_html( 'تاریخ ثبت' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['created_at'] ) ); ?></dd>
+								<dt><?php echo esc_html( 'آخرین بروزرسانی' ); ?></dt><dd><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $request['updated_at'] ) ); ?></dd>
+							</dl>
+						</div>
+					</div>
+
+					<?php if ( '' !== $request_actions_html ) : ?>
+						<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'عملیات' ); ?></h2>
+							<div class="crpcrm-request-actions crpcrm-request-actions-panel">
+								<?php echo $request_actions_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							</div>
+						</div>
+					<?php endif; ?>
+				</div>
+
+				<div class="crpcrm-request-tab-panel" data-tab-panel="request-activity" role="tabpanel">
+					<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'گفت‌وگو' ); ?></h2>
+						<?php if ( ! empty( $request_conversation ) ) : ?>
+							<ol class="crpcrm-request-conversation">
+								<?php foreach ( $request_conversation as $message ) : ?>
+									<?php
+									$author_type  = sanitize_key( $message['activity_type'] ?? '' );
+									$author_label = 'customer_reply' === $author_type ? 'مشتری' : ( 'manager_reply' === $author_type ? 'مدیر' : 'کارشناس فروش' );
+									?>
+									<li class="crpcrm-request-conversation-item crpcrm-request-conversation-<?php echo esc_attr( $author_type ); ?>">
+										<div class="crpcrm-request-conversation-meta">
+											<strong><?php echo esc_html( $author_label ); ?></strong>
+											<time><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $message['created_at'] ) ); ?></time>
+										</div>
+										<div class="crpcrm-request-conversation-message"><?php echo nl2br( esc_html( $message['message'] ?? '' ) ); ?></div>
+									</li>
+								<?php endforeach; ?>
+							</ol>
+						<?php else : ?>
+							<p><?php echo esc_html( 'هنوز پاسخی ثبت نشده است.' ); ?></p>
+						<?php endif; ?>
+
+						<?php if ( ! empty( $can_reply ) ) : ?>
+							<h3><?php echo esc_html( 'ارسال پاسخ' ); ?></h3>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-request-reply-form">
+								<input type="hidden" name="action" value="crpcrm_staff_request_reply">
+								<input type="hidden" name="request_id" value="<?php echo esc_attr( absint( $request['id'] ) ); ?>">
+								<?php wp_nonce_field( 'crpcrm_staff_request_reply_' . absint( $request['id'] ), 'crpcrm_request_reply_nonce' ); ?>
+								<label for="crpcrm-staff-request-reply-message"><?php echo esc_html( 'متن پاسخ' ); ?></label>
+								<textarea id="crpcrm-staff-request-reply-message" name="reply_message" rows="5" required></textarea>
+								<p class="submit"><button type="submit" class="button button-primary"><?php echo esc_html( 'ارسال پاسخ' ); ?></button></p>
+							</form>
+						<?php endif; ?>
+					</div>
+
+					<div class="crpcrm-card crpcrm-sales-action-card"><h2><?php echo esc_html( 'ثبت اقدام' ); ?></h2>
+						<?php if ( $can_add_action ) : ?>
+							<?php crpcrm_admin_sales_action_form( $request['id'], $workflow, in_array( $request['status'], array( 'won', 'lost', 'invalid' ), true ) ); ?>
+						<?php else : ?>
+							<p class="crpcrm-closed-request-badge"><?php echo esc_html( in_array( $request['status'], array( 'won', 'lost', 'invalid' ), true ) ? 'این درخواست بسته شده و امکان ثبت اقدام جدید وجود ندارد.' : 'شما اجازه ثبت اقدام برای این درخواست را ندارید.' ); ?></p>
+						<?php endif; ?>
+					</div>
+				</div>
+
+				<div class="crpcrm-request-tab-panel" data-tab-panel="request-history" role="tabpanel">
+					<div class="crpcrm-detail-grid">
+						<div class="crpcrm-card crpcrm-customer-card crpcrm-request-meta-card crpcrm-request-section">
+							<h2><?php echo esc_html( 'اطلاعات مشتری' ); ?></h2>
+							<dl class="crpcrm-request-meta-list">
+								<dt><?php echo esc_html( 'نام و نام خانوادگی' ); ?></dt><dd><?php echo esc_html( $request['customer_name'] ? $request['customer_name'] : '—' ); ?></dd>
+								<dt><?php echo esc_html( 'شماره موبایل' ); ?></dt><dd><?php echo esc_html( $request['customer_phone'] ? $request['customer_phone'] : $request['customer_phone_normalized'] ); ?></dd>
+								<dt><?php echo esc_html( 'استان' ); ?></dt><dd><?php echo esc_html( $request['customer_province'] ? $request['customer_province'] : '—' ); ?></dd>
+								<dt><?php echo esc_html( 'شهر' ); ?></dt><dd><?php echo esc_html( $request['customer_city'] ? $request['customer_city'] : '—' ); ?></dd>
+								<dt><?php echo esc_html( 'پروفایل مشتری' ); ?></dt><dd><a href="<?php echo esc_url( crpcrm_admin_customer_profile_url( $request['customer_id'], array( 'return_request_id' => absint( $request['id'] ) ) ) ); ?>"><?php echo esc_html( 'مشاهده پروفایل مشتری' ); ?></a></dd>
+							</dl>
+						</div>
+					</div>
+
+					<div class="crpcrm-card crpcrm-request-section"><h2><?php echo esc_html( 'اطلاعات فرم' ); ?></h2><dl class="crpcrm-form-data">
+						<?php foreach ( $detail_items as $detail_key => $item ) : ?>
+							<?php
+							$item['source_type']  = 'request';
+							$item['source_id']    = absint( $request['id'] ?? 0 );
+							$item['source_field'] = sanitize_key( is_string( $detail_key ) ? $detail_key : ( $item['key'] ?? $item['field_key'] ?? '' ) );
+							echo CRPCRM_Dynamic_Form_Renderer::render_display_item( $item, 'admin' );
+							?>
+						<?php endforeach; ?>
+					</dl></div>
+
+					<details class="crpcrm-card crpcrm-request-history-accordion" dir="rtl">
+						<summary class="crpcrm-request-history-toggle"><h2><?php echo esc_html( 'تاریخچه فعالیت' ); ?></h2></summary>
+						<div class="crpcrm-request-history-body">
+							<?php if ( empty( $activities ) ) : ?><p><?php echo esc_html( 'هنوز فعالیتی ثبت نشده است.' ); ?></p><?php else : ?>
+								<ol class="crpcrm-activity-timeline">
+									<?php foreach ( $activities as $activity ) : $actor = ! empty( $activity['actor_user_id'] ) ? get_userdata( absint( $activity['actor_user_id'] ) ) : null; ?>
+										<li><time><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $activity['created_at'] ) ); ?></time><strong><?php echo esc_html( CRPCRM_Helpers::get_activity_type_label( $activity['activity_type'] ) ); ?></strong><span><?php echo esc_html( $actor ? $actor->display_name : $activity['actor_type'] ); ?></span><?php if ( $activity['old_status'] || $activity['new_status'] ) : ?><em><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $activity['old_status'] ) . ' ← ' . CRPCRM_Helpers::get_persian_status_label( $activity['new_status'] ) ); ?></em><?php endif; ?><p><?php echo esc_html( $activity['note'] ? $activity['note'] : '—' ); ?></p></li>
+									<?php endforeach; ?>
+								</ol>
+							<?php endif; ?>
+						</div>
+					</details>
 				</div>
 			</div>
-		<?php endif; ?>
-
-		<div class="crpcrm-card crpcrm-sales-action-card"><h2><?php echo esc_html( 'ثبت اقدام' ); ?></h2>
-			<?php if ( $can_add_action ) : ?>
-				<?php crpcrm_admin_sales_action_form( $request['id'], $workflow, in_array( $request['status'], array( 'won', 'lost', 'invalid' ), true ) ); ?>
-			<?php else : ?>
-				<p class="crpcrm-closed-request-badge"><?php echo esc_html( in_array( $request['status'], array( 'won', 'lost', 'invalid' ), true ) ? 'این درخواست بسته شده و امکان ثبت اقدام جدید وجود ندارد.' : 'شما اجازه ثبت اقدام برای این درخواست را ندارید.' ); ?></p>
-			<?php endif; ?>
-		</div>
-
-		<div class="crpcrm-card"><h2><?php echo esc_html( 'تاریخچه فعالیت' ); ?></h2>
-			<?php if ( empty( $activities ) ) : ?><p><?php echo esc_html( 'هنوز فعالیتی ثبت نشده است.' ); ?></p><?php else : ?>
-				<ol class="crpcrm-activity-timeline">
-					<?php foreach ( $activities as $activity ) : $actor = ! empty( $activity['actor_user_id'] ) ? get_userdata( absint( $activity['actor_user_id'] ) ) : null; ?>
-						<li><time><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $activity['created_at'] ) ); ?></time><strong><?php echo esc_html( CRPCRM_Helpers::get_activity_type_label( $activity['activity_type'] ) ); ?></strong><span><?php echo esc_html( $actor ? $actor->display_name : $activity['actor_type'] ); ?></span><?php if ( $activity['old_status'] || $activity['new_status'] ) : ?><em><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $activity['old_status'] ) . ' ← ' . CRPCRM_Helpers::get_persian_status_label( $activity['new_status'] ) ); ?></em><?php endif; ?><p><?php echo esc_html( $activity['note'] ? $activity['note'] : '—' ); ?></p></li>
-					<?php endforeach; ?>
-				</ol>
-			<?php endif; ?>
 		</div>
 	<?php endif; ?>
 </div>

@@ -491,11 +491,54 @@ body.wp-admin {
 	margin-bottom: 0;
 }
 
-.crpcrm-request-accordion {
+.crpcrm-request-detail-tabs {
+	display: grid;
+	gap: 16px;
+}
+
+.crpcrm-request-tab-nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.crpcrm-request-tab-button {
+	background: #fff;
+	border: 1px solid var(--crpcrm-border);
+	border-radius: 999px;
+	color: #334155;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 700;
+	padding: 10px 16px;
+	transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.crpcrm-request-tab-button.is-active,
+.crpcrm-request-tab-button[aria-selected="true"] {
+	background: #eaf1ff;
+	border-color: #b8cbff;
+	color: var(--crpcrm-primary-strong);
+}
+
+.crpcrm-request-tab-panels {
+	display: grid;
+	gap: 16px;
+}
+
+.crpcrm-request-detail-tabs.is-ready .crpcrm-request-tab-panel {
+	display: none;
+}
+
+.crpcrm-request-detail-tabs.is-ready .crpcrm-request-tab-panel.is-active {
+	display: block;
+}
+
+.crpcrm-request-history-accordion {
 	padding: 0;
 }
 
-.crpcrm-request-section-toggle {
+.crpcrm-request-history-toggle {
 	align-items: center;
 	cursor: pointer;
 	display: flex;
@@ -504,28 +547,37 @@ body.wp-admin {
 	padding: 16px 18px;
 }
 
-.crpcrm-request-section-toggle::-webkit-details-marker {
+.crpcrm-request-history-toggle::-webkit-details-marker {
 	display: none;
 }
 
-.crpcrm-request-section-toggle::after {
+.crpcrm-request-history-toggle::after {
 	color: #64748b;
-	content: '+';
-	font-size: 20px;
+	content: '>';
+	font-size: 18px;
 	font-weight: 700;
 	line-height: 1;
+	transform: rotate(0deg);
+	transition: transform 0.15s ease;
 }
 
-.crpcrm-request-accordion[open] .crpcrm-request-section-toggle::after {
-	content: '−';
+.crpcrm-request-history-accordion[open] .crpcrm-request-history-toggle::after {
+	transform: rotate(90deg);
 }
 
-.crpcrm-request-section-toggle h2 {
+.crpcrm-request-history-toggle h2 {
 	margin: 0;
 }
 
-.crpcrm-request-section-body {
+.crpcrm-request-history-body {
 	padding: 0 18px 18px;
+}
+
+.crpcrm-jalali-time-hint {
+	color: #64748b;
+	display: inline-block;
+	font-size: 12px;
+	margin-top: 6px;
 }
 
 .crpcrm-request-actions-panel {
