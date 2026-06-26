@@ -1160,13 +1160,16 @@ class CRPCRM_Admin_Pages {
 			$this->redirect_to_request( $request_id, 'request_reply_failed' );
 		}
 
-		$this->request_repository->update(
+		$activity_update = $this->request_repository->update(
 			$request_id,
 			array(
 				'last_action'      => 'manager' === $actor_type ? 'manager_reply' : 'staff_reply',
 				'last_activity_at' => $now,
 			)
 		);
+		if ( ! $activity_update ) {
+			CRPCRM_Logger::error( 'staff_request_reply_last_activity_update_failed', 'request', array( 'request_id' => $request_id, 'user_id' => $current_user_id, 'actor_type' => $actor_type ) );
+		}
 
 		$this->notification_service->notify_reply_added(
 			$request,
