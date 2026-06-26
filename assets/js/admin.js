@@ -1625,6 +1625,42 @@
 		});
 	}
 
+	function initRequestDetailTabs() {
+		document.querySelectorAll('[data-crpcrm-tabs="request-detail"]').forEach(function (container) {
+			var buttons = container.querySelectorAll('.crpcrm-request-tab-button');
+			var panels = container.querySelectorAll('.crpcrm-request-tab-panel');
+
+			if (!buttons.length || !panels.length) {
+				return;
+			}
+
+			function activateTab(target) {
+				buttons.forEach(function (button) {
+					var isActive = button.getAttribute('data-tab-target') === target;
+					button.classList.toggle('is-active', isActive);
+					button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+				});
+
+				panels.forEach(function (panel) {
+					var isActive = panel.getAttribute('data-tab-panel') === target;
+					panel.classList.toggle('is-active', isActive);
+				});
+			}
+
+			container.classList.add('is-ready');
+			activateTab('request-main');
+
+			buttons.forEach(function (button) {
+				button.addEventListener('click', function () {
+					var target = button.getAttribute('data-tab-target') || '';
+					if (target) {
+						activateTab(target);
+					}
+				});
+			});
+		});
+	}
+
 
 	document.addEventListener('DOMContentLoaded', function () {
 		var config = getAdminConfig();
@@ -1649,5 +1685,6 @@
 		document.querySelectorAll('.crpcrm-staff-admin').forEach(function (section) {
 			initFileUploads(section, config);
 		});
+		initRequestDetailTabs();
 	});
 }());
