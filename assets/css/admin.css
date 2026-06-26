@@ -1043,6 +1043,59 @@
 .crpcrm-table-scroll { overflow-x: auto; }
 .crpcrm-staff-list td { vertical-align: middle; }
 .crpcrm-staff-detail { margin-top: 20px; }
+.crpcrm-staff-admin .button,
+.crpcrm-staff-admin button,
+.crpcrm-staff-admin input[type="submit"],
+.crpcrm-staff-admin input[type="button"] {
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+
+.crpcrm-staff-admin .button,
+.crpcrm-staff-admin button {
+	display: inline-flex;
+}
+
+.crpcrm-staff-admin input[type="submit"],
+.crpcrm-staff-admin input[type="button"] {
+	line-height: 1.4;
+}
+
+.crpcrm-staff-accordion {
+	margin: 0;
+}
+
+.crpcrm-staff-accordion-toggle {
+	align-items: center;
+	cursor: pointer;
+	display: flex;
+	font-size: 16px;
+	font-weight: 700;
+	gap: 10px;
+	list-style: none;
+}
+
+.crpcrm-staff-accordion-toggle::-webkit-details-marker {
+	display: none;
+}
+
+.crpcrm-staff-accordion-toggle::before {
+	color: var(--crpcrm-primary-strong);
+	content: ">";
+	font-size: 16px;
+	font-weight: 800;
+	transition: transform 0.15s ease;
+}
+
+.crpcrm-staff-accordion[open] .crpcrm-staff-accordion-toggle::before {
+	transform: rotate(90deg);
+}
+
+.crpcrm-staff-accordion-body {
+	margin-top: 16px;
+}
+
 .crpcrm-staff-form {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(220px, 1fr));
@@ -1066,6 +1119,24 @@
 	display: block;
 	font-weight: 600;
 	margin-bottom: 6px;
+}
+
+.crpcrm-staff-form input[type="text"],
+.crpcrm-staff-form input[type="email"],
+.crpcrm-staff-form input[type="number"],
+.crpcrm-staff-form input[type="search"],
+.crpcrm-staff-form select,
+.crpcrm-staff-form textarea {
+	background: #fff;
+	border: 1px solid #cbd5e1;
+	border-radius: 10px;
+	box-sizing: border-box;
+	min-height: 42px;
+	padding: 10px 12px;
+}
+
+.crpcrm-staff-form textarea {
+	min-height: 120px;
 }
 
 .crpcrm-staff-form .submit,
@@ -1116,6 +1187,16 @@
 
 .crpcrm-staff-form .crpcrm-staff-upload-field {
 	margin: 0;
+}
+
+.crpcrm-staff-form .submit {
+	margin: 6px 0 0;
+}
+
+.crpcrm-staff-form .submit .button,
+.crpcrm-staff-form .submit input[type="submit"] {
+	min-height: 42px;
+	padding-inline: 18px;
 }
 
 @media (max-width: 782px) {

@@ -237,7 +237,7 @@ class CRPCRM_Admin_Pages {
 		}
 
 		$tab        = isset( $_GET['staff_tab'] ) ? sanitize_key( wp_unslash( $_GET['staff_tab'] ) ) : 'dashboard';
-		$valid_tabs = array( 'dashboard', 'daily_reports', 'requests', 'issues', 'tasks', 'announcements' );
+		$valid_tabs = array( 'dashboard', 'daily_reports', 'requests', 'tasks', 'announcements' );
 		if ( ! in_array( $tab, $valid_tabs, true ) ) {
 			$tab = 'dashboard';
 		}
