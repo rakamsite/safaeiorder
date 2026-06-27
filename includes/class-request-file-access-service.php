@@ -112,13 +112,37 @@ class CRPCRM_Request_File_Access_Service {
 			return array();
 		}
 
-		return array(
+		$payload = array(
 			'type'       => $source_type,
 			'source_id'  => $source_id,
 			'source_key' => $source_field,
 			'file_index' => $file_index,
 			'mode'       => 'preview' === $mode ? 'preview' : 'download',
 		);
+
+		if ( ! empty( $file['relative_path'] ) ) {
+			$payload['relative_path'] = sanitize_text_field( $file['relative_path'] );
+		}
+		if ( ! empty( $file['filename'] ) ) {
+			$payload['filename'] = sanitize_file_name( $file['filename'] );
+		}
+		if ( ! empty( $file['mime_type'] ) ) {
+			$payload['mime_type'] = sanitize_text_field( $file['mime_type'] );
+		}
+		if ( ! empty( $file['stored_name'] ) ) {
+			$payload['stored_name'] = sanitize_file_name( $file['stored_name'] );
+		}
+		if ( ! empty( $file['original_name'] ) ) {
+			$payload['original_name'] = sanitize_file_name( $file['original_name'] );
+		}
+		if ( isset( $file['is_image'] ) ) {
+			$payload['is_image'] = ! empty( $file['is_image'] ) ? 1 : 0;
+		}
+		if ( isset( $file['is_pdf'] ) ) {
+			$payload['is_pdf'] = ! empty( $file['is_pdf'] ) ? 1 : 0;
+		}
+
+		return $payload;
 	}
 
 	private function resolve_file_for_payload( $payload ) {
@@ -163,11 +187,17 @@ class CRPCRM_Request_File_Access_Service {
 			return array();
 		}
 
-		return $this->find_file_in_request_data(
+		$file = $this->find_file_in_request_data(
 			$request['request_data'] ?? array(),
 			sanitize_key( $payload['source_key'] ?? '' ),
 			absint( $payload['file_index'] ?? 0 )
 		);
+
+		if ( ! empty( $file ) && '' !== CRPCRM_Dynamic_Form_Renderer::resolve_uploaded_file_real_path( $file ) ) {
+			return $file;
+		}
+
+		return $this->build_file_from_payload_meta( $payload );
 	}
 
 	private function resolve_staff_request_file( $payload ) {
@@ -188,7 +218,13 @@ class CRPCRM_Request_File_Access_Service {
 			return array();
 		}
 
-		return $this->find_file_in_value( $request[ $field ] ?? '', absint( $payload['file_index'] ?? 0 ) );
+		$file = $this->find_file_in_value( $request[ $field ] ?? '', absint( $payload['file_index'] ?? 0 ) );
+
+		if ( ! empty( $file ) && '' !== CRPCRM_Dynamic_Form_Renderer::resolve_uploaded_file_real_path( $file ) ) {
+			return $file;
+		}
+
+		return $this->build_file_from_payload_meta( $payload );
 	}
 
 	private function current_user_can_view_request_file( $request ) {
@@ -261,6 +297,25 @@ class CRPCRM_Request_File_Access_Service {
 		}
 
 		return array();
+	}
+
+	private function build_file_from_payload_meta( $payload ) {
+		$relative_path = sanitize_text_field( $payload['relative_path'] ?? '' );
+		if ( '' === $relative_path ) {
+			return array();
+		}
+
+		$file = array(
+			'relative_path' => $relative_path,
+			'filename'      => sanitize_file_name( $payload['filename'] ?? '' ),
+			'original_name' => sanitize_file_name( $payload['original_name'] ?? '' ),
+			'stored_name'   => sanitize_file_name( $payload['stored_name'] ?? '' ),
+			'mime_type'     => sanitize_text_field( $payload['mime_type'] ?? '' ),
+			'is_image'      => ! empty( $payload['is_image'] ) ? 1 : 0,
+			'is_pdf'        => ! empty( $payload['is_pdf'] ) ? 1 : 0,
+		);
+
+		return CRPCRM_Dynamic_Form_Renderer::normalize_uploaded_file_meta( $file );
 	}
 
 	private function stream_file( $path, $file, $mode ) {
