@@ -1030,7 +1030,7 @@
 	}
 
 	function getUploadSelectedFallbackLabel(config) {
-		return getUploadConfigLabel(config, 'fileUploadNoSelection', 'Ù‡Ù†ÙˆØ² ÙØ§ÛŒÙ„ÛŒ Ø§Ù†ØªØ®Ø§Ø¨ Ù†Ø´Ø¯Ù‡ Ø§Ø³Øª.');
+		return getUploadConfigLabel(config, 'fileUploadNoSelection', 'هنوز فایلی انتخاب نشده است.');
 	}
 
 	function updateUploadSelectedLabel(row, input, config, fallbackText) {
@@ -1065,7 +1065,7 @@
 
 			var pickerLabel = document.createElement('span');
 			pickerLabel.className = 'crpcrm-file-upload-picker-label';
-			pickerLabel.textContent = getUploadConfigLabel(config, 'fileChooseLabel', 'Ø§Ù†ØªØ®Ø§Ø¨ ÙØ§ÛŒÙ„');
+			pickerLabel.textContent = getUploadConfigLabel(config, 'fileChooseLabel', 'انتخاب فایل');
 
 			row.insertBefore(picker, input);
 			picker.appendChild(pickerLabel);
@@ -1293,7 +1293,7 @@
 			preview.innerHTML = '';
 			var tooMany = document.createElement('span');
 			tooMany.className = 'crpcrm-file-upload-name';
-			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'Ø­Ø¯Ø§Ú©Ø«Ø± 5 ÙØ§ÛŒÙ„ Ù…Ø¬Ø§Ø² Ø§Ø³Øª.');
+			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'حداکثر 5 فایل مجاز است.');
 			preview.appendChild(tooMany);
 			input.value = '';
 			refreshUploadRequirements(wrapper);
@@ -1304,7 +1304,7 @@
 			preview.innerHTML = '';
 			var totalTooLarge = document.createElement('span');
 			totalTooLarge.className = 'crpcrm-file-upload-name';
-			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'Ù…Ø¬Ù…ÙˆØ¹ Ø­Ø¬Ù… ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ø¨ÛŒØ´ Ø§Ø² Ø­Ø¯ Ù…Ø¬Ø§Ø² Ø§Ø³Øª.');
+			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'مجموع حجم فایل‌ها بیش از حد مجاز است.');
 			preview.appendChild(totalTooLarge);
 			input.value = '';
 			refreshUploadRequirements(wrapper);
@@ -1399,7 +1399,7 @@
 		row.dataset.boundUpload = '1';
 
 		if (input) {
-			input.setAttribute('aria-label', input.getAttribute('aria-label') || '?????? ????');
+			input.setAttribute('aria-label', input.getAttribute('aria-label') || 'انتخاب فایل');
 			ensureUploadInputChrome(row, input, config);
 			input.addEventListener('change', function () {
 				updateUploadSelectedLabel(row, input, config);
@@ -1413,11 +1413,11 @@
 		row.className = 'crpcrm-file-upload-row';
 
 		var input = document.createElement('input');
-		input.className = 'crpcrm-file-upload-input';
-		input.setAttribute('aria-label', '?????? ????');
+		input.type = 'file';
 		input.name = name + '[]';
 		input.accept = '.jpg,.jpeg,.png,.webp,.gif,.pdf';
-		input.setAttribute('aria-label', 'Ø§Ù†ØªØ®Ø§Ø¨ ÙØ§ÛŒÙ„');
+		input.className = 'crpcrm-file-upload-input';
+		input.setAttribute('aria-label', 'انتخاب فایل');
 		if (required) {
 			input.required = true;
 			input.setAttribute('data-required', '1');
@@ -1425,15 +1425,15 @@
 		row.appendChild(input);
 
 		var preview = document.createElement('div');
-		remove.setAttribute('aria-label', '??? ????');
-		remove.setAttribute('title', '??? ????');
-		remove.textContent = '?';
+		preview.className = 'crpcrm-file-upload-preview';
+		row.appendChild(preview);
+
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-file-upload-remove';
-		remove.setAttribute('aria-label', 'Ø­Ø°Ù ÙØ§ÛŒÙ„');
-		remove.setAttribute('title', 'Ø­Ø°Ù ÙØ§ÛŒÙ„');
-		remove.textContent = 'Ã—';
+		remove.setAttribute('aria-label', 'حذف فایل');
+		remove.setAttribute('title', 'حذف فایل');
+		remove.textContent = '×';
 		row.appendChild(remove);
 
 		bindUploadRow(row, wrapper, config);
