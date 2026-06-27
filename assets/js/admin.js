@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
 	'use strict';
 
 	if (window.NodeList && !NodeList.prototype.forEach) {
@@ -26,14 +26,14 @@
 		};
 	}
 
-	var persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-	var monthNames = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
-	var weekDays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+	var persianDigits = ['Û°', 'Û±', 'Û²', 'Û³', 'Û´', 'Ûµ', 'Û¶', 'Û·', 'Û¸', 'Û¹'];
+	var monthNames = ['ÙØ±ÙˆØ±Ø¯ÛŒÙ†', 'Ø§Ø±Ø¯ÛŒØ¨Ù‡Ø´Øª', 'Ø®Ø±Ø¯Ø§Ø¯', 'ØªÛŒØ±', 'Ù…Ø±Ø¯Ø§Ø¯', 'Ø´Ù‡Ø±ÛŒÙˆØ±', 'Ù…Ù‡Ø±', 'Ø¢Ø¨Ø§Ù†', 'Ø¢Ø°Ø±', 'Ø¯ÛŒ', 'Ø¨Ù‡Ù…Ù†', 'Ø§Ø³ÙÙ†Ø¯'];
+	var weekDays = ['Ø´', 'ÛŒ', 'Ø¯', 'Ø³', 'Ú†', 'Ù¾', 'Ø¬'];
 	var activePicker = null;
 
 	function toLatin(value) {
-		return String(value || '').replace(/[۰-۹٠-٩]/g, function (digit) {
-			return '۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩'.indexOf(digit) % 10;
+		return String(value || '').replace(/[Û°-Û¹Ù -Ù©]/g, function (digit) {
+			return 'Û°Û±Û²Û³Û´ÛµÛ¶Û·Û¸Û¹Ù Ù¡Ù¢Ù£Ù¤Ù¥Ù¦Ù§Ù¨Ù©'.indexOf(digit) % 10;
 		});
 	}
 
@@ -168,12 +168,12 @@
 		header.className = 'crpcrm-jalali-picker-header';
 		var next = document.createElement('button');
 		next.type = 'button';
-		next.textContent = '‹';
+		next.textContent = 'â€¹';
 		var title = document.createElement('strong');
 		title.textContent = monthNames[month - 1] + ' ' + toPersian(year);
 		var prev = document.createElement('button');
 		prev.type = 'button';
-		prev.textContent = '›';
+		prev.textContent = 'â€º';
 		header.appendChild(next);
 		header.appendChild(title);
 		header.appendChild(prev);
@@ -214,7 +214,7 @@
 		tools.className = 'crpcrm-jalali-picker-tools';
 		var today = document.createElement('button');
 		today.type = 'button';
-		today.textContent = 'امروز';
+		today.textContent = 'Ø§Ù…Ø±ÙˆØ²';
 		today.addEventListener('click', function () {
 			var now = new Date();
 			input.value = displayFromIso(now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()));
@@ -223,7 +223,7 @@
 		});
 		var clear = document.createElement('button');
 		clear.type = 'button';
-		clear.textContent = 'پاک کردن';
+		clear.textContent = 'Ù¾Ø§Ú© Ú©Ø±Ø¯Ù†';
 		clear.addEventListener('click', function () {
 			input.value = '';
 			syncHidden(input);
@@ -483,7 +483,7 @@
 
 	function validateManualCustomerEditor(editor, messages) {
 		var fields = editor ? editor.querySelectorAll('input, select, textarea') : [];
-		var fallbackMessage = (messages && messages.manualCustomerSaveError) || 'ذخیره اطلاعات مشتری انجام نشد.';
+		var fallbackMessage = (messages && messages.manualCustomerSaveError) || 'Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.';
 
 		for (var i = 0; i < fields.length; i += 1) {
 			var field = fields[i];
@@ -553,7 +553,7 @@
 
 		if (!window.fetch || !config.ajaxUrl || !config.manualCustomerSaveNonce) {
 			if (status) {
-				status.textContent = config.manualCustomerSaveError || 'ذخیره اطلاعات مشتری انجام نشد.';
+				status.textContent = config.manualCustomerSaveError || 'Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.';
 			}
 			return;
 		}
@@ -571,7 +571,7 @@
 		});
 
 		if (status) {
-			status.textContent = config.manualCustomerSaveLoading || 'در حال ذخیره اطلاعات مشتری...';
+			status.textContent = config.manualCustomerSaveLoading || 'Ø¯Ø± Ø­Ø§Ù„ Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ...';
 		}
 		button.disabled = true;
 
@@ -583,7 +583,7 @@
 			.then(function (response) { return response.json(); })
 			.then(function (payload) {
 				if (!payload || !payload.success || !payload.data) {
-					throw new Error((payload && payload.data && payload.data.message) || config.manualCustomerSaveError || 'ذخیره اطلاعات مشتری انجام نشد.');
+					throw new Error((payload && payload.data && payload.data.message) || config.manualCustomerSaveError || 'Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.');
 				}
 
 				renderManualCustomerResult(form, payload.data);
@@ -593,7 +593,7 @@
 			})
 			.catch(function (error) {
 				if (status) {
-					status.textContent = (error && error.message) || config.manualCustomerSaveError || 'ذخیره اطلاعات مشتری انجام نشد.';
+					status.textContent = (error && error.message) || config.manualCustomerSaveError || 'Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.';
 				}
 			})
 			.finally(function () {
@@ -640,7 +640,7 @@
 			requestId += 1;
 			var currentRequestId = requestId;
 			if (status) {
-				status.textContent = config.manualCustomerLoading || 'در حال جستجوی مشتری...';
+				status.textContent = config.manualCustomerLoading || 'Ø¯Ø± Ø­Ø§Ù„ Ø¬Ø³ØªØ¬ÙˆÛŒ Ù…Ø´ØªØ±ÛŒ...';
 			}
 
 			var formData = new FormData();
@@ -662,7 +662,7 @@
 						return;
 					}
 					if (!payload || !payload.success || !payload.data) {
-						throw new Error(config.manualCustomerLookupError || 'جستجوی مشتری انجام نشد.');
+						throw new Error(config.manualCustomerLookupError || 'Ø¬Ø³ØªØ¬ÙˆÛŒ Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.');
 					}
 					if (status) {
 						status.textContent = '';
@@ -674,7 +674,7 @@
 						return;
 					}
 					if (status) {
-						status.textContent = config.manualCustomerLookupError || 'جستجوی مشتری انجام نشد.';
+						status.textContent = config.manualCustomerLookupError || 'Ø¬Ø³ØªØ¬ÙˆÛŒ Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.';
 					}
 					renderManualCustomerResult(form, { state: 'idle' });
 				});
@@ -719,7 +719,7 @@
 			if (hiddenCustomer && !hiddenCustomer.value) {
 				event.preventDefault();
 				if (status) {
-					status.textContent = config.manualCustomerCreateRequired || 'برای ثبت درخواست ابتدا باید مشتری ایجاد شود.';
+					status.textContent = config.manualCustomerCreateRequired || 'Ø¨Ø±Ø§ÛŒ Ø«Ø¨Øª Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ø§Ø¨ØªØ¯Ø§ Ø¨Ø§ÛŒØ¯ Ù…Ø´ØªØ±ÛŒ Ø§ÛŒØ¬Ø§Ø¯ Ø´ÙˆØ¯.';
 				}
 			}
 		});
@@ -744,8 +744,8 @@
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-product-chip-remove';
-		remove.setAttribute('aria-label', labels.productRemoveLabel || 'حذف محصول');
-		remove.textContent = '×';
+		remove.setAttribute('aria-label', labels.productRemoveLabel || 'Ø­Ø°Ù Ù…Ø­ØµÙˆÙ„');
+		remove.textContent = 'Ã—';
 		remove.addEventListener('click', function () {
 			chip.remove();
 			syncProductHiddenValue(container, hidden);
@@ -794,7 +794,7 @@
 				if (!items.length) {
 					var empty = document.createElement('div');
 					empty.className = 'crpcrm-product-search-empty';
-					empty.textContent = labels.productSearchEmpty || 'محصولی پیدا نشد.';
+					empty.textContent = labels.productSearchEmpty || 'Ù…Ø­ØµÙˆÙ„ÛŒ Ù¾ÛŒØ¯Ø§ Ù†Ø´Ø¯.';
 					results.appendChild(empty);
 					results.hidden = false;
 					return;
@@ -844,7 +844,7 @@
 				}
 
 				results.hidden = false;
-				renderStatusMessage(results, 'crpcrm-product-search-empty', labels.productSearchLoading || 'در حال جستجو...');
+				renderStatusMessage(results, 'crpcrm-product-search-empty', labels.productSearchLoading || 'Ø¯Ø± Ø­Ø§Ù„ Ø¬Ø³ØªØ¬Ùˆ...');
 
 				if (window.AbortController) {
 					if (abortController) {
@@ -1007,7 +1007,7 @@
 			}
 
 			if ('function' === typeof input.setCustomValidity) {
-				input.setCustomValidity(input.files && input.files.length ? '' : 'حداقل یک فایل انتخاب کنید.');
+				input.setCustomValidity(input.files && input.files.length ? '' : 'Ø­Ø¯Ø§Ù‚Ù„ ÛŒÚ© ÙØ§ÛŒÙ„ Ø§Ù†ØªØ®Ø§Ø¨ Ú©Ù†ÛŒØ¯.');
 				return;
 			}
 		});
@@ -1027,6 +1027,59 @@
 		label.className = 'crpcrm-file-upload-name';
 		label.textContent = getFileDisplayName(file, getUploadConfigLabel(config, 'fileUploadedLabel', 'Uploaded'));
 		preview.appendChild(label);
+	}
+
+	function getUploadSelectedFallbackLabel(config) {
+		return getUploadConfigLabel(config, 'fileUploadNoSelection', 'Ù‡Ù†ÙˆØ² ÙØ§ÛŒÙ„ÛŒ Ø§Ù†ØªØ®Ø§Ø¨ Ù†Ø´Ø¯Ù‡ Ø§Ø³Øª.');
+	}
+
+	function updateUploadSelectedLabel(row, input, config, fallbackText) {
+		var selected = row ? row.querySelector('.crpcrm-file-upload-selected') : null;
+		if (!selected) {
+			return;
+		}
+
+		var emptyLabel = getUploadSelectedFallbackLabel(config);
+		var label = fallbackText || emptyLabel;
+		if (input && input.files && input.files.length) {
+			label = input.files[0].name || label;
+		}
+
+		selected.textContent = label;
+		selected.classList.toggle('is-empty', label === emptyLabel);
+	}
+
+	function ensureUploadInputChrome(row, input, config) {
+		if (!row || !input) {
+			return;
+		}
+
+		if (!input.classList.contains('crpcrm-file-upload-input')) {
+			input.classList.add('crpcrm-file-upload-input');
+		}
+
+		var picker = row.querySelector('.crpcrm-file-upload-picker');
+		if (!picker) {
+			picker = document.createElement('label');
+			picker.className = 'crpcrm-file-upload-picker';
+
+			var pickerLabel = document.createElement('span');
+			pickerLabel.className = 'crpcrm-file-upload-picker-label';
+			pickerLabel.textContent = getUploadConfigLabel(config, 'fileChooseLabel', 'Ø§Ù†ØªØ®Ø§Ø¨ ÙØ§ÛŒÙ„');
+
+			row.insertBefore(picker, input);
+			picker.appendChild(pickerLabel);
+			picker.appendChild(input);
+		}
+
+		var selected = row.querySelector('.crpcrm-file-upload-selected');
+		if (!selected) {
+			selected = document.createElement('span');
+			selected.className = 'crpcrm-file-upload-selected is-empty';
+			picker.insertAdjacentElement('afterend', selected);
+		}
+
+		updateUploadSelectedLabel(row, input, config);
 	}
 
 	function getFileDisplayName(file, fallback) {
@@ -1240,7 +1293,7 @@
 			preview.innerHTML = '';
 			var tooMany = document.createElement('span');
 			tooMany.className = 'crpcrm-file-upload-name';
-			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'حداکثر 5 فایل مجاز است.');
+			tooMany.textContent = getUploadConfigLabel(config, 'fileUploadMaxFilesMessage', 'Ø­Ø¯Ø§Ú©Ø«Ø± 5 ÙØ§ÛŒÙ„ Ù…Ø¬Ø§Ø² Ø§Ø³Øª.');
 			preview.appendChild(tooMany);
 			input.value = '';
 			refreshUploadRequirements(wrapper);
@@ -1251,7 +1304,7 @@
 			preview.innerHTML = '';
 			var totalTooLarge = document.createElement('span');
 			totalTooLarge.className = 'crpcrm-file-upload-name';
-			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'مجموع حجم فایل‌ها بیش از حد مجاز است.');
+			totalTooLarge.textContent = getUploadConfigLabel(config, 'fileUploadTotalTooLarge', 'Ù…Ø¬Ù…ÙˆØ¹ Ø­Ø¬Ù… ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ Ø¨ÛŒØ´ Ø§Ø² Ø­Ø¯ Ù…Ø¬Ø§Ø² Ø§Ø³Øª.');
 			preview.appendChild(totalTooLarge);
 			input.value = '';
 			refreshUploadRequirements(wrapper);
@@ -1346,8 +1399,10 @@
 		row.dataset.boundUpload = '1';
 
 		if (input) {
-			input.setAttribute('aria-label', input.getAttribute('aria-label') || 'انتخاب فایل');
+			input.setAttribute('aria-label', input.getAttribute('aria-label') || '?????? ????');
+			ensureUploadInputChrome(row, input, config);
 			input.addEventListener('change', function () {
+				updateUploadSelectedLabel(row, input, config);
 				uploadSelectedFile(input, preview, wrapper, config);
 			});
 		}
@@ -1358,10 +1413,11 @@
 		row.className = 'crpcrm-file-upload-row';
 
 		var input = document.createElement('input');
-		input.type = 'file';
+		input.className = 'crpcrm-file-upload-input';
+		input.setAttribute('aria-label', '?????? ????');
 		input.name = name + '[]';
 		input.accept = '.jpg,.jpeg,.png,.webp,.gif,.pdf';
-		input.setAttribute('aria-label', 'انتخاب فایل');
+		input.setAttribute('aria-label', 'Ø§Ù†ØªØ®Ø§Ø¨ ÙØ§ÛŒÙ„');
 		if (required) {
 			input.required = true;
 			input.setAttribute('data-required', '1');
@@ -1369,71 +1425,19 @@
 		row.appendChild(input);
 
 		var preview = document.createElement('div');
-		preview.className = 'crpcrm-file-upload-preview';
-		row.appendChild(preview);
-
+		remove.setAttribute('aria-label', '??? ????');
+		remove.setAttribute('title', '??? ????');
+		remove.textContent = '?';
 		var remove = document.createElement('button');
 		remove.type = 'button';
 		remove.className = 'crpcrm-file-upload-remove';
-		remove.setAttribute('aria-label', 'حذف فایل');
-		remove.setAttribute('title', 'حذف فایل');
-		remove.textContent = '×';
+		remove.setAttribute('aria-label', 'Ø­Ø°Ù ÙØ§ÛŒÙ„');
+		remove.setAttribute('title', 'Ø­Ø°Ù ÙØ§ÛŒÙ„');
+		remove.textContent = 'Ã—';
 		row.appendChild(remove);
 
 		bindUploadRow(row, wrapper, config);
 		return row;
-	}
-
-	function ensureFilePreviewModal() {
-		var modal = document.querySelector('.crpcrm-file-preview-modal');
-		if (modal) {
-			return modal;
-		}
-
-		modal = document.createElement('div');
-		modal.className = 'crpcrm-file-preview-modal';
-		modal.setAttribute('role', 'dialog');
-		modal.setAttribute('aria-modal', 'true');
-		modal.setAttribute('aria-label', '????????? ????');
-		modal.setAttribute('aria-hidden', 'true');
-
-		var closeButton = document.createElement('button');
-		closeButton.type = 'button';
-		closeButton.className = 'crpcrm-file-preview-close';
-		closeButton.setAttribute('aria-label', '????');
-		closeButton.setAttribute('title', '????');
-		closeButton.textContent = '×';
-
-		var image = document.createElement('img');
-		image.setAttribute('alt', '');
-
-		var name = document.createElement('div');
-		name.className = 'crpcrm-file-preview-name';
-
-		var download = document.createElement('a');
-		download.className = 'crpcrm-file-preview-download button button-primary';
-		download.href = '#';
-		download.setAttribute('download', '');
-		download.textContent = '?????? ????';
-
-		modal.appendChild(closeButton);
-		modal.appendChild(image);
-		modal.appendChild(name);
-		modal.appendChild(download);
-		document.body.appendChild(modal);
-		modal.addEventListener('click', function (event) {
-			if (event.target === modal || event.target.classList.contains('crpcrm-file-preview-close')) {
-				modal.classList.remove('is-open');
-				modal.setAttribute('aria-hidden', 'true');
-			}
-		});
-		document.addEventListener('keydown', function (event) {
-			if ('Escape' === event.key && modal.classList.contains('is-open')) {
-				modal.classList.remove('is-open');
-				modal.setAttribute('aria-hidden', 'true');
-			}
-		});
-		return modal;
 	}
 
 	function bindSubmitGuard(form) {
@@ -1682,3 +1686,4 @@
 		initRequestDetailTabs();
 	});
 }());
+
