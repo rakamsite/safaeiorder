@@ -26,6 +26,7 @@ class CRPCRM_Admin_Tools {
 		add_action( 'admin_post_crpcrm_export_staff_issues', array( $this, 'export_staff_issues' ) );
 		add_action( 'admin_post_crpcrm_cleanup_logs', array( $this, 'cleanup_logs' ) );
 		add_action( 'admin_post_crpcrm_repair_tables', array( $this, 'repair_tables' ) );
+		add_action( 'admin_post_crpcrm_repair_uploaded_files', array( $this, 'repair_uploaded_files' ) );
 		add_action( 'admin_post_crpcrm_tools_rebuild_roles', array( $this, 'rebuild_roles' ) );
 		add_action( 'admin_post_crpcrm_fix_request_codes', array( $this, 'fix_request_codes' ) );
 		add_action( 'crpcrm_daily_log_cleanup', array( $this, 'run_scheduled_log_cleanup' ) );
@@ -407,6 +408,21 @@ class CRPCRM_Admin_Tools {
 		$this->maintenance->repair_tables();
 		CRPCRM_Logger::info( 'tables_repair_run', 'tables_repair_run', array( 'user_id' => get_current_user_id() ) );
 		$this->redirect_tool( array( 'tables-repaired' => 'true' ) );
+	}
+
+	public function repair_uploaded_files() {
+		$this->verify_maintenance( 'crpcrm_repair_uploaded_files' );
+		$stats = CRPCRM_Dynamic_Form_Renderer::repair_uploaded_file_metadata_records();
+		CRPCRM_Logger::info( 'uploaded_files_repair_run', 'uploaded_files_repair_run', array( 'user_id' => get_current_user_id(), 'stats' => $stats ) );
+		$this->redirect_tool(
+			array(
+				'uploaded-files-repaired' => 'true',
+				'uf_checked'             => absint( $stats['checked'] ?? 0 ),
+				'uf_repaired'            => absint( $stats['repaired'] ?? 0 ),
+				'uf_missing'             => absint( $stats['missing'] ?? 0 ),
+				'uf_ambiguous'           => absint( $stats['ambiguous'] ?? 0 ),
+			)
+		);
 	}
 
 	public function rebuild_roles() {

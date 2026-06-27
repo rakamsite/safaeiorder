@@ -10,6 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php if ( isset( $_GET['request-codes-fixed'] ) ) : ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html( sprintf( 'تعداد %d درخواست فاقد کد پیگیری بروزرسانی شد.', absint( $_GET['request-codes-fixed'] ) ) ); ?></p></div><?php endif; ?>
 
 <?php if ( CRPCRM_Admin_Tools::can_maintain() ) : ?>
+<?php if ( isset( $_GET['uploaded-files-repaired'] ) ) : ?>
+	<div class="notice notice-success is-dismissible"><p><?php echo esc_html( sprintf( 'تعمیر مسیر فایل‌های آپلودی انجام شد. بررسی‌شده: %1$d، تعمیرشده: %2$d، پیدانشده: %3$d، مبهم: %4$d', absint( $_GET['uf_checked'] ?? 0 ), absint( $_GET['uf_repaired'] ?? 0 ), absint( $_GET['uf_missing'] ?? 0 ), absint( $_GET['uf_ambiguous'] ?? 0 ) ) ); ?></p></div>
+<?php endif; ?>
 <div class="crpcrm-card">
 	<h2><?php echo esc_html( 'وضعیت سلامت افزونه' ); ?></h2>
 	<table class="widefat striped"><thead><tr><th><?php echo esc_html( 'مورد' ); ?></th><th><?php echo esc_html( 'وضعیت' ); ?></th><th><?php echo esc_html( 'پیام' ); ?></th></tr></thead><tbody>
@@ -19,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php endforeach; ?>
 	</tbody></table>
 </div>
+<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="crpcrm_repair_uploaded_files" /><?php wp_nonce_field( 'crpcrm_repair_uploaded_files', 'crpcrm_tools_nonce' ); ?><?php submit_button( 'تعمیر مسیر فایل‌های آپلودی', 'secondary', 'submit', false ); ?></form>
 <?php endif; ?>
 
 <?php if ( CRPCRM_Admin_Tools::can_export() ) : ?>
