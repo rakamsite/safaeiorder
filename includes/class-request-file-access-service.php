@@ -43,10 +43,16 @@ class CRPCRM_Request_File_Access_Service {
 
 		$file = $this->resolve_file_for_payload( $payload );
 		if ( ! is_array( $file ) || empty( $file ) ) {
+			$this->log_file_resolution_issue( $payload, 'path_not_resolved' );
+		}
+		if ( ! is_array( $file ) || empty( $file ) ) {
 			wp_die( esc_html__( 'فایل موردنظر یافت نشد یا دسترسی به آن مجاز نیست.', 'customer-request-portal-crm' ), '', array( 'response' => 404 ) );
 		}
 
 		$path = CRPCRM_Dynamic_Form_Renderer::resolve_uploaded_file_real_path( $file );
+		if ( '' === $path || ! CRPCRM_Request_File_Cleanup_Service::is_allowed_uploaded_path( $path ) || ! file_exists( $path ) || ! is_readable( $path ) ) {
+			$this->log_file_resolution_issue( $payload, 'file_not_readable', $file );
+		}
 		if ( '' === $path || ! CRPCRM_Request_File_Cleanup_Service::is_allowed_uploaded_path( $path ) || ! file_exists( $path ) || ! is_readable( $path ) ) {
 			wp_die( esc_html__( 'فایل موردنظر یافت نشد.', 'customer-request-portal-crm' ), '', array( 'response' => 404 ) );
 		}
@@ -316,6 +322,26 @@ class CRPCRM_Request_File_Access_Service {
 		);
 
 		return CRPCRM_Dynamic_Form_Renderer::normalize_uploaded_file_meta( $file );
+	}
+
+	private function log_file_resolution_issue( $payload, $reason, $file = array() ) {
+		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			return;
+		}
+
+		CRPCRM_Logger::warning(
+			'request_file_access_missing',
+			'request_file_access',
+			array(
+				'source_type'       => sanitize_key( $payload['type'] ?? '' ),
+				'source_id'         => absint( $payload['source_id'] ?? 0 ),
+				'source_field'      => sanitize_key( $payload['source_key'] ?? $payload['field_key'] ?? '' ),
+				'file_index'        => absint( $payload['file_index'] ?? 0 ),
+				'has_relative_path' => ( ! empty( $payload['relative_path'] ) || ! empty( $file['relative_path'] ) ) ? 1 : 0,
+				'filename'          => sanitize_file_name( $payload['filename'] ?? $file['filename'] ?? $file['stored_name'] ?? '' ),
+				'reason'            => sanitize_key( $reason ),
+			)
+		);
 	}
 
 	private function stream_file( $path, $file, $mode ) {
