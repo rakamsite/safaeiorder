@@ -283,10 +283,14 @@ class CRPCRM_Request_File_Access_Service {
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Content-Type: ' . $mime_type );
 		header( 'Content-Length: ' . (string) filesize( $path ) );
+		header( 'Accept-Ranges: bytes' );
 
-		$disposition = 'download' === $mode ? 'attachment' : 'inline';
+		if ( 'download' === $mode ) {
+			header( 'Content-Disposition: attachment; filename="' . str_replace( '"', '', $filename ) . '"; filename*=UTF-8\'\'' . rawurlencode( $filename ) );
+		} else {
+			header( 'Cache-Control: private, max-age=300' );
+		}
 
-		header( 'Content-Disposition: ' . $disposition . '; filename="' . str_replace( '"', '', $filename ) . '"; filename*=UTF-8\'\'' . rawurlencode( $filename ) );
 		readfile( $path );
 		exit;
 	}
