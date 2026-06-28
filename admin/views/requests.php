@@ -25,7 +25,7 @@ $notice_messages = array(
 	'sales_action_update_failed'    => array( 'error', 'ثبت اقدام انجام نشد.' ),
 	'request_not_found'             => array( 'error', 'درخواست موردنظر یافت نشد.' ),
 	'manual_request_created'       => array( 'success', 'درخواست دستی با موفقیت ثبت شد.' ),
-	'manual_customer_required'     => array( 'error', 'یک مشتری ثبت‌شده را انتخاب کنید.' ),
+	'manual_customer_required'     => array( 'error', 'ابتدا مشتری را پیدا یا ایجاد کنید.' ),
 	'manual_customer_invalid'      => array( 'error', 'نام و شماره موبایل معتبر مشتری جدید الزامی است.' ),
 	'manual_customer_exists'       => array( 'error', 'این شماره موبایل قبلاً ثبت شده است؛ مشتری موجود را جستجو کنید.' ),
 	'manual_customer_failed'       => array( 'error', 'ساخت مشتری جدید انجام نشد.' ),
@@ -45,6 +45,8 @@ $notice_messages = array(
 	'request_reply_failed'          => array( 'error', 'ارسال پاسخ انجام نشد. لطفاً دوباره تلاش کنید.' ),
 );
 $notice = isset( $_GET['crpcrm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_notice'] ) ) : '';
+$custom_notice_message = isset( $_GET['crpcrm_notice_message'] ) ? sanitize_text_field( wp_unslash( $_GET['crpcrm_notice_message'] ) ) : '';
+$custom_notice_type    = isset( $_GET['crpcrm_notice_type'] ) ? sanitize_key( wp_unslash( $_GET['crpcrm_notice_type'] ) ) : 'error';
 
 if ( ! function_exists( 'crpcrm_admin_customer_profile_url' ) ) {
 function crpcrm_admin_customer_profile_url( $customer_id, $args = array() ) {
@@ -131,7 +133,7 @@ function crpcrm_request_row_classes( $item, $current_user_id ) {
 	if ( 'customer_reply' === sanitize_key( $item['last_action'] ?? '' ) ) {
 		$classes[] = 'crpcrm-request-row-customer-reply';
 	}
-	if ( ! empty( $item['next_follow_up_at'] ) && 'follow_up' === sanitize_key( $item['status'] ?? '' ) && false !== CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() ) {
+	if ( ! empty( $item['next_follow_up_at'] ) && in_array( sanitize_key( $item['status'] ?? '' ), array( 'follow_up', CRPCRM_Request_Workflow_Service::STATUS_FUTURE_FOLLOWUP ), true ) && false !== CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() ) {
 		$classes[] = 'crpcrm-request-row-overdue';
 	}
 
@@ -183,7 +185,7 @@ function crpcrm_request_operational_badges( $request ) {
 	if ( empty( $request['owner_id'] ) ) {
 		$badges[] = '<span class="crpcrm-badge crpcrm-badge-muted">بدون مسئول</span>';
 	}
-	if ( 'follow_up' === $status && ! empty( $request['next_follow_up_at'] ) && false !== CRPCRM_Helpers::datetime_to_timestamp( $request['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $request['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() ) {
+	if ( in_array( $status, array( 'follow_up', CRPCRM_Request_Workflow_Service::STATUS_FUTURE_FOLLOWUP ), true ) && ! empty( $request['next_follow_up_at'] ) && false !== CRPCRM_Helpers::datetime_to_timestamp( $request['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $request['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() ) {
 		$badges[] = '<span class="crpcrm-badge crpcrm-badge-failed">عقب‌افتاده</span>';
 	}
 
@@ -208,6 +210,33 @@ function crpcrm_admin_owner_form( $request_id, $owner_id, $assignable_users ) {
 			<?php endforeach; ?>
 		</select>
 		<button type="submit" class="button button-small"><?php echo esc_html( 'تغییر مسئول' ); ?></button>
+	</form>
+	<?php
+}
+}
+
+if ( ! function_exists( 'crpcrm_admin_transfer_form' ) ) {
+function crpcrm_admin_transfer_form( $request_id, $owner_id, $assignable_users ) {
+	if ( ! CRPCRM_Feature_Manager::is_enabled( 'staff' ) ) {
+		return;
+	}
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-sales-action-form">
+		<input type="hidden" name="action" value="crpcrm_transfer_request">
+		<input type="hidden" name="request_id" value="<?php echo esc_attr( absint( $request_id ) ); ?>">
+		<?php wp_nonce_field( 'crpcrm_transfer_request_' . absint( $request_id ) ); ?>
+		<label><?php echo esc_html( 'کارشناس مقصد' ); ?>
+			<select name="new_owner_id" required>
+				<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
+				<?php foreach ( $assignable_users as $user ) : ?>
+					<option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( absint( $owner_id ), absint( $user->ID ) ); ?>><?php echo esc_html( $user->display_name ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</label>
+		<label class="crpcrm-full-field"><?php echo esc_html( 'دلیل انتقال' ); ?>
+			<textarea name="transfer_reason" rows="4" required placeholder="<?php echo esc_attr( 'دلیل انتقال را بنویسید.' ); ?>"></textarea>
+		</label>
+		<p class="submit"><button type="submit" class="button button-secondary"><?php echo esc_html( 'انتقال درخواست' ); ?></button></p>
 	</form>
 	<?php
 }
@@ -255,9 +284,6 @@ function crpcrm_admin_delete_form( $request_id ) {
 if ( ! function_exists( 'crpcrm_admin_sales_action_form' ) ) {
 function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_only = false ) {
 	$actions = $workflow->get_action_labels();
-	if ( $closed_note_only ) {
-		$actions = array( 'internal_note' => $actions['internal_note'] );
-	}
 	?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-sales-action-form">
 		<input type="hidden" name="action" value="crpcrm_add_sales_action">
@@ -271,11 +297,11 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 				<?php endforeach; ?>
 			</select>
 		</label>
-		<label class="crpcrm-full-field"><?php echo esc_html( 'توضیحات' ); ?>
+		<label class="crpcrm-full-field"><?php echo esc_html( 'توضیح کارشناس' ); ?>
 			<textarea name="action_note" rows="4" required></textarea>
 		</label>
-		<label class="crpcrm-conditional-field crpcrm-follow-up-field"><?php echo esc_html( 'تاریخ پیگیری بعدی' ); ?>
-			<?php echo CRPCRM_Helpers::jalali_datetime_input( 'next_follow_up_at', '', array( 'time_hint' => 'قبل از ظهر / بعد از ظهر' ) ); ?>
+		<label class="crpcrm-conditional-field crpcrm-follow-up-field"><?php echo esc_html( 'تاریخ و ساعت پیگیری بعدی' ); ?>
+			<?php echo CRPCRM_Helpers::jalali_datetime_input( 'next_follow_up_at', '', array( 'time_hint' => 'ساعت پیگیری را هم انتخاب کنید.' ) ); ?>
 		</label>
 		<label class="crpcrm-conditional-field crpcrm-lost-reason-field"><?php echo esc_html( 'دلیل ناموفق' ); ?>
 			<select name="close_reason">
@@ -304,6 +330,9 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 
 	<?php if ( $notice && isset( $notice_messages[ $notice ] ) ) : ?>
 		<div class="notice notice-<?php echo esc_attr( $notice_messages[ $notice ][0] ); ?> is-dismissible"><p><?php echo esc_html( $notice_messages[ $notice ][1] ); ?></p></div>
+	<?php endif; ?>
+	<?php if ( $custom_notice_message ) : ?>
+		<div class="notice notice-<?php echo esc_attr( 'success' === $custom_notice_type ? 'success' : 'error' ); ?> is-dismissible"><p><?php echo esc_html( $custom_notice_message ); ?></p></div>
 	<?php endif; ?>
 
 <?php if ( 'list' === $mode ) : ?>
@@ -454,7 +483,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 								</div>
 							</td>
 							<td><?php echo esc_html( CRPCRM_Helpers::get_owner_label( $item['owner_id'] ) ); ?></td>
-							<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() && 'follow_up' === $item['status'] ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $item['next_follow_up_at'] ) : 'ثبت نشده' ); ?></td>
+							<td class="<?php echo ( ! empty( $item['next_follow_up_at'] ) && CRPCRM_Helpers::datetime_to_timestamp( $item['next_follow_up_at'] ) < CRPCRM_Helpers::current_timestamp() && in_array( sanitize_key( $item['status'] ?? '' ), array( 'follow_up', CRPCRM_Request_Workflow_Service::STATUS_FUTURE_FOLLOWUP ), true ) ) ? 'crpcrm-overdue-followup' : ''; ?>"><?php echo esc_html( ! empty( $item['next_follow_up_at'] ) ? CRPCRM_Helpers::format_jalali_datetime( $item['next_follow_up_at'] ) : 'ثبت نشده' ); ?></td>
 							<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['created_at'] ) ); ?></td>
 							<td><?php echo esc_html( CRPCRM_Helpers::format_jalali_datetime( $item['updated_at'] ) ); ?></td>
 							<td class="crpcrm-actions">
@@ -565,6 +594,12 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 							</div>
 						</div>
 					<?php endif; ?>
+					<?php if ( CRPCRM_Feature_Manager::is_enabled( 'staff' ) && ( $can_manage || absint( $request['owner_id'] ) === absint( get_current_user_id() ) ) ) : ?>
+						<div class="crpcrm-card crpcrm-request-section">
+							<h2><?php echo esc_html( 'انتقال درخواست' ); ?></h2>
+							<?php crpcrm_admin_transfer_form( $request['id'], $request['owner_id'], $assignable_users ); ?>
+						</div>
+					<?php endif; ?>
 				</div>
 
 				<div class="crpcrm-request-tab-panel" data-tab-panel="request-activity" role="tabpanel">
@@ -604,9 +639,9 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 
 					<div class="crpcrm-card crpcrm-sales-action-card"><h2><?php echo esc_html( 'ثبت اقدام' ); ?></h2>
 						<?php if ( $can_add_action ) : ?>
-							<?php crpcrm_admin_sales_action_form( $request['id'], $workflow, in_array( $request['status'], array( 'won', 'lost', 'invalid' ), true ) ); ?>
+							<?php crpcrm_admin_sales_action_form( $request['id'], $workflow, $workflow->is_closed_status( $request['status'] ) ); ?>
 						<?php else : ?>
-							<p class="crpcrm-closed-request-badge"><?php echo esc_html( in_array( $request['status'], array( 'won', 'lost', 'invalid' ), true ) ? 'این درخواست بسته شده و امکان ثبت اقدام جدید وجود ندارد.' : 'شما اجازه ثبت اقدام برای این درخواست را ندارید.' ); ?></p>
+							<p class="crpcrm-closed-request-badge"><?php echo esc_html( $workflow->is_closed_status( $request['status'] ) ? 'این درخواست بسته شده و امکان ثبت اقدام جدید وجود ندارد.' : 'شما اجازه ثبت اقدام برای این درخواست را ندارید.' ); ?></p>
 						<?php endif; ?>
 					</div>
 				</div>

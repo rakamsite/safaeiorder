@@ -57,6 +57,7 @@ class CRPCRM_Customer_Repository {
 				'user_id'           => $user_id,
 				'phone'             => $phone_normalized,
 				'phone_normalized'  => $phone_normalized,
+				'created_source'    => 'site_customer',
 				'profile_completed' => 0,
 			)
 		);
@@ -451,7 +452,7 @@ class CRPCRM_Customer_Repository {
 		$clean = array();
 		$text_fields = array( 'full_name', 'phone', 'phone_normalized', 'province', 'city', 'first_source', 'first_medium', 'first_campaign', 'first_content', 'first_term', 'last_source', 'last_medium', 'last_campaign', 'last_content', 'last_term' );
 		$textarea_fields = array( 'first_landing_page', 'first_referrer', 'last_landing_page', 'last_referrer' );
-		$date_fields = array( 'first_seen_at', 'last_seen_at', 'created_at', 'updated_at' );
+		$date_fields = array( 'first_seen_at', 'last_seen_at', 'created_by_staff_at', 'created_at', 'updated_at' );
 
 		if ( isset( $data['user_id'] ) ) {
 			$clean['user_id'] = absint( $data['user_id'] );
@@ -459,8 +460,14 @@ class CRPCRM_Customer_Repository {
 		if ( isset( $data['profile_completed'] ) ) {
 			$clean['profile_completed'] = absint( $data['profile_completed'] );
 		}
+		if ( array_key_exists( 'created_by_staff_user_id', $data ) ) {
+			$clean['created_by_staff_user_id'] = null === $data['created_by_staff_user_id'] || '' === $data['created_by_staff_user_id'] ? null : absint( $data['created_by_staff_user_id'] );
+		}
 		if ( array_key_exists( 'visitor_id', $data ) ) {
 			$clean['visitor_id'] = sanitize_text_field( $data['visitor_id'] );
+		}
+		if ( array_key_exists( 'created_source', $data ) ) {
+			$clean['created_source'] = sanitize_key( $data['created_source'] );
 		}
 
 		foreach ( $text_fields as $field ) {

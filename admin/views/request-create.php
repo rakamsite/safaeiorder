@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $messages = array(
-	'manual_customer_required'    => 'برای ثبت درخواست ابتدا باید مشتری ایجاد شود.',
+	'manual_customer_required'    => 'ابتدا مشتری را پیدا یا ایجاد کنید.',
 	'manual_customer_invalid'     => 'اطلاعات مشتری معتبر نیست.',
 	'manual_customer_exists'      => 'مشتری با این شماره موبایل قبلاً ثبت شده است و برای همین درخواست انتخاب شد.',
 	'manual_customer_failed'      => 'ساخت یا انتخاب مشتری انجام نشد.',
@@ -25,7 +25,7 @@ $customer_form_html     = isset( $customer_context['form_html'] ) ? (string) $cu
 $current_customer_phone = isset( $current_customer_phone ) ? (string) $current_customer_phone : '';
 $current_customer_phone = '' !== $current_customer_phone ? $current_customer_phone : (string) ( $customer_context['phone_normalized'] ?? '' );
 $current_customer_id    = isset( $current_customer_id ) ? absint( $current_customer_id ) : 0;
-$current_request_status = isset( $current_request_status ) ? sanitize_key( (string) $current_request_status ) : 'new';
+$current_request_status = isset( $current_request_status ) ? sanitize_key( (string) $current_request_status ) : CRPCRM_Request_Workflow_Service::get_default_status();
 $current_request_source = isset( $current_request_source ) ? sanitize_text_field( (string) $current_request_source ) : '';
 $active_landings        = ! empty( $active_landings ) && is_array( $active_landings ) ? $active_landings : array();
 $request_page_url       = crpcrm_admin_requests_url( array( 'action' => 'new' ) );
@@ -108,7 +108,7 @@ $has_active_landings    = ! empty( $active_landings );
 					<label class="crpcrm-width-50">
 						<?php echo esc_html( 'وضعیت درخواست' ); ?>
 						<select name="request_status" required>
-							<?php foreach ( array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' ) as $status ) : ?>
+							<?php foreach ( array( CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS, CRPCRM_Request_Workflow_Service::STATUS_FOLLOWED_UP, CRPCRM_Request_Workflow_Service::STATUS_FUTURE_FOLLOWUP ) as $status ) : ?>
 								<option value="<?php echo esc_attr( $status ); ?>" <?php selected( $current_request_status, $status ); ?>>
 									<?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $status ) ); ?>
 								</option>

@@ -320,15 +320,8 @@
 		});
 
 		var followUp = form.querySelector('.crpcrm-follow-up-field');
-		var lost = form.querySelector('.crpcrm-lost-reason-field');
-		var invalid = form.querySelector('.crpcrm-invalid-reason-field');
-
-		if ('schedule_follow_up' === action && followUp) {
+		if ('schedule_followup' === action && followUp) {
 			followUp.style.display = '';
-		} else if ('mark_lost' === action && lost) {
-			lost.style.display = '';
-		} else if ('mark_invalid' === action && invalid) {
-			invalid.style.display = '';
 		}
 	}
 
@@ -548,12 +541,18 @@
 			if (status) {
 				status.textContent = validationError;
 			}
+			if (typeof form._crpcrmReleaseSubmitGuard === 'function') {
+				form._crpcrmReleaseSubmitGuard();
+			}
 			return;
 		}
 
 		if (!window.fetch || !config.ajaxUrl || !config.manualCustomerSaveNonce) {
 			if (status) {
-				status.textContent = config.manualCustomerSaveError || 'Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.';
+				status.textContent = 'ذخیره اطلاعات مشتری انجام نشد.';
+			}
+			if (typeof form._crpcrmReleaseSubmitGuard === 'function') {
+				form._crpcrmReleaseSubmitGuard();
 			}
 			return;
 		}
@@ -571,7 +570,7 @@
 		});
 
 		if (status) {
-			status.textContent = config.manualCustomerSaveLoading || 'Ø¯Ø± Ø­Ø§Ù„ Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ...';
+			status.textContent = 'در حال ذخیره اطلاعات مشتری...';
 		}
 		button.disabled = true;
 
@@ -583,17 +582,23 @@
 			.then(function (response) { return response.json(); })
 			.then(function (payload) {
 				if (!payload || !payload.success || !payload.data) {
-					throw new Error((payload && payload.data && payload.data.message) || config.manualCustomerSaveError || 'Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.');
+					throw new Error((payload && payload.data && payload.data.message) || 'ذخیره اطلاعات مشتری انجام نشد.');
 				}
 
 				renderManualCustomerResult(form, payload.data);
+				if (typeof form._crpcrmReleaseSubmitGuard === 'function') {
+					form._crpcrmReleaseSubmitGuard();
+				}
 				if (status) {
 					status.textContent = payload.data.message || '';
 				}
 			})
 			.catch(function (error) {
 				if (status) {
-					status.textContent = (error && error.message) || config.manualCustomerSaveError || 'Ø°Ø®ÛŒØ±Ù‡ Ø§Ø·Ù„Ø§Ø¹Ø§Øª Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.';
+					status.textContent = (error && error.message) || 'ذخیره اطلاعات مشتری انجام نشد.';
+				}
+				if (typeof form._crpcrmReleaseSubmitGuard === 'function') {
+					form._crpcrmReleaseSubmitGuard();
 				}
 			})
 			.finally(function () {
@@ -640,7 +645,7 @@
 			requestId += 1;
 			var currentRequestId = requestId;
 			if (status) {
-				status.textContent = config.manualCustomerLoading || 'Ø¯Ø± Ø­Ø§Ù„ Ø¬Ø³ØªØ¬ÙˆÛŒ Ù…Ø´ØªØ±ÛŒ...';
+				status.textContent = 'در حال جستجوی مشتری...';
 			}
 
 			var formData = new FormData();
@@ -662,7 +667,7 @@
 						return;
 					}
 					if (!payload || !payload.success || !payload.data) {
-						throw new Error(config.manualCustomerLookupError || 'Ø¬Ø³ØªØ¬ÙˆÛŒ Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.');
+						throw new Error('جستجوی مشتری انجام نشد.');
 					}
 					if (status) {
 						status.textContent = '';
@@ -674,9 +679,12 @@
 						return;
 					}
 					if (status) {
-						status.textContent = config.manualCustomerLookupError || 'Ø¬Ø³ØªØ¬ÙˆÛŒ Ù…Ø´ØªØ±ÛŒ Ø§Ù†Ø¬Ø§Ù… Ù†Ø´Ø¯.';
+						status.textContent = 'جستجوی مشتری انجام نشد.';
 					}
 					renderManualCustomerResult(form, { state: 'idle' });
+					if (typeof form._crpcrmReleaseSubmitGuard === 'function') {
+						form._crpcrmReleaseSubmitGuard();
+					}
 				});
 		}
 
@@ -719,7 +727,10 @@
 			if (hiddenCustomer && !hiddenCustomer.value) {
 				event.preventDefault();
 				if (status) {
-					status.textContent = config.manualCustomerCreateRequired || 'Ø¨Ø±Ø§ÛŒ Ø«Ø¨Øª Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ø§Ø¨ØªØ¯Ø§ Ø¨Ø§ÛŒØ¯ Ù…Ø´ØªØ±ÛŒ Ø§ÛŒØ¬Ø§Ø¯ Ø´ÙˆØ¯.';
+					status.textContent = 'ابتدا مشتری را پیدا یا ایجاد کنید.';
+				}
+				if (typeof form._crpcrmReleaseSubmitGuard === 'function') {
+					form._crpcrmReleaseSubmitGuard();
 				}
 			}
 		});
@@ -1470,6 +1481,7 @@
 			delete form.dataset.crpcrmSubmitting;
 			setButtonsDisabled(false);
 		}
+		form._crpcrmReleaseSubmitGuard = releaseSubmitGuard;
 
 		form.dataset.submitGuardBound = '1';
 		form.addEventListener('invalid', function () {
