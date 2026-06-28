@@ -1167,8 +1167,6 @@ class CRPCRM_Admin_Pages {
 		$data        = array(
 			'note'              => isset( $_POST['action_note'] ) ? wp_unslash( $_POST['action_note'] ) : '',
 			'next_follow_up_at' => isset( $_POST['next_follow_up_at'] ) ? wp_unslash( $_POST['next_follow_up_at'] ) : '',
-			'close_reason'      => isset( $_POST['close_reason'] ) ? wp_unslash( $_POST['close_reason'] ) : '',
-			'invalid_reason'    => isset( $_POST['invalid_reason'] ) ? wp_unslash( $_POST['invalid_reason'] ) : '',
 		);
 
 		$result = $this->workflow_service->add_sales_action( $request_id, $action_type, $data, get_current_user_id() );
@@ -1193,7 +1191,7 @@ class CRPCRM_Admin_Pages {
 				array(
 					'page'                  => 'crpcrm-requests',
 					'request_id'            => $request_id,
-					'crpcrm_notice'         => 'manual_request_created',
+					'crpcrm_notice'         => 'sales_action_added',
 					'crpcrm_notice_type'    => 'success',
 					'crpcrm_notice_message' => $this->workflow_service->get_success_message( $action_type ),
 				),

@@ -23,6 +23,7 @@ $notice_messages = array(
 	'sales_action_denied'           => array( 'error', 'شما اجازه ثبت اقدام برای این درخواست را ندارید.' ),
 	'request_closed_action_denied'  => array( 'error', 'این درخواست بسته شده و امکان ثبت اقدام جدید وجود ندارد.' ),
 	'sales_action_update_failed'    => array( 'error', 'ثبت اقدام انجام نشد.' ),
+	'sales_action_added'            => array( 'success', 'اقدام با موفقیت ثبت شد.' ),
 	'request_not_found'             => array( 'error', 'درخواست موردنظر یافت نشد.' ),
 	'manual_request_created'       => array( 'success', 'درخواست دستی با موفقیت ثبت شد.' ),
 	'manual_customer_required'     => array( 'error', 'ابتدا مشتری را پیدا یا ایجاد کنید.' ),
@@ -229,7 +230,7 @@ function crpcrm_admin_transfer_form( $request_id, $owner_id, $assignable_users )
 			<select name="new_owner_id" required>
 				<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
 				<?php foreach ( $assignable_users as $user ) : ?>
-					<option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( absint( $owner_id ), absint( $user->ID ) ); ?>><?php echo esc_html( $user->display_name ); ?></option>
+					<option value="<?php echo esc_attr( $user->ID ); ?>" <?php disabled( absint( $owner_id ), absint( $user->ID ) ); ?>><?php echo esc_html( $user->display_name ); ?></option>
 				<?php endforeach; ?>
 			</select>
 		</label>

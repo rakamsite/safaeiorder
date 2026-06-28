@@ -129,6 +129,14 @@ class CRPCRM_Request_Workflow_Service {
 		);
 	}
 
+	public function get_lost_reason_labels() {
+		return array();
+	}
+
+	public function get_invalid_reason_labels() {
+		return array();
+	}
+
 	public function get_success_message( $action_type ) {
 		$messages = array(
 			'in_progress'       => 'اقدام «درحال پیگیری» ثبت شد.',
