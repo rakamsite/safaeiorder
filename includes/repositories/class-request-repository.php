@@ -505,7 +505,7 @@ class CRPCRM_Request_Repository {
 		}
 
 		$old_status = $request['status'];
-		$new_status = ( CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS === $old_status && empty( $request['closed_at'] ) ) ? 'new' : $old_status;
+		$new_status = $old_status;
 		$wpdb->query( 'START TRANSACTION' );
 		if ( ! $this->update( $request_id, array( 'owner_id' => null, 'status' => $new_status, 'last_action' => 'request_owner_released', 'last_activity_at' => CRPCRM_Helpers::current_datetime() ) ) ) {
 			$wpdb->query( 'ROLLBACK' );
@@ -809,6 +809,9 @@ class CRPCRM_Request_Repository {
 		}
 		if ( '' === $reason ) {
 			return new WP_Error( 'transfer_reason_required', 'دلیل انتقال الزامی است.' );
+		}
+		if ( $new_owner_id <= 0 ) {
+			return new WP_Error( 'transfer_owner_required', 'کارشناس مقصد را انتخاب کنید.' );
 		}
 		if ( ! $this->is_assignable_owner( $new_owner_id ) ) {
 			return new WP_Error( 'request_owner_change_denied', 'کارشناس مقصد معتبر نیست.' );
