@@ -26,7 +26,7 @@ class CRPCRM_Request_Repository {
 			$data,
 			array(
 				'request_code'     => 'TEMP-' . wp_generate_uuid4(),
-				'status'           => 'new',
+				'status'           => CRPCRM_Request_Workflow_Service::get_default_status(),
 				'owner_id'         => null,
 				'last_activity_at' => $now,
 				'created_at'       => $now,
@@ -384,7 +384,7 @@ class CRPCRM_Request_Repository {
 
 		$now        = CRPCRM_Helpers::current_datetime();
 		$old_status = $request['status'];
-		$new_status = 'new' === $old_status ? 'in_progress' : $old_status;
+		$new_status = 'new' === $old_status ? CRPCRM_Request_Workflow_Service::get_default_status() : $old_status;
 		$data       = array(
 			'owner_id'         => $user_id,
 			'status'           => $new_status,
@@ -450,7 +450,7 @@ class CRPCRM_Request_Repository {
 		}
 
 		$old_status = $request['status'];
-		$new_status = 'new' === $old_status ? 'in_progress' : $old_status;
+		$new_status = 'new' === $old_status ? CRPCRM_Request_Workflow_Service::get_default_status() : $old_status;
 		$now        = CRPCRM_Helpers::current_datetime();
 		$data       = array(
 			'owner_id'         => $new_owner_id,
@@ -505,7 +505,7 @@ class CRPCRM_Request_Repository {
 		}
 
 		$old_status = $request['status'];
-		$new_status = ( 'in_progress' === $old_status && empty( $request['closed_at'] ) ) ? 'new' : $old_status;
+		$new_status = ( CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS === $old_status && empty( $request['closed_at'] ) ) ? 'new' : $old_status;
 		$wpdb->query( 'START TRANSACTION' );
 		if ( ! $this->update( $request_id, array( 'owner_id' => null, 'status' => $new_status, 'last_action' => 'request_owner_released', 'last_activity_at' => CRPCRM_Helpers::current_datetime() ) ) ) {
 			$wpdb->query( 'ROLLBACK' );
@@ -551,7 +551,7 @@ class CRPCRM_Request_Repository {
 		return $this->update(
 			$request_id,
 			array(
-				'status'             => 'follow_up',
+				'status'             => CRPCRM_Request_Workflow_Service::STATUS_FUTURE_FOLLOWUP,
 				'next_follow_up_at'  => sanitize_text_field( $next_follow_up_at ),
 				'last_action'        => sanitize_key( $last_action ),
 				'last_activity_at'   => CRPCRM_Helpers::current_datetime(),
@@ -715,20 +715,18 @@ class CRPCRM_Request_Repository {
 			if ( 'open' === $args['status_group'] ) {
 				$where[] = "r.status IN ('new','in_progress','no_answer','follow_up')";
 			} elseif ( 'closed' === $args['status_group'] ) {
-				$where[] = "r.status IN ('won','lost','invalid')";
+				$where[] = "r.status IN ('followed_up','won','lost','invalid')";
 			}
 		}
 		if ( ! empty( $args['workflow_filter'] ) ) {
 			$workflow_filter = sanitize_key( $args['workflow_filter'] );
 			if ( 'followups_today' === $workflow_filter ) {
-				$where[]  = 'r.status = %s AND r.next_follow_up_at >= %s AND r.next_follow_up_at <= %s';
-				$values[] = 'follow_up';
+				$where[]  = "r.status IN ('follow_up','future_followup') AND r.next_follow_up_at >= %s AND r.next_follow_up_at <= %s";
 				$today    = CRPCRM_Helpers::get_today_range();
 				$values[] = $today['start'];
 				$values[] = $today['end'];
 			} elseif ( 'overdue_followups' === $workflow_filter ) {
-				$where[]  = 'r.status = %s AND r.next_follow_up_at < %s';
-				$values[] = 'follow_up';
+				$where[]  = "r.status IN ('follow_up','future_followup') AND r.next_follow_up_at < %s";
 				$values[] = CRPCRM_Helpers::current_datetime();
 			} elseif ( 'customer_replies' === $workflow_filter ) {
 				$where[]  = 'r.last_action = %s';
@@ -736,7 +734,7 @@ class CRPCRM_Request_Repository {
 			} elseif ( 'stale' === $workflow_filter ) {
 				if ( CRPCRM_Request_Access_Service::can_view_all( $user_id ) ) {
 					$stale_hours = max( 1, absint( $args['stale_hours'] ) );
-					$where[]     = "r.status IN ('new','in_progress','no_answer','follow_up') AND r.owner_id IS NOT NULL AND (r.last_activity_at IS NULL OR r.last_activity_at < %s)";
+					$where[]     = "r.status IN ('new','in_progress','no_answer','follow_up','future_followup') AND r.owner_id IS NOT NULL AND (r.last_activity_at IS NULL OR r.last_activity_at < %s)";
 					$values[]    = CRPCRM_Helpers::subtract_seconds_from_now( HOUR_IN_SECONDS * $stale_hours );
 				} else {
 					$where[] = '1=0';
@@ -795,6 +793,92 @@ class CRPCRM_Request_Repository {
 		}
 		$roles = (array) $user->roles;
 		return in_array( 'sales_agent', $roles, true ) || in_array( 'sales_manager', $roles, true );
+	}
+
+	public function transfer_request( $request_id, $new_owner_id, $actor_user_id, $reason ) {
+		global $wpdb;
+
+		$request_id    = absint( $request_id );
+		$new_owner_id  = absint( $new_owner_id );
+		$actor_user_id = absint( $actor_user_id );
+		$reason        = trim( sanitize_textarea_field( $reason ) );
+		$request       = $this->get( $request_id );
+
+		if ( ! $request ) {
+			return new WP_Error( 'request_not_found', 'درخواست موردنظر یافت نشد.' );
+		}
+		if ( '' === $reason ) {
+			return new WP_Error( 'transfer_reason_required', 'دلیل انتقال الزامی است.' );
+		}
+		if ( ! $this->is_assignable_owner( $new_owner_id ) ) {
+			return new WP_Error( 'request_owner_change_denied', 'کارشناس مقصد معتبر نیست.' );
+		}
+		if ( absint( $request['owner_id'] ) === $new_owner_id ) {
+			return new WP_Error( 'transfer_same_owner', 'انتقال به همین کارشناس مجاز نیست.' );
+		}
+		if ( ! CRPCRM_Request_Access_Service::can_manage_request( $request, $actor_user_id ) && absint( $request['owner_id'] ) !== $actor_user_id ) {
+			return new WP_Error( 'request_owner_change_denied', 'شما اجازه انتقال این درخواست را ندارید.' );
+		}
+
+		$old_status   = sanitize_key( $request['status'] ?? '' );
+		$old_owner_id = absint( $request['owner_id'] ?? 0 );
+		$new_status   = CRPCRM_Request_Workflow_Service::get_default_status();
+		$now          = CRPCRM_Helpers::current_datetime();
+		$old_owner    = $old_owner_id ? get_userdata( $old_owner_id ) : null;
+		$new_owner    = get_userdata( $new_owner_id );
+		$note         = sprintf(
+			'درخواست از %1$s به %2$s منتقل شد. دلیل: %3$s',
+			$old_owner ? $old_owner->display_name : 'بدون مسئول',
+			$new_owner ? $new_owner->display_name : ( 'کاربر #' . $new_owner_id ),
+			$reason
+		);
+
+		$wpdb->query( 'START TRANSACTION' );
+		if ( ! $this->update(
+			$request_id,
+			array(
+				'owner_id'          => $new_owner_id,
+				'status'            => $new_status,
+				'next_follow_up_at' => null,
+				'closed_at'         => null,
+				'last_action'       => 'request_transferred',
+				'last_activity_at'  => $now,
+				'first_assigned_at' => empty( $request['first_assigned_at'] ) ? $now : $request['first_assigned_at'],
+			)
+		) ) {
+			$wpdb->query( 'ROLLBACK' );
+			return new WP_Error( 'request_transfer_failed', 'انتقال درخواست انجام نشد.' );
+		}
+
+		$activity_result = CRPCRM_Activity::add_required(
+			$request_id,
+			'request_transferred',
+			array(
+				'customer_id'   => $request['customer_id'],
+				'actor_user_id' => $actor_user_id,
+				'actor_type'    => CRPCRM_Request_Access_Service::can_manage_request( $request, $actor_user_id ) ? 'sales_manager' : 'sales_agent',
+				'old_status'    => $old_status,
+				'new_status'    => $new_status,
+				'note'          => $note,
+				'is_internal'   => 1,
+				'meta'          => array(
+					'old_owner_id'    => $old_owner_id,
+					'new_owner_id'    => $new_owner_id,
+					'transfer_reason' => $reason,
+					'transferred_at'  => $now,
+				),
+			),
+			'request_transfer'
+		);
+
+		if ( is_wp_error( $activity_result ) ) {
+			$wpdb->query( 'ROLLBACK' );
+			return $activity_result;
+		}
+
+		$wpdb->query( 'COMMIT' );
+
+		return true;
 	}
 
 	private function sanitize_data( $data ) {

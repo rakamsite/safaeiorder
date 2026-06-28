@@ -369,7 +369,7 @@ class CRPCRM_Portal_Shortcode {
 				'request_type'         => $request_type,
 				'form_id'              => $form_id,
 				'form_version'         => $form_version ? $form_version : '1',
-				'status'               => 'new',
+				'status'               => CRPCRM_Request_Workflow_Service::get_default_status(),
 				'owner_id'             => null,
 				'request_title'        => $form['title'],
 				'request_summary'      => $request_summary,
@@ -391,7 +391,7 @@ class CRPCRM_Portal_Shortcode {
 					'customer_id'   => $customer_id,
 					'actor_user_id' => $user_id,
 					'actor_type'    => 'customer',
-					'new_status'    => 'new',
+					'new_status'    => CRPCRM_Request_Workflow_Service::get_default_status(),
 					'note'          => 'درخواست توسط مشتری ثبت شد.',
 					'is_internal'   => 0,
 					'meta'          => array(

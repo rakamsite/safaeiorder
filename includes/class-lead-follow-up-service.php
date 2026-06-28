@@ -93,6 +93,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 					'request_landing_slug' => sanitize_key( $landing_touch['landing_slug'] ?? '' ),
 					'request_landing_page' => ! empty( $landing_attr['conversion_page'] ) ? $landing_attr['conversion_page'] : ( ! empty( $landing_touch['destination_url'] ) ? $landing_touch['destination_url'] : '' ),
 					'request_referrer'     => ! empty( $landing_attr['referrer'] ) ? $landing_attr['referrer'] : ( $customer['last_referrer'] ?? '' ),
+					'status'               => CRPCRM_Request_Workflow_Service::get_default_status(),
 					'last_action'          => CRPCRM_System_Request_Types::LEAD_FOLLOW_UP_CREATED,
 				)
 			);
@@ -108,7 +109,7 @@ class CRPCRM_Lead_Follow_Up_Service {
 				array(
 					'customer_id' => absint( $customer['id'] ),
 					'actor_type'  => 'system',
-					'new_status'  => 'new',
+					'new_status'  => CRPCRM_Request_Workflow_Service::get_default_status(),
 					'note'        => $reason,
 					'is_internal' => 1,
 				)
