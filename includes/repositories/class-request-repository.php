@@ -621,7 +621,7 @@ class CRPCRM_Request_Repository {
 	public function count_summary_for_user( $user_id ) {
 		$user_id = absint( $user_id );
 		return array(
-			'new_requests'      => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'status' => 'new' ) ),
+			'new_requests'      => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'status' => CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS ) ),
 			'unassigned'        => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ),
 			'mine'              => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me' ) ),
 			'customer_replies'   => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'me', 'workflow_filter' => 'customer_replies', 'status_group' => 'open' ) ),
@@ -634,7 +634,7 @@ class CRPCRM_Request_Repository {
 	public function count_summary_for_manager( $user_id, $stale_hours = 48 ) {
 		$user_id = absint( $user_id );
 		return array(
-			'new_requests'      => $this->count_for_admin( array( 'user_id' => $user_id, 'status' => 'new' ) ),
+			'new_requests'      => $this->count_for_admin( array( 'user_id' => $user_id, 'status' => CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS ) ),
 			'unassigned'        => $this->count_for_admin( array( 'user_id' => $user_id, 'owner_filter' => 'unassigned', 'status_group' => 'open' ) ),
 			'open'              => $this->count_for_admin( array( 'user_id' => $user_id, 'status_group' => 'open' ) ),
 			'customer_replies'   => $this->count_for_admin( array( 'user_id' => $user_id, 'workflow_filter' => 'customer_replies', 'status_group' => 'open' ) ),
