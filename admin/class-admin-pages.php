@@ -1275,12 +1275,7 @@ class CRPCRM_Admin_Pages {
 			$legacy_form = CRPCRM_Form_Registry::get_form_by_request_type( sanitize_key( wp_unslash( $_POST['request_type'] ) ) );
 			$form        = $legacy_form ? CRPCRM_Form_Registry::get_enabled_form( $legacy_form['id'] ?? '' ) : null;
 		}
-		$allowed_statuses = array(
-			CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS,
-			CRPCRM_Request_Workflow_Service::STATUS_FOLLOWED_UP,
-			CRPCRM_Request_Workflow_Service::STATUS_FUTURE_FOLLOWUP,
-		);
-		$status           = isset( $_POST['request_status'] ) ? sanitize_key( wp_unslash( $_POST['request_status'] ) ) : CRPCRM_Request_Workflow_Service::get_default_status();
+		$status           = CRPCRM_Request_Workflow_Service::get_default_status();
 		if ( ! $form ) {
 			$this->redirect_to_manual_request_form( 'manual_form_invalid', $this->build_manual_request_redirect_args( $_POST ) );
 		}
@@ -1293,10 +1288,6 @@ class CRPCRM_Admin_Pages {
 		if ( ! empty( $validated['errors'] ) ) {
 			$this->redirect_to_manual_request_form( 'manual_form_invalid', $this->build_manual_request_redirect_args( $_POST ) );
 		}
-		if ( ! in_array( $status, $allowed_statuses, true ) ) {
-			$status = CRPCRM_Request_Workflow_Service::get_default_status();
-		}
-
 		$customer_phone = isset( $_POST['customer_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['customer_phone'] ) ) : '';
 		if ( ! CRPCRM_Helpers::is_valid_iran_phone_normalized( CRPCRM_Helpers::normalize_iran_phone( $customer_phone ) ) ) {
 			$this->redirect_to_manual_request_form( 'manual_customer_invalid', $this->build_manual_request_redirect_args( $_POST, array( 'form_id' => $form_id ) ) );

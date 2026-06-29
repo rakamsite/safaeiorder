@@ -108,11 +108,9 @@ $has_active_landings    = ! empty( $active_landings );
 					<label class="crpcrm-width-50">
 						<?php echo esc_html( 'وضعیت درخواست' ); ?>
 						<select name="request_status" required>
-							<?php foreach ( array( CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS, CRPCRM_Request_Workflow_Service::STATUS_FOLLOWED_UP, CRPCRM_Request_Workflow_Service::STATUS_FUTURE_FOLLOWUP ) as $status ) : ?>
-								<option value="<?php echo esc_attr( $status ); ?>" <?php selected( $current_request_status, $status ); ?>>
-									<?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $status ) ); ?>
-								</option>
-							<?php endforeach; ?>
+							<option value="<?php echo esc_attr( CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS ); ?>" selected>
+								<?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS ) ); ?>
+							</option>
 						</select>
 					</label>
 

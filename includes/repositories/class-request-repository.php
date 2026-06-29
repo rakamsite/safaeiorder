@@ -713,7 +713,7 @@ class CRPCRM_Request_Repository {
 		}
 		if ( empty( $args['status'] ) && ! empty( $args['status_group'] ) ) {
 			if ( 'open' === $args['status_group'] ) {
-				$where[] = "r.status IN ('new','in_progress','no_answer','follow_up')";
+				$where[] = "r.status IN ('new','in_progress','no_answer','follow_up','future_followup')";
 			} elseif ( 'closed' === $args['status_group'] ) {
 				$where[] = "r.status IN ('followed_up','won','lost','invalid')";
 			}
