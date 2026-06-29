@@ -149,7 +149,7 @@ class CRPCRM_DB {
 				request_type VARCHAR(50) NOT NULL,
 				form_id VARCHAR(100) NULL,
 				form_version VARCHAR(50) NULL,
-				status VARCHAR(50) NOT NULL DEFAULT 'new',
+				status VARCHAR(50) NOT NULL DEFAULT 'in_progress',
 				owner_id BIGINT UNSIGNED NULL,
 				first_assigned_at DATETIME NULL,
 				request_title VARCHAR(255) NULL,
