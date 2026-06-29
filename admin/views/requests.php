@@ -304,21 +304,48 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 		<label class="crpcrm-conditional-field crpcrm-follow-up-field"><?php echo esc_html( 'تاریخ و ساعت پیگیری بعدی' ); ?>
 			<?php echo CRPCRM_Helpers::jalali_datetime_input( 'next_follow_up_at', '', array( 'time_hint' => 'ساعت پیگیری را هم انتخاب کنید.' ) ); ?>
 		</label>
+		<p class="submit"><button type="submit" class="button button-primary"><?php echo esc_html( 'ثبت اقدام' ); ?></button></p>
+	</form>
+	<?php
+	return;
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crpcrm-sales-action-form">
+		<input type="hidden" name="action" value="crpcrm_add_sales_action">
+		<input type="hidden" name="request_id" value="<?php echo esc_attr( absint( $request_id ) ); ?>">
+		<?php wp_nonce_field( 'crpcrm_add_sales_action_' . absint( $request_id ) ); ?>
+		<label><?php echo esc_html( 'نوع اقدام' ); ?>
+			<select name="action_type" class="crpcrm-action-type-select" required>
+				<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
+				<?php foreach ( $actions as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</label>
+		<label class="crpcrm-full-field"><?php echo esc_html( 'توضیح کارشناس' ); ?>
+			<textarea name="action_note" rows="4" required></textarea>
+		</label>
+		<label class="crpcrm-conditional-field crpcrm-follow-up-field"><?php echo esc_html( 'تاریخ و ساعت پیگیری بعدی' ); ?>
+			<?php echo CRPCRM_Helpers::jalali_datetime_input( 'next_follow_up_at', '', array( 'time_hint' => 'ساعت پیگیری را هم انتخاب کنید.' ) ); ?>
+		</label>
 		<label class="crpcrm-conditional-field crpcrm-lost-reason-field"><?php echo esc_html( 'دلیل ناموفق' ); ?>
+			<?php if ( false ) : ?>
 			<select name="close_reason">
 				<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
 				<?php foreach ( $workflow->get_lost_reason_labels() as $key => $label ) : ?>
 					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select>
+			<?php endif; ?>
 		</label>
 		<label class="crpcrm-conditional-field crpcrm-invalid-reason-field"><?php echo esc_html( 'دلیل نامعتبر' ); ?>
+			<?php if ( false ) : ?>
 			<select name="invalid_reason">
 				<option value=""><?php echo esc_html( 'انتخاب کنید' ); ?></option>
 				<?php foreach ( $workflow->get_invalid_reason_labels() as $key => $label ) : ?>
 					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
 			</select>
+			<?php endif; ?>
 		</label>
 		<p class="submit"><button type="submit" class="button button-primary"><?php echo esc_html( 'ثبت اقدام' ); ?></button></p>
 	</form>
@@ -420,7 +447,7 @@ function crpcrm_admin_sales_action_form( $request_id, $workflow, $closed_note_on
 					<label><?php echo esc_html( 'وضعیت' ); ?>
 						<select name="status">
 							<option value=""><?php echo esc_html( 'همه' ); ?></option>
-							<?php foreach ( array( 'new', 'in_progress', 'no_answer', 'follow_up', 'won', 'lost', 'invalid' ) as $status_key ) : ?>
+							<?php foreach ( array( CRPCRM_Request_Workflow_Service::STATUS_IN_PROGRESS, CRPCRM_Request_Workflow_Service::STATUS_FOLLOWED_UP, CRPCRM_Request_Workflow_Service::STATUS_FUTURE_FOLLOWUP ) as $status_key ) : ?>
 								<option value="<?php echo esc_attr( $status_key ); ?>" <?php selected( $filters['status'], $status_key ); ?>><?php echo esc_html( CRPCRM_Helpers::get_persian_status_label( $status_key ) ); ?></option>
 							<?php endforeach; ?>
 						</select>
